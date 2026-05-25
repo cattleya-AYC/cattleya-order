@@ -97,7 +97,6 @@ const MENU = {
 
 const CAKES = ["ミルククレープ","リンゴタルト","北海道チーズケーキ","渋皮栗モンブラン","チョコレートケーキ","マロンケーキ","紅茶シフォン"];
 const CAKE_DRINKS = ["コーヒー（HOT）","アイスコーヒー","ホットレモンティ","アイスレモンティ","ホットミルクティ","アイスミルクティ"];
-
 const TABLES = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"];
 
 export default function App() {
@@ -106,11 +105,9 @@ export default function App() {
   const [activeCat, setActiveCat] = useState("コーヒー");
   const [cart, setCart] = useState([]);
   const [sent, setSent] = useState(false);
-  const [cakeModal, setCakeModal] = useState(false);
   const [selectedCake, setSelectedCake] = useState(null);
 
   const addItem = (item) => {
-    if (item.name === "ケーキセット") { setCakeModal(true); return; }
     setCart((prev) => {
       const ex = prev.find((c) => c.id === item.id);
       if (ex) return prev.map((c) => c.id === item.id ? { ...c, qty: c.qty + 1 } : c);
@@ -118,13 +115,17 @@ export default function App() {
     });
   };
 
-  const removeItem = (id) => setCart((prev) => prev.filter((c) => c.id !== id));
+  const decreaseItem = (id) => {
+    setCart((prev) =>
+      prev.map((c) => c.id === id ? { ...c, qty: c.qty - 1 } : c).filter((c) => c.qty > 0)
+    );
+  };
 
   const addCakeSet = (drink) => {
     const name = `ケーキセット（${selectedCake}＋${drink}）`;
     setCart((prev) => [...prev, { id: Date.now(), name, price: 1000, qty: 1 }]);
-    setCakeModal(false);
     setSelectedCake(null);
+    setActiveCat("コーヒー");
   };
 
   const sendOrder = async () => {
@@ -142,6 +143,7 @@ export default function App() {
   };
 
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
   if (screen === "table") return (
     <div style={{ padding: 16, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0" }}>
@@ -149,7 +151,7 @@ export default function App() {
       <p style={{ color: "#8a7050", marginBottom: 12 }}>テーブルを選択</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
         {TABLES.map((t) => (
-          <button key={t} onClick={() => { setSelectedTable(t); setScreen("order"); setSent(false); setCart([]); }}
+          <button key={t} onClick={() => { setSelectedTable(t); setScreen("order"); setSent(false); setCart([]); setSelectedCake(null); setActiveCat("コーヒー"); }}
             style={{ padding: "12px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#c9952a", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
             {t}
           </button>
@@ -163,7 +165,7 @@ export default function App() {
       <div style={{ fontSize: 64 }}>✅</div>
       <h2 style={{ color: "#c9952a", fontFamily: "serif" }}>送信しました</h2>
       <p style={{ color: "#8a7050" }}>テーブル {selectedTable} の注文をキッチンに送りました</p>
-      <button onClick={() => { setSent(false); setScreen("order"); }}
+      <button onClick={() => { setSent(false); setScreen("order"); setActiveCat("コーヒー"); }}
         style={{ marginTop: 16, padding: "14px 32px", background: "#c9952a", border: "none", borderRadius: 10, color: "#0f0a05", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
         追加注文
       </button>
@@ -177,9 +179,16 @@ export default function App() {
 
   return (
     <div style={{ background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: "12px 16px", background: "#1c1208", borderBottom: "1px solid #3d2c14" }}>
-        <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>Cattleya</span>
-        <span style={{ color: "#8a7050", marginLeft: 8 }}>テーブル {selectedTable}</span>
+      <div style={{ padding: "12px 16px", background: "#1c1208", borderBottom: "1px solid #3d2c14", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>Cattleya</span>
+          <span style={{ color: "#8a7050", marginLeft: 8 }}>テーブル {selectedTable}</span>
+        </div>
+        {cartCount > 0 && (
+          <span style={{ background: "#c9952a", color: "#0f0a05", borderRadius: 12, padding: "2px 10px", fontSize: 13, fontWeight: 700 }}>
+            {cartCount}品
+          </span>
+        )}
       </div>
 
       <div style={{ display: "flex", borderBottom: "1px solid #3d2c14", background: "#1c1208", overflowX: "auto" }}>
@@ -202,8 +211,9 @@ export default function App() {
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>① ケーキを選んでください</div>
             {CAKES.map((cake, i) => (
               <div key={i} onClick={() => setSelectedCake(cake)}
-                style={{ padding: "13px 14px", background: selectedCake === cake ? "#2a1c0a" : "#201508", border: `1px solid ${selectedCake === cake ? "#c9952a" : "#352510"}`, borderRadius: 10, marginBottom: 6, cursor: "pointer" }}>
-                {cake} {selectedCake === cake && "✓"}
+                style={{ padding: "13px 14px", background: selectedCake === cake ? "#2a1c0a" : "#201508", border: `1px solid ${selectedCake === cake ? "#c9952a" : "#352510"}`, borderRadius: 10, marginBottom: 6, cursor: "pointer", display: "flex", justifyContent: "space-between" }}>
+                <span>{cake}</span>
+                {selectedCake === cake && <span style={{ color: "#c9952a" }}>✓</span>}
               </div>
             ))}
             {selectedCake && (
@@ -211,8 +221,9 @@ export default function App() {
                 <div style={{ color: "#8a7050", fontSize: 12, margin: "12px 0 8px" }}>② ドリンクを選んでください</div>
                 {CAKE_DRINKS.map((drink, i) => (
                   <div key={i} onClick={() => addCakeSet(drink)}
-                    style={{ padding: "13px 14px", background: "#201508", border: "1px solid #352510", borderRadius: 10, marginBottom: 6, cursor: "pointer", color: "#c9952a" }}>
-                    {drink} → カートに追加
+                    style={{ padding: "13px 14px", background: "#201508", border: "1px solid #352510", borderRadius: 10, marginBottom: 6, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>{drink}</span>
+                    <span style={{ color: "#c9952a", fontSize: 12 }}>追加 →</span>
                   </div>
                 ))}
               </>
@@ -220,21 +231,53 @@ export default function App() {
           </div>
         ) : (
           MENU[activeCat].map((item) => {
-            const qty = cart.find((c) => c.id === item.id)?.qty || 0;
+            const cartItem = cart.find((c) => c.id === item.id);
+            const qty = cartItem?.qty || 0;
             const isDiscount = item.price < 0;
             return (
-              <div key={item.id} onClick={() => isDiscount && qty > 0 ? removeItem(item.id) : addItem(item)}
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 14px", background: isDiscount ? "#0a1508" : "#201508", border: `1px solid ${qty > 0 ? "#6a4d15" : isDiscount ? "#1a4020" : "#352510"}`, borderRadius: 10, marginBottom: 6, cursor: "pointer" }}>
-                <span style={{ color: isDiscount ? "#4aaa5a" : "#f0e6d0" }}>{item.name}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ color: isDiscount ? "#4aaa5a" : "#8a7050", fontSize: 13 }}>{isDiscount ? `-¥${Math.abs(item.price)}` : `¥${item.price.toLocaleString()}`}</span>
-                  {qty > 0 && <span style={{ background: isDiscount ? "#2a6a3a" : "#c9952a", color: "#fff", borderRadius: 10, padding: "2px 8px", fontSize: 12, fontWeight: 700 }}>×{qty}</span>}
+              <div key={item.id}
+                style={{ display: "flex", alignItems: "center", padding: "11px 14px", background: isDiscount ? "#0a1508" : "#201508", border: `1px solid ${qty > 0 ? "#6a4d15" : isDiscount ? "#1a4020" : "#352510"}`, borderRadius: 10, marginBottom: 6 }}>
+                <div style={{ flex: 1, cursor: "pointer" }} onClick={() => addItem(item)}>
+                  <div style={{ color: isDiscount ? "#4aaa5a" : "#f0e6d0", fontSize: 14 }}>{item.name}</div>
+                  <div style={{ color: isDiscount ? "#4aaa5a" : "#8a7050", fontSize: 12, marginTop: 2 }}>
+                    {isDiscount ? `-¥${Math.abs(item.price)}` : `¥${item.price.toLocaleString()}`}
+                  </div>
                 </div>
+                {qty > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <button onClick={() => decreaseItem(item.id)}
+                      style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid #6a4d15", background: "#1a1008", color: "#c9952a", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      −
+                    </button>
+                    <span style={{ color: "#c9952a", fontWeight: 700, minWidth: 20, textAlign: "center" }}>{qty}</span>
+                    <button onClick={() => addItem(item)}
+                      style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid #6a4d15", background: "#c9952a", color: "#0f0a05", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      ＋
+                    </button>
+                  </div>
+                )}
+                {qty === 0 && (
+                  <button onClick={() => addItem(item)}
+                    style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid #3d2c14", background: "#251a0a", color: "#8a7050", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    ＋
+                  </button>
+                )}
               </div>
             );
           })
         )}
       </div>
+
+      {cart.length > 0 && (
+        <div style={{ padding: "8px 12px", background: "#1a1008", borderTop: "1px solid #3d2c14", maxHeight: 140, overflowY: "auto" }}>
+          {cart.map((item, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#8a7050", padding: "3px 0" }}>
+              <span>{item.name} ×{item.qty}</span>
+              <span>¥{(item.price * item.qty).toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ padding: "12px 16px", background: "#1c1208", borderTop: "1px solid #3d2c14" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
