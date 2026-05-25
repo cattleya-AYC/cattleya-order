@@ -8,65 +8,83 @@ const supabase = createClient(
 
 const MENU = {
   コーヒー: [
-    { id: 1, name: "コーヒー", price: 650 },
+    { id: 1, name: "コーヒー（HOT）", price: 650 },
     { id: 2, name: "アイスコーヒー", price: 650 },
     { id: 3, name: "アメリカン", price: 650 },
-    { id: 4, name: "カフェ・オ・レ", price: 750 },
+    { id: 4, name: "カフェ・オ・レ（HOT）", price: 750 },
     { id: 5, name: "アイスオ・レ", price: 750 },
-    { id: 6, name: "ウィンナーコーヒー", price: 750 },
+    { id: 6, name: "ウィンナーコーヒー（HOT）", price: 750 },
     { id: 7, name: "アイスウィンナー", price: 750 },
     { id: 8, name: "おかわり", price: 300 },
   ],
+  ストレート: [
+    { id: 9, name: "トアルコ・トラジャ", price: 800 },
+    { id: 10, name: "ブラジル", price: 700 },
+    { id: 11, name: "マンデリン", price: 700 },
+    { id: 12, name: "モカマタリ", price: 800 },
+    { id: 13, name: "コロンビアスプレモ", price: 700 },
+    { id: 14, name: "グアテマラ", price: 700 },
+    { id: 15, name: "キリマンジャロ", price: 700 },
+  ],
   紅茶: [
-    { id: 11, name: "レモンティ", price: 650 },
-    { id: 12, name: "ミルクティ", price: 650 },
-    { id: 13, name: "ウーロン茶", price: 650 },
-    { id: 14, name: "こんぶ茶", price: 650 },
-    { id: 15, name: "梅こん茶", price: 650 },
-    { id: 16, name: "おかわり", price: 300 },
+    { id: 21, name: "ホットレモンティ", price: 650 },
+    { id: 22, name: "アイスレモンティ", price: 650 },
+    { id: 23, name: "ホットミルクティ", price: 650 },
+    { id: 24, name: "アイスミルクティ", price: 650 },
+    { id: 25, name: "ホットウーロン茶", price: 650 },
+    { id: 26, name: "アイスウーロン茶", price: 650 },
+    { id: 27, name: "こんぶ茶（HOT）", price: 650 },
+    { id: 28, name: "梅こん茶（HOT）", price: 650 },
+    { id: 29, name: "おかわり", price: 300 },
   ],
   ジュース: [
-    { id: 21, name: "ミルク", price: 650 },
-    { id: 22, name: "ココア", price: 800 },
-    { id: 23, name: "トマトジュース", price: 700 },
-    { id: 24, name: "リンゴジュース", price: 700 },
-    { id: 25, name: "オレンジジュース", price: 700 },
-    { id: 26, name: "バナナジュース", price: 750 },
-    { id: 27, name: "レモンジュース", price: 800 },
-    { id: 28, name: "レモンスカッシュ", price: 800 },
-    { id: 29, name: "コカ・コーラ", price: 650 },
-    { id: 30, name: "ジンジャーエール", price: 650 },
-    { id: 31, name: "ソーダ水", price: 650 },
-    { id: 32, name: "カルピス", price: 650 },
-    { id: 33, name: "野菜ジュース", price: 750 },
-    { id: 34, name: "グアバドリンク", price: 800 },
-    { id: 35, name: "マンゴードリンク", price: 800 },
-    { id: 36, name: "コーヒーフロート", price: 750 },
-    { id: 37, name: "ソーダフロート", price: 750 },
+    { id: 31, name: "ホットミルク", price: 650 },
+    { id: 32, name: "アイスミルク", price: 650 },
+    { id: 33, name: "ホットココア", price: 800 },
+    { id: 34, name: "アイスココア", price: 800 },
+    { id: 35, name: "トマトジュース", price: 700 },
+    { id: 36, name: "リンゴジュース", price: 700 },
+    { id: 37, name: "オレンジジュース", price: 700 },
+    { id: 38, name: "バナナジュース", price: 750 },
+    { id: 39, name: "レモンジュース", price: 800 },
+    { id: 40, name: "レモンスカッシュ", price: 800 },
+    { id: 41, name: "コカ・コーラ", price: 650 },
+    { id: 42, name: "ジンジャーエール", price: 650 },
+    { id: 43, name: "ソーダ水", price: 650 },
+    { id: 44, name: "カルピス", price: 650 },
+    { id: 45, name: "野菜ジュース", price: 750 },
+    { id: 46, name: "グアバドリンク", price: 800 },
+    { id: 47, name: "マンゴードリンク", price: 800 },
+    { id: 48, name: "コーヒーフロート", price: 750 },
+    { id: 49, name: "ソーダフロート", price: 750 },
   ],
   フード: [
-    { id: 41, name: "トースト", price: 600 },
-    { id: 42, name: "ピザトースト", price: 850 },
-    { id: 43, name: "ミックスサンド", price: 850 },
-    { id: 44, name: "ハムサンド", price: 850 },
-    { id: 45, name: "野菜サンド", price: 850 },
-    { id: 46, name: "玉子サンド", price: 850 },
+    { id: 51, name: "トースト", price: 600 },
+    { id: 52, name: "ピザトースト", price: 850 },
+    { id: 53, name: "ミックスサンド", price: 850 },
+    { id: 54, name: "ハムサンド", price: 850 },
+    { id: 55, name: "野菜サンド", price: 850 },
+    { id: 56, name: "玉子サンド", price: 850 },
+    { id: 57, name: "ミックストーストサンド", price: 950 },
+    { id: 58, name: "ハムトーストサンド", price: 950 },
+    { id: 59, name: "たまごトーストサンド", price: 950 },
+    { id: 60, name: "フードセット割（-200円）", price: -200 },
   ],
   スイーツ: [
-    { id: 51, name: "ミルククレープ", price: 500 },
-    { id: 52, name: "リンゴタルト", price: 600 },
-    { id: 53, name: "北海道チーズケーキ", price: 500 },
-    { id: 54, name: "渋皮栗モンブラン", price: 500 },
-    { id: 55, name: "チョコレートケーキ", price: 500 },
-    { id: 56, name: "マロンケーキ", price: 500 },
-    { id: 57, name: "紅茶シフォン", price: 600 },
-    { id: 58, name: "コーヒーゼリー", price: 750 },
-    { id: 59, name: "バニラアイスクリーム", price: 750 },
-    { id: 60, name: "ケーキセット", price: 1000 },
+    { id: 61, name: "ミルククレープ", price: 500 },
+    { id: 62, name: "リンゴタルト", price: 600 },
+    { id: 63, name: "北海道チーズケーキ", price: 500 },
+    { id: 64, name: "渋皮栗モンブラン", price: 500 },
+    { id: 65, name: "チョコレートケーキ", price: 500 },
+    { id: 66, name: "マロンケーキ", price: 500 },
+    { id: 67, name: "紅茶シフォン", price: 600 },
+    { id: 68, name: "コーヒーゼリー", price: 750 },
+    { id: 69, name: "バニラアイスクリーム", price: 750 },
+    { id: 70, name: "ケーキセット（1,000円）", price: 1000 },
   ],
   アルコール: [
-    { id: 71, name: "オールド水割り", price: 750 },
-    { id: 72, name: "バドワイザー", price: 800 },
+    { id: 81, name: "オールド水割り", price: 750 },
+    { id: 82, name: "バドワイザー", price: 800 },
   ],
 };
 
@@ -85,6 +103,10 @@ export default function App() {
       if (ex) return prev.map((c) => c.id === item.id ? { ...c, qty: c.qty + 1 } : c);
       return [...prev, { ...item, qty: 1 }];
     });
+  };
+
+  const removeItem = (id) => {
+    setCart((prev) => prev.filter((c) => c.id !== id));
   };
 
   const sendOrder = async () => {
@@ -152,13 +174,14 @@ export default function App() {
       <div style={{ flex: 1, overflow: "auto", padding: 12 }}>
         {MENU[activeCat].map((item) => {
           const qty = cart.find((c) => c.id === item.id)?.qty || 0;
+          const isDiscount = item.price < 0;
           return (
-            <div key={item.id} onClick={() => addItem(item)}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 14px", background: "#201508", border: `1px solid ${qty > 0 ? "#6a4d15" : "#352510"}`, borderRadius: 10, marginBottom: 6, cursor: "pointer" }}>
-              <span>{item.name}</span>
+            <div key={item.id} onClick={() => isDiscount && qty > 0 ? removeItem(item.id) : addItem(item)}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 14px", background: isDiscount ? "#0a1508" : "#201508", border: `1px solid ${qty > 0 ? "#6a4d15" : isDiscount ? "#1a4020" : "#352510"}`, borderRadius: 10, marginBottom: 6, cursor: "pointer" }}>
+              <span style={{ color: isDiscount ? "#4aaa5a" : "#f0e6d0" }}>{item.name}</span>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ color: "#8a7050", fontSize: 13 }}>¥{item.price.toLocaleString()}</span>
-                {qty > 0 && <span style={{ background: "#c9952a", color: "#0f0a05", borderRadius: 10, padding: "2px 8px", fontSize: 12, fontWeight: 700 }}>×{qty}</span>}
+                <span style={{ color: isDiscount ? "#4aaa5a" : "#8a7050", fontSize: 13 }}>{isDiscount ? `-¥${Math.abs(item.price)}` : `¥${item.price.toLocaleString()}`}</span>
+                {qty > 0 && <span style={{ background: isDiscount ? "#2a6a3a" : "#c9952a", color: "#fff", borderRadius: 10, padding: "2px 8px", fontSize: 12, fontWeight: 700 }}>×{qty}</span>}
               </div>
             </div>
           );
