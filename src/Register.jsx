@@ -13,6 +13,7 @@ export default function Register() {
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
   const [confirming, setConfirming] = useState(false);
+  const [debugMsg, setDebugMsg] = useState("起動中...");
 
   useEffect(() => {
     fetchOrders();
@@ -26,11 +27,15 @@ export default function Register() {
   }, []);
 
   const fetchOrders = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("orders")
       .select("*")
-      
       .order("created_at", { ascending: true });
+    if (error) {
+      setDebugMsg("エラー: " + error.message);
+    } else {
+      setDebugMsg("取得件数: " + (data ? data.length : 0) + "件");
+    }
     setOrders(data || []);
   };
 
@@ -63,9 +68,10 @@ export default function Register() {
   const selectedPeople = selected ? tablePeople(selected) : "-";
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: "#0d0905", color: "#f0e6d0", fontFamily: "'Noto Sans JP', sans-serif" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#0d0905", color: "#f0e6d0", fontFamily: "'Noto Sans JP', sans-serif" }}>
+      <div style={{ background: "#ff0000", color: "#fff", padding: "4px 12px", fontSize: 12 }}>{debugMsg}</div>
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
 
-      {/* 会計確認モーダル */}
       {confirming && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
           <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 28, width: "90%", maxWidth: 400 }}>
@@ -99,7 +105,6 @@ export default function Register() {
         </div>
       )}
 
-      {/* 左：テーブルマップ */}
       <div style={{ width: 200, background: "#181008", borderRight: "1px solid #3d2c14", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "16px 14px", borderBottom: "1px solid #3d2c14" }}>
           <div style={{ fontFamily: "serif", fontSize: 14, color: "#c9952a", fontWeight: 700 }}>Lounge Cattleya</div>
@@ -126,8 +131,6 @@ export default function Register() {
             })}
           </div>
         </div>
-
-        {/* 会計履歴 */}
         {history.length > 0 && (
           <div style={{ padding: "8px 12px", borderTop: "1px solid #3d2c14", maxHeight: 150, overflow: "auto" }}>
             <div style={{ fontSize: 10, color: "#8a7050", marginBottom: 6 }}>会計済み</div>
@@ -141,7 +144,6 @@ export default function Register() {
         )}
       </div>
 
-      {/* 右：注文詳細 */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "14px 20px", background: "#181008", borderBottom: "1px solid #3d2c14" }}>
           {selected ? (
@@ -156,7 +158,6 @@ export default function Register() {
             <span style={{ color: "#8a7050" }}>左のテーブルを選択してください</span>
           )}
         </div>
-
         <div style={{ flex: 1, overflow: "auto", padding: 20 }}>
           {!selected ? (
             <div style={{ textAlign: "center", color: "#3d2c14", paddingTop: 60, fontSize: 14 }}>🧾 テーブルを選択してください</div>
@@ -191,7 +192,6 @@ export default function Register() {
             </>
           )}
         </div>
-
         {selected && selectedOrders.length > 0 && (
           <div style={{ padding: "14px 20px", background: "#181008", borderTop: "1px solid #3d2c14" }}>
             <button onClick={() => setConfirming(true)}
@@ -200,6 +200,7 @@ export default function Register() {
             </button>
           </div>
         )}
+      </div>
       </div>
     </div>
   );
