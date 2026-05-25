@@ -78,6 +78,7 @@ const MENU = {
     { id: 67, name: "紅茶シフォン", price: 600 },
     { id: 68, name: "コーヒーゼリー", price: 750 },
     { id: 69, name: "バニラアイスクリーム", price: 750 },
+    { id: 70, name: "セット変更割引（-650円）", price: -650 },
   ],
   おかわり: [
     { id: 91, name: "コーヒー おかわり（HOT）", price: 300 },
@@ -98,14 +99,17 @@ const MENU = {
 const CAKES = ["ミルククレープ","リンゴタルト","北海道チーズケーキ","渋皮栗モンブラン","チョコレートケーキ","マロンケーキ","紅茶シフォン"];
 const CAKE_DRINKS = ["コーヒー（HOT）","アイスコーヒー","ホットレモンティ","アイスレモンティ","ホットミルクティ","アイスミルクティ"];
 const TABLES = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"];
+const PEOPLE = [1,2,3,4,5,6,7,8,9,10];
 
 export default function App() {
   const [screen, setScreen] = useState("table");
   const [selectedTable, setSelectedTable] = useState(null);
+  const [people, setPeople] = useState(null);
   const [activeCat, setActiveCat] = useState("コーヒー");
   const [cart, setCart] = useState([]);
   const [sent, setSent] = useState(false);
   const [selectedCake, setSelectedCake] = useState(null);
+  const [changingPeople, setChangingPeople] = useState(false);
 
   const addItem = (item) => {
     setCart((prev) => {
@@ -138,6 +142,13 @@ export default function App() {
         status: "pending",
       });
     }
+    await supabase.from("orders").insert({
+      table_no: String(selectedTable),
+      item_name: `【人数：${people}名】`,
+      price: 0,
+      qty: 1,
+      status: "info",
+    });
     setSent(true);
     setCart([]);
   };
@@ -145,13 +156,14 @@ export default function App() {
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
+  // テーブル選択画面
   if (screen === "table") return (
     <div style={{ padding: 16, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0" }}>
       <h1 style={{ color: "#c9952a", marginBottom: 16, fontFamily: "serif" }}>Lounge Cattleya</h1>
       <p style={{ color: "#8a7050", marginBottom: 12 }}>テーブルを選択</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
         {TABLES.map((t) => (
-          <button key={t} onClick={() => { setSelectedTable(t); setScreen("order"); setSent(false); setCart([]); setSelectedCake(null); setActiveCat("コーヒー"); }}
+          <button key={t} onClick={() => { setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setSelectedCake(null); setActiveCat("コーヒー"); }}
             style={{ padding: "12px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#c9952a", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
             {t}
           </button>
@@ -160,36 +172,98 @@ export default function App() {
     </div>
   );
 
+  // 人数入力画面
+  if (screen === "people") return (
+    <div style={{ padding: 24, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0" }}>
+      <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>Lounge Cattleya</div>
+      <div style={{ color: "#8a7050", marginBottom: 24 }}>テーブル {selectedTable}</div>
+      <div style={{ fontFamily: "serif", color: "#f0e6d0", fontSize: 20, marginBottom: 16 }}>人数を選択してください</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 24 }}>
+        {PEOPLE.map((n) => (
+          <button key={n} onClick={() => setPeople(n)}
+            style={{ padding: "16px 0", background: people === n ? "#c9952a" : "#251a0a", border: `1px solid ${people === n ? "#c9952a" : "#3d2c14"}`, borderRadius: 10, color: people === n ? "#0f0a05" : "#c9952a", fontSize: 20, fontWeight: 700, cursor: "pointer" }}>
+            {n}
+          </button>
+        ))}
+      </div>
+      {people && (
+        <div style={{ textAlign: "center", marginBottom: 16, color: "#8a7050" }}>
+          {people}名 が選択されています
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={() => setScreen("table")}
+          style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 15, cursor: "pointer" }}>
+          ← 戻る
+        </button>
+        <button onClick={() => setScreen("order")} disabled={!people}
+          style={{ flex: 2, padding: 14, background: people ? "#c9952a" : "#3d2c14", border: "none", borderRadius: 10, color: people ? "#0f0a05" : "#8a7050", fontSize: 16, fontWeight: 700, cursor: people ? "pointer" : "not-allowed" }}>
+          注文入力へ →
+        </button>
+      </div>
+    </div>
+  );
+
+  // 送信完了画面
   if (sent) return (
     <div style={{ padding: 32, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", textAlign: "center" }}>
       <div style={{ fontSize: 64 }}>✅</div>
       <h2 style={{ color: "#c9952a", fontFamily: "serif" }}>送信しました</h2>
-      <p style={{ color: "#8a7050" }}>テーブル {selectedTable} の注文をキッチンに送りました</p>
+      <p style={{ color: "#8a7050" }}>テーブル {selectedTable}・{people}名</p>
+      <p style={{ color: "#8a7050", fontSize: 13, marginTop: 4 }}>キッチンに送りました</p>
       <button onClick={() => { setSent(false); setScreen("order"); setActiveCat("コーヒー"); }}
-        style={{ marginTop: 16, padding: "14px 32px", background: "#c9952a", border: "none", borderRadius: 10, color: "#0f0a05", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
+        style={{ marginTop: 20, padding: "14px 32px", background: "#c9952a", border: "none", borderRadius: 10, color: "#0f0a05", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
         追加注文
       </button>
       <br />
-      <button onClick={() => { setScreen("table"); setSelectedTable(null); }}
+      <button onClick={() => { setScreen("table"); setSelectedTable(null); setPeople(null); }}
         style={{ marginTop: 10, padding: "12px 24px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
         別テーブルへ
       </button>
     </div>
   );
 
+  // 注文入力画面
   return (
     <div style={{ background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: "12px 16px", background: "#1c1208", borderBottom: "1px solid #3d2c14", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ padding: "10px 16px", background: "#1c1208", borderBottom: "1px solid #3d2c14", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>Cattleya</span>
-          <span style={{ color: "#8a7050", marginLeft: 8 }}>テーブル {selectedTable}</span>
+          <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>T{selectedTable}</span>
+          <span style={{ color: "#8a7050", marginLeft: 8, fontSize: 13 }}>{people}名</span>
         </div>
-        {cartCount > 0 && (
-          <span style={{ background: "#c9952a", color: "#0f0a05", borderRadius: 12, padding: "2px 10px", fontSize: 13, fontWeight: 700 }}>
-            {cartCount}品
-          </span>
-        )}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button onClick={() => setChangingPeople(true)}
+            style={{ padding: "4px 10px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 6, color: "#8a7050", fontSize: 11, cursor: "pointer" }}>
+            人数変更
+          </button>
+          {cartCount > 0 && (
+            <span style={{ background: "#c9952a", color: "#0f0a05", borderRadius: 12, padding: "2px 10px", fontSize: 13, fontWeight: 700 }}>
+              {cartCount}品
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* 人数変更モーダル */}
+      {changingPeople && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "85%" }}>
+            <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 16, marginBottom: 16 }}>人数を変更</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 16 }}>
+              {PEOPLE.map((n) => (
+                <button key={n} onClick={() => { setPeople(n); setChangingPeople(false); }}
+                  style={{ padding: "14px 0", background: people === n ? "#c9952a" : "#251a0a", border: `1px solid ${people === n ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: people === n ? "#0f0a05" : "#c9952a", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
+                  {n}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setChangingPeople(false)}
+              style={{ width: "100%", padding: 12, background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>
+              キャンセル
+            </button>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", borderBottom: "1px solid #3d2c14", background: "#1c1208", overflowX: "auto" }}>
         {Object.keys(MENU).map((cat) => (
@@ -231,8 +305,7 @@ export default function App() {
           </div>
         ) : (
           MENU[activeCat].map((item) => {
-            const cartItem = cart.find((c) => c.id === item.id);
-            const qty = cartItem?.qty || 0;
+            const qty = cart.find((c) => c.id === item.id)?.qty || 0;
             const isDiscount = item.price < 0;
             return (
               <div key={item.id}
@@ -243,7 +316,7 @@ export default function App() {
                     {isDiscount ? `-¥${Math.abs(item.price)}` : `¥${item.price.toLocaleString()}`}
                   </div>
                 </div>
-                {qty > 0 && (
+                {qty > 0 ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <button onClick={() => decreaseItem(item.id)}
                       style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid #6a4d15", background: "#1a1008", color: "#c9952a", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -255,8 +328,7 @@ export default function App() {
                       ＋
                     </button>
                   </div>
-                )}
-                {qty === 0 && (
+                ) : (
                   <button onClick={() => addItem(item)}
                     style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid #3d2c14", background: "#251a0a", color: "#8a7050", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     ＋
@@ -269,9 +341,9 @@ export default function App() {
       </div>
 
       {cart.length > 0 && (
-        <div style={{ padding: "8px 12px", background: "#1a1008", borderTop: "1px solid #3d2c14", maxHeight: 140, overflowY: "auto" }}>
+        <div style={{ padding: "8px 12px", background: "#1a1008", borderTop: "1px solid #3d2c14", maxHeight: 120, overflowY: "auto" }}>
           {cart.map((item, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#8a7050", padding: "3px 0" }}>
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#8a7050", padding: "2px 0" }}>
               <span>{item.name} ×{item.qty}</span>
               <span>¥{(item.price * item.qty).toLocaleString()}</span>
             </div>
@@ -285,7 +357,7 @@ export default function App() {
           <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 22, fontWeight: 700 }}>¥{total.toLocaleString()}</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setScreen("table")}
+          <button onClick={() => setScreen("people")}
             style={{ padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
             ← 戻る
           </button>
