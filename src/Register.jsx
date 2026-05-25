@@ -40,13 +40,21 @@ export default function Register() {
   };
 
   const tableOrders = (tableNo) =>
-    orders.filter((o) => o.table_no === String(tableNo) && o.status === "pending");
+    orders.filter((o) => {
+      const dbVal = isNaN(tableNo) ? String(o.table_no) : Number(o.table_no);
+      const target = isNaN(tableNo) ? String(tableNo) : Number(tableNo);
+      return dbVal === target && o.status === "pending";
+    });
 
   const tableTotal = (tableNo) =>
     tableOrders(tableNo).reduce((s, o) => s + o.price * o.qty, 0);
 
   const tablePeople = (tableNo) => {
-    const info = orders.find((o) => o.table_no === String(tableNo) && o.status === "info");
+    const info = orders.find((o) => {
+      const dbVal = isNaN(tableNo) ? String(o.table_no) : Number(o.table_no);
+      const target = isNaN(tableNo) ? String(tableNo) : Number(tableNo);
+      return dbVal === target && o.status === "info";
+    });
     return info ? info.item_name.replace("【人数：", "").replace("名】", "") : "-";
   };
 
@@ -57,7 +65,7 @@ export default function Register() {
     const t = selected;
     const amount = tableTotal(t);
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-    await supabase.from("orders").delete().eq("table_no", String(t));
+    await supabase.from("orders").delete().eq("table_no", t);
     setHistory((prev) => [{ table: t, amount, time: now }, ...prev]);
     setSelected(null);
     setConfirming(false);
