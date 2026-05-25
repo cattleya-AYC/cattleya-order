@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -27,14 +27,13 @@ const MENU = {
   ],
 };
 
-const TABLES = [...Array.from({ length: 15 }, (_, i) => i + 1), 'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O'];
-
+const TABLES = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"];
 
 export default function App() {
   const [screen, setScreen] = useState("table");
   const [selectedTable, setSelectedTable] = useState(null);
   const [activeCat, setActiveCat] = useState("ドリンク");
-  const [cart, setCart] = useStateう([]);
+  const [cart, setCart] = useState([]);
   const [sent, setSent] = useState(false);
 
   const addItem = (item) => {
@@ -48,7 +47,7 @@ export default function App() {
   const sendOrder = async () => {
     for (const item of cart) {
       await supabase.from("orders").insert({
-        table_no: selectedTable,
+        table_no: String(selectedTable),
         item_name: item.name,
         price: item.price,
         qty: item.qty,
