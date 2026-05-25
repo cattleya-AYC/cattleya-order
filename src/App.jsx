@@ -110,6 +110,7 @@ export default function App() {
   const [sent, setSent] = useState(false);
   const [selectedCake, setSelectedCake] = useState(null);
   const [changingPeople, setChangingPeople] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const addItem = (item) => {
     setCart((prev) => {
@@ -149,6 +150,7 @@ export default function App() {
       qty: 1,
       status: "info",
     });
+    setConfirming(false);
     setSent(true);
     setCart([]);
   };
@@ -156,14 +158,14 @@ export default function App() {
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
-  // テーブル選択画面
+  // テーブル選択
   if (screen === "table") return (
     <div style={{ padding: 16, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0" }}>
       <h1 style={{ color: "#c9952a", marginBottom: 16, fontFamily: "serif" }}>Lounge Cattleya</h1>
       <p style={{ color: "#8a7050", marginBottom: 12 }}>テーブルを選択</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
         {TABLES.map((t) => (
-          <button key={t} onClick={() => { setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setSelectedCake(null); setActiveCat("コーヒー"); }}
+          <button key={t} onClick={() => { setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setSelectedCake(null); setActiveCat("コーヒー"); setConfirming(false); }}
             style={{ padding: "12px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#c9952a", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
             {t}
           </button>
@@ -172,7 +174,7 @@ export default function App() {
     </div>
   );
 
-  // 人数入力画面
+  // 人数選択
   if (screen === "people") return (
     <div style={{ padding: 24, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0" }}>
       <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>Lounge Cattleya</div>
@@ -186,11 +188,7 @@ export default function App() {
           </button>
         ))}
       </div>
-      {people && (
-        <div style={{ textAlign: "center", marginBottom: 16, color: "#8a7050" }}>
-          {people}名 が選択されています
-        </div>
-      )}
+      {people && <div style={{ textAlign: "center", marginBottom: 16, color: "#8a7050" }}>{people}名 が選択されています</div>}
       <div style={{ display: "flex", gap: 10 }}>
         <button onClick={() => setScreen("table")}
           style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 15, cursor: "pointer" }}>
@@ -204,7 +202,7 @@ export default function App() {
     </div>
   );
 
-  // 送信完了画面
+  // 送信完了
   if (sent) return (
     <div style={{ padding: 32, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", textAlign: "center" }}>
       <div style={{ fontSize: 64 }}>✅</div>
@@ -216,16 +214,52 @@ export default function App() {
         追加注文
       </button>
       <br />
-      <button onClick={() => { setScreen("table"); setSelectedTable(null); setPeople(null); }}
+      <button onClick={() => { setScreen("table"); setSelectedTable(null); setPeople(null); setSent(false); }}
         style={{ marginTop: 10, padding: "12px 24px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
         別テーブルへ
       </button>
     </div>
   );
 
-  // 注文入力画面
+  // 注文確認モーダル
+  const ConfirmModal = () => (
+    <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
+      <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "80vh", overflow: "auto" }}>
+        <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>注文確認</div>
+        <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 16 }}>テーブル {selectedTable}・{people}名</div>
+        <div style={{ borderTop: "1px solid #3d2c14", paddingTop: 12, marginBottom: 12 }}>
+          {cart.map((item, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #3d2c1433", fontSize: 14 }}>
+              <span style={{ color: item.price < 0 ? "#4aaa5a" : "#f0e6d0" }}>{item.name} ×{item.qty}</span>
+              <span style={{ color: item.price < 0 ? "#4aaa5a" : "#c9952a", fontFamily: "serif" }}>
+                {item.price < 0 ? `-¥${Math.abs(item.price * item.qty).toLocaleString()}` : `¥${(item.price * item.qty).toLocaleString()}`}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, paddingTop: 8 }}>
+          <span style={{ color: "#8a7050", fontSize: 14 }}>合計</span>
+          <span style={{ fontFamily: "serif", fontSize: 26, fontWeight: 700, color: "#c9952a" }}>¥{total.toLocaleString()}</span>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => setConfirming(false)}
+            style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 14, cursor: "pointer" }}>
+            ← 修正する
+          </button>
+          <button onClick={sendOrder}
+            style={{ flex: 2, padding: 14, background: "#c9952a", border: "none", borderRadius: 10, color: "#0f0a05", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
+            🍽 送信する
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // 注文入力
   return (
     <div style={{ background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column" }}>
+      {confirming && <ConfirmModal />}
+
       <div style={{ padding: "10px 16px", background: "#1c1208", borderBottom: "1px solid #3d2c14", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>T{selectedTable}</span>
@@ -244,7 +278,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* 人数変更モーダル */}
       {changingPeople && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
           <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "85%" }}>
@@ -361,9 +394,9 @@ export default function App() {
             style={{ padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
             ← 戻る
           </button>
-          <button onClick={sendOrder} disabled={cart.length === 0}
+          <button onClick={() => setConfirming(true)} disabled={cart.length === 0}
             style={{ flex: 1, padding: 14, background: cart.length > 0 ? "#c9952a" : "#3d2c14", border: "none", borderRadius: 10, color: cart.length > 0 ? "#0f0a05" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: cart.length > 0 ? "pointer" : "not-allowed" }}>
-            🍽 キッチンに送信
+            注文確認 →
           </button>
         </div>
       </div>
