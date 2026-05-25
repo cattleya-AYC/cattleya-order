@@ -7,23 +7,66 @@ const supabase = createClient(
 );
 
 const MENU = {
-  ドリンク: [
-    { id: 1, name: "ホットコーヒー", price: 500 },
-    { id: 2, name: "アイスコーヒー", price: 550 },
-    { id: 3, name: "紅茶（ホット）", price: 500 },
-    { id: 4, name: "カフェラテ", price: 650 },
-    { id: 5, name: "ジュース", price: 600 },
+  コーヒー: [
+    { id: 1, name: "コーヒー", price: 650 },
+    { id: 2, name: "アイスコーヒー", price: 650 },
+    { id: 3, name: "アメリカン", price: 650 },
+    { id: 4, name: "カフェ・オ・レ", price: 750 },
+    { id: 5, name: "アイスオ・レ", price: 750 },
+    { id: 6, name: "ウィンナーコーヒー", price: 750 },
+    { id: 7, name: "アイスウィンナー", price: 750 },
+    { id: 8, name: "おかわり", price: 300 },
+  ],
+  紅茶: [
+    { id: 11, name: "レモンティ", price: 650 },
+    { id: 12, name: "ミルクティ", price: 650 },
+    { id: 13, name: "ウーロン茶", price: 650 },
+    { id: 14, name: "こんぶ茶", price: 650 },
+    { id: 15, name: "梅こん茶", price: 650 },
+    { id: 16, name: "おかわり", price: 300 },
+  ],
+  ジュース: [
+    { id: 21, name: "ミルク", price: 650 },
+    { id: 22, name: "ココア", price: 800 },
+    { id: 23, name: "トマトジュース", price: 700 },
+    { id: 24, name: "リンゴジュース", price: 700 },
+    { id: 25, name: "オレンジジュース", price: 700 },
+    { id: 26, name: "バナナジュース", price: 750 },
+    { id: 27, name: "レモンジュース", price: 800 },
+    { id: 28, name: "レモンスカッシュ", price: 800 },
+    { id: 29, name: "コカ・コーラ", price: 650 },
+    { id: 30, name: "ジンジャーエール", price: 650 },
+    { id: 31, name: "ソーダ水", price: 650 },
+    { id: 32, name: "カルピス", price: 650 },
+    { id: 33, name: "野菜ジュース", price: 750 },
+    { id: 34, name: "グアバドリンク", price: 800 },
+    { id: 35, name: "マンゴードリンク", price: 800 },
+    { id: 36, name: "コーヒーフロート", price: 750 },
+    { id: 37, name: "ソーダフロート", price: 750 },
   ],
   フード: [
-    { id: 11, name: "トースト", price: 400 },
-    { id: 12, name: "サンドイッチ", price: 750 },
-    { id: 13, name: "ケーキセット", price: 900 },
-    { id: 14, name: "パンケーキ", price: 850 },
+    { id: 41, name: "トースト", price: 600 },
+    { id: 42, name: "ピザトースト", price: 850 },
+    { id: 43, name: "ミックスサンド", price: 850 },
+    { id: 44, name: "ハムサンド", price: 850 },
+    { id: 45, name: "野菜サンド", price: 850 },
+    { id: 46, name: "玉子サンド", price: 850 },
+  ],
+  スイーツ: [
+    { id: 51, name: "ミルククレープ", price: 500 },
+    { id: 52, name: "リンゴタルト", price: 600 },
+    { id: 53, name: "北海道チーズケーキ", price: 500 },
+    { id: 54, name: "渋皮栗モンブラン", price: 500 },
+    { id: 55, name: "チョコレートケーキ", price: 500 },
+    { id: 56, name: "マロンケーキ", price: 500 },
+    { id: 57, name: "紅茶シフォン", price: 600 },
+    { id: 58, name: "コーヒーゼリー", price: 750 },
+    { id: 59, name: "バニラアイスクリーム", price: 750 },
+    { id: 60, name: "ケーキセット", price: 1000 },
   ],
   アルコール: [
-    { id: 21, name: "生ビール", price: 700 },
-    { id: 22, name: "ワイン", price: 800 },
-    { id: 23, name: "ハイボール", price: 650 },
+    { id: 71, name: "オールド水割り", price: 750 },
+    { id: 72, name: "バドワイザー", price: 800 },
   ],
 };
 
@@ -32,7 +75,7 @@ const TABLES = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,"A","B","C","D","E","F","G",
 export default function App() {
   const [screen, setScreen] = useState("table");
   const [selectedTable, setSelectedTable] = useState(null);
-  const [activeCat, setActiveCat] = useState("ドリンク");
+  const [activeCat, setActiveCat] = useState("コーヒー");
   const [cart, setCart] = useState([]);
   const [sent, setSent] = useState(false);
 
@@ -98,10 +141,10 @@ export default function App() {
         <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>Cattleya</span>
         <span style={{ color: "#8a7050", marginLeft: 8 }}>テーブル {selectedTable}</span>
       </div>
-      <div style={{ display: "flex", borderBottom: "1px solid #3d2c14", background: "#1c1208" }}>
+      <div style={{ display: "flex", borderBottom: "1px solid #3d2c14", background: "#1c1208", overflowX: "auto" }}>
         {Object.keys(MENU).map((cat) => (
           <button key={cat} onClick={() => setActiveCat(cat)}
-            style={{ flex: 1, padding: "12px 0", border: "none", background: "none", color: activeCat === cat ? "#c9952a" : "#8a7050", borderBottom: activeCat === cat ? "2px solid #c9952a" : "2px solid transparent", cursor: "pointer", fontSize: 13 }}>
+            style={{ padding: "12px 14px", border: "none", background: "none", color: activeCat === cat ? "#c9952a" : "#8a7050", borderBottom: activeCat === cat ? "2px solid #c9952a" : "2px solid transparent", cursor: "pointer", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>
             {cat}
           </button>
         ))}
