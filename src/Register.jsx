@@ -29,7 +29,7 @@ export default function Register() {
     const { data } = await supabase
       .from("orders")
       .select("*")
-      .eq("status", "pending")
+      
       .order("created_at", { ascending: true });
     setOrders(data || []);
   };
