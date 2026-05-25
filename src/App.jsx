@@ -27,13 +27,14 @@ const MENU = {
   ],
 };
 
-const TABLES = Array.from({ length: 25 }, (_, i) => i + 1);
+const TABLES = [...Array.from({ length: 15 }, (_, i) => i + 1), 'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O'];
+
 
 export default function App() {
   const [screen, setScreen] = useState("table");
   const [selectedTable, setSelectedTable] = useState(null);
   const [activeCat, setActiveCat] = useState("ドリンク");
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useStateう([]);
   const [sent, setSent] = useState(false);
 
   const addItem = (item) => {
