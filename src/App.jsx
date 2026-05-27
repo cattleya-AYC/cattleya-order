@@ -77,10 +77,13 @@ const MENU = {
     { id: 68, name: "コーヒーゼリー", price: 770 },
     { id: 69, name: "セット割（-150円）", price: -150 },
   ],
-  モーニング: [
-    { id: 71, name: "モーニング（コーヒー）", price: 890 },
-    { id: 72, name: "モーニング（紅茶）", price: 890 },
+    モーニング: [
+    { id: 71, name: "モーニング（コーヒーHOT）", price: 890 },
+    { id: 72, name: "モーニング（コーヒーICE）", price: 890 },
+    { id: 73, name: "モーニング（紅茶HOT）", price: 890 },
+    { id: 74, name: "モーニング（紅茶ICE）", price: 890 },
   ],
+
   おかわり: [
     { id: 91, name: "コーヒー おかわり（HOT）", price: 300 },
     { id: 92, name: "コーヒー おかわり（ICE）", price: 300 },
