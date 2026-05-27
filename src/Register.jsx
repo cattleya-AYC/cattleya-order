@@ -135,7 +135,7 @@ export default function Register() {
     setTobaccoReceived("");
     setMode("register");
   };
-  };
+  
 
   // 会計完了画面
   if (checkoutDone && checkoutInfo) return (
