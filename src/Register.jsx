@@ -337,6 +337,7 @@ export default function Register() {
   </div>
 )}
 
+
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, paddingTop: 14, borderTop: "1px solid #6a4d15" }}>
       <span style={{ color: "#8a7050", fontSize: 14 }}>本日合計</span>
       <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 800 }}>¥{tobaccoTotal.toLocaleString()}</span>
