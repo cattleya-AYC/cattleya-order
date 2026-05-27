@@ -26,7 +26,9 @@ export default function Register() {
   const [payMethod, setPayMethod] = useState(null);
   const [receiptType, setReceiptType] = useState(null);
   const [mode, setMode] = useState("register");
-  const [tobaccoSold, setTobaccoSold] = useState(null);
+  const [tobaccoConfirming, setTobaccoConfirming] = useState(null);
+  const [tobaccoPayMethod, setTobaccoPayMethod] = useState(null);
+  const [tobaccoReceiptType, setTobaccoReceiptType] = useState(null);
 
   useEffect(() => {
     fetchOrders();
@@ -91,11 +93,12 @@ export default function Register() {
     }).then(() => fetchOrders());
   };
 
-  const tobaccoSale = (item) => {
+  const completeTobaccoSale = () => {
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-    setTobaccoHistory((prev) => [{ name: item.name, price: item.price, time: now }, ...prev]);
-    setTobaccoSold(item);
-    setTimeout(() => setTobaccoSold(null), 2000);
+    setTobaccoHistory((prev) => [{ name: tobaccoConfirming.name, price: tobaccoConfirming.price, time: now, pay: tobaccoPayMethod, receipt: tobaccoReceiptType }, ...prev]);
+    setTobaccoConfirming(null);
+    setTobaccoPayMethod(null);
+    setTobaccoReceiptType(null);
   };
 
   const selectedOrders = selected ? tableOrders(selected).filter(o => o.status === "pending" && !o.item_name.startsWith("【人数")) : [];
@@ -110,7 +113,6 @@ export default function Register() {
       if (!groups[hour]) groups[hour] = 0;
       groups[hour] += h.amount;
     });
-    const tableCount = history.length;
 
     return (
       <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", padding: 16 }}>
@@ -136,10 +138,9 @@ export default function Register() {
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span style={{ color: "#8a7050" }}>組数</span>
-            <span style={{ color: "#c9952a", fontFamily: "serif" }}>{tableCount}組</span>
+            <span style={{ color: "#c9952a", fontFamily: "serif" }}>{history.length}組</span>
           </div>
         </div>
-
         <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
           <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>時間帯別売上</div>
           {Object.keys(groups).length === 0 ? (
@@ -151,11 +152,10 @@ export default function Register() {
             </div>
           ))}
         </div>
-
         <div style={{ background: "#181008", borderRadius: 10, padding: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ color: "#8a7050" }}>🚬 タバコ売上</span>
-            <span style={{ color: "#c9952a", fontFamily: "serif" }}>¥{tobaccoTotal.toLocaleString()}</span>
+            <span style={{ color: "#8a7050" }}>🚬 タバコ売上（別）</span>
+            <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>¥{tobaccoTotal.toLocaleString()}</span>
           </div>
           {tobaccoHistory.map((h, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#8a7050", padding: "3px 0" }}>
@@ -171,6 +171,49 @@ export default function Register() {
   // タバコ単体販売画面
   if (mode === "tobacco") return (
     <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", padding: 16 }}>
+
+      {/* タバコ会計モーダル */}
+      {tobaccoConfirming && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
+          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 28, width: "90%", maxWidth: 400 }}>
+            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>タバコ販売</div>
+            <div style={{ color: "#f0e6d0", fontSize: 16, marginBottom: 4 }}>{tobaccoConfirming.name}</div>
+            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 28, fontWeight: 800, marginBottom: 20 }}>¥{tobaccoConfirming.price}</div>
+
+            <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>支払い方法</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+              {["現金", "ペイキャス"].map((p) => (
+                <button key={p} onClick={() => setTobaccoPayMethod(p)}
+                  style={{ flex: 1, padding: 12, background: tobaccoPayMethod === p ? "#c9952a" : "transparent", border: `1px solid ${tobaccoPayMethod === p ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: tobaccoPayMethod === p ? "#0d0905" : "#8a7050", fontWeight: 700, cursor: "pointer" }}>
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>書類</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+              {["レシート", "領収書", "なし"].map((r) => (
+                <button key={r} onClick={() => setTobaccoReceiptType(r)}
+                  style={{ flex: 1, padding: 10, background: tobaccoReceiptType === r ? "#c9952a" : "transparent", border: `1px solid ${tobaccoReceiptType === r ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: tobaccoReceiptType === r ? "#0d0905" : "#8a7050", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  {r}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => { setTobaccoConfirming(null); setTobaccoPayMethod(null); setTobaccoReceiptType(null); }}
+                style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
+                戻る
+              </button>
+              <button onClick={completeTobaccoSale} disabled={!tobaccoPayMethod || !tobaccoReceiptType}
+                style={{ flex: 2, padding: 14, background: tobaccoPayMethod && tobaccoReceiptType ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: tobaccoPayMethod && tobaccoReceiptType ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: tobaccoPayMethod && tobaccoReceiptType ? "pointer" : "not-allowed" }}>
+                ✅ 販売完了
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18 }}>タバコ単体販売</div>
         <button onClick={() => setMode("register")}
@@ -179,20 +222,13 @@ export default function Register() {
         </button>
       </div>
 
-      {tobaccoSold && (
-        <div style={{ background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 10, padding: 16, marginBottom: 16, textAlign: "center" }}>
-          <div style={{ color: "#4aaa5a", fontSize: 16, fontWeight: 700 }}>✅ 販売しました！</div>
-          <div style={{ color: "#8a7050", fontSize: 13, marginTop: 4 }}>{tobaccoSold.name} ¥{tobaccoSold.price}</div>
-        </div>
-      )}
-
       {TOBACCO.map((item) => (
         <div key={item.id} style={{ background: "#181008", border: "1px solid #3d2c14", borderRadius: 10, padding: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ color: "#f0e6d0", fontSize: 15 }}>{item.name}</div>
             <div style={{ color: "#8a7050", fontSize: 13, marginTop: 2 }}>¥{item.price}</div>
           </div>
-          <button onClick={() => tobaccoSale(item)}
+          <button onClick={() => setTobaccoConfirming(item)}
             style={{ padding: "10px 20px", background: "#c9952a", border: "none", borderRadius: 8, color: "#0d0905", fontWeight: 700, cursor: "pointer" }}>
             販売
           </button>
