@@ -128,12 +128,13 @@ export default function Register() {
 
   const completeTobaccoSale = () => {
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-    const chg = tobaccoPayMethod === "現金" ? tobaccoChange : null;
     setTobaccoHistory((prev) => [{ name: tobaccoConfirming.name, price: tobaccoConfirming.price, time: now, pay: tobaccoPayMethod, receipt: tobaccoReceiptType }, ...prev]);
     setTobaccoConfirming(null);
     setTobaccoPayMethod(null);
     setTobaccoReceiptType(null);
     setTobaccoReceived("");
+    setMode("register");
+  };
   };
 
   // 会計完了画面
