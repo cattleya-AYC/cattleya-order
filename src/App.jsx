@@ -3,82 +3,83 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   "https://zxdgiszrsmumjjxmvszb.supabase.co",
-  "sb_publishable_LLIkeICkSI-IS-2xMKO9_A_I8MAo2IT"
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODM2MTksImV4cCI6MjA5NTI1OTYxOX0.vNndS7JEzIUsa007EPO2zRoYhUr-z01LM32BKIhMSz4"
 );
 
 const MENU = {
   コーヒー: [
     { id: 1, name: "コーヒー（HOT）", price: 650 },
-    { id: 2, name: "アイスコーヒー", price: 650 },
+    { id: 2, name: "アイスコーヒー", price: 670 },
     { id: 3, name: "アメリカン", price: 650 },
-    { id: 4, name: "カフェ・オ・レ（HOT）", price: 750 },
-    { id: 5, name: "アイスオ・レ", price: 750 },
-    { id: 6, name: "ウィンナーコーヒー（HOT）", price: 750 },
-    { id: 7, name: "アイスウィンナー", price: 750 },
+    { id: 4, name: "カフェ・オ・レ（HOT）", price: 770 },
+    { id: 5, name: "アイスオ・レ", price: 780 },
+    { id: 6, name: "ウィンナーコーヒー（HOT）", price: 770 },
+    { id: 7, name: "アイスウィンナー", price: 790 },
   ],
   ストレート: [
-    { id: 9, name: "トアルコ・トラジャ", price: 800 },
-    { id: 10, name: "ブラジル", price: 700 },
-    { id: 11, name: "マンデリン", price: 700 },
-    { id: 12, name: "モカマタリ", price: 800 },
-    { id: 13, name: "コロンビアスプレモ", price: 700 },
-    { id: 14, name: "グアテマラ", price: 700 },
-    { id: 15, name: "キリマンジャロ", price: 700 },
+    { id: 9, name: "トラジャ", price: 900 },
+    { id: 10, name: "マンデリン", price: 770 },
+    { id: 11, name: "モカ", price: 850 },
+    { id: 12, name: "グァテマラ", price: 770 },
+    { id: 13, name: "キリマンジェロ", price: 770 },
   ],
   紅茶: [
-    { id: 21, name: "ホットレモンティ", price: 650 },
-    { id: 22, name: "アイスレモンティ", price: 650 },
-    { id: 23, name: "ホットミルクティ", price: 650 },
-    { id: 24, name: "アイスミルクティ", price: 650 },
-    { id: 25, name: "ホットウーロン茶", price: 650 },
+    { id: 21, name: "レモンティ（HOT）", price: 650 },
+    { id: 22, name: "アイスレモンティ", price: 670 },
+    { id: 23, name: "ミルクティ（HOT）", price: 650 },
+    { id: 24, name: "アイスミルクティ", price: 670 },
+    { id: 25, name: "ウーロン茶（HOT）", price: 650 },
     { id: 26, name: "アイスウーロン茶", price: 650 },
     { id: 27, name: "こんぶ茶（HOT）", price: 650 },
     { id: 28, name: "梅こん茶（HOT）", price: 650 },
   ],
   ジュース: [
-    { id: 31, name: "ホットミルク", price: 650 },
+    { id: 31, name: "ミルク（HOT）", price: 650 },
     { id: 32, name: "アイスミルク", price: 650 },
-    { id: 33, name: "ホットココア", price: 800 },
+    { id: 33, name: "ココア（HOT）", price: 800 },
     { id: 34, name: "アイスココア", price: 800 },
-    { id: 35, name: "トマトジュース", price: 700 },
-    { id: 36, name: "リンゴジュース", price: 700 },
-    { id: 37, name: "オレンジジュース", price: 700 },
-    { id: 38, name: "バナナジュース", price: 750 },
-    { id: 39, name: "レモンジュース", price: 800 },
-    { id: 40, name: "レモンスカッシュ", price: 800 },
+    { id: 35, name: "トマトジュース", price: 720 },
+    { id: 36, name: "リンゴジュース", price: 720 },
+    { id: 37, name: "オレンジジュース", price: 720 },
+    { id: 38, name: "バナナジュース", price: 770 },
+    { id: 39, name: "レモンジュース", price: 770 },
+    { id: 40, name: "レモンスカッシュ", price: 790 },
     { id: 41, name: "コカ・コーラ", price: 650 },
     { id: 42, name: "ジンジャーエール", price: 650 },
     { id: 43, name: "ソーダ水", price: 650 },
-    { id: 44, name: "カルピス", price: 650 },
-    { id: 45, name: "野菜ジュース", price: 750 },
-    { id: 46, name: "グアバドリンク", price: 800 },
-    { id: 47, name: "マンゴードリンク", price: 800 },
-    { id: 48, name: "コーヒーフロート", price: 750 },
-    { id: 49, name: "ソーダフロート", price: 750 },
+    { id: 44, name: "カルピス", price: 670 },
+    { id: 45, name: "野菜ジュース", price: 770 },
+    { id: 46, name: "グアバドリンク", price: 790 },
+    { id: 47, name: "マンゴードリンク", price: 790 },
+    { id: 48, name: "コーヒーフロート", price: 790 },
+    { id: 49, name: "ソーダフロート", price: 790 },
   ],
   フード: [
-    { id: 51, name: "トースト", price: 600 },
-    { id: 52, name: "ピザトースト", price: 850 },
-    { id: 53, name: "ミックスサンド", price: 850 },
-    { id: 54, name: "ハムサンド", price: 850 },
-    { id: 55, name: "野菜サンド", price: 850 },
-    { id: 56, name: "玉子サンド", price: 850 },
-    { id: 57, name: "ミックストーストサンド", price: 950 },
-    { id: 58, name: "ハムトーストサンド", price: 950 },
-    { id: 59, name: "たまごトーストサンド", price: 950 },
-    { id: 60, name: "セット割（-200円）", price: -200 },
+    { id: 51, name: "トースト（バター＆ジャム）", price: 650 },
+    { id: 52, name: "ピザトースト", price: 870 },
+    { id: 53, name: "ミックスサンド", price: 890 },
+    { id: 54, name: "ハムサンド", price: 890 },
+    { id: 55, name: "野菜サンド", price: 890 },
+    { id: 56, name: "玉子サンド", price: 870 },
+    { id: 57, name: "トーストサンド（ミックス）", price: 970 },
+    { id: 58, name: "トーストサンド（ハム）", price: 970 },
+    { id: 59, name: "トーストサンド（たまご）", price: 970 },
+    { id: 60, name: "セット割（-150円）", price: -150 },
   ],
   スイーツ: [
-    { id: 61, name: "ミルククレープ", price: 500 },
-    { id: 62, name: "リンゴタルト", price: 600 },
-    { id: 63, name: "北海道チーズケーキ", price: 500 },
-    { id: 64, name: "渋皮栗モンブラン", price: 500 },
-    { id: 65, name: "チョコレートケーキ", price: 500 },
-    { id: 66, name: "マロンケーキ", price: 500 },
-    { id: 67, name: "紅茶シフォン", price: 600 },
-    { id: 68, name: "コーヒーゼリー", price: 750 },
-    { id: 69, name: "バニラアイスクリーム", price: 750 },
-    { id: 70, name: "セット変更割引（-650円）", price: -650 },
+    { id: 61, name: "ミルクレープ", price: 550 },
+    { id: 62, name: "ガトーショコラ", price: 550 },
+    { id: 63, name: "フォンダンショコラ", price: 590 },
+    { id: 64, name: "チーズケーキ", price: 590 },
+    { id: 65, name: "紅茶のシフォン", price: 630 },
+    { id: 66, name: "栗のモンブラン", price: 630 },
+    { id: 67, name: "バニラアイスクリーム", price: 770 },
+    { id: 68, name: "コーヒーゼリー", price: 770 },
+    { id: 69, name: "セット割（-150円）", price: -150 },
+  ],
+  モーニング: [
+    { id: 71, name: "モーニング（コーヒー）", price: 890 },
+    { id: 72, name: "モーニング（紅茶）", price: 890 },
   ],
   おかわり: [
     { id: 91, name: "コーヒー おかわり（HOT）", price: 300 },
@@ -91,13 +92,11 @@ const MENU = {
     { id: 98, name: "ウーロン茶 おかわり（ICE）", price: 300 },
   ],
   アルコール: [
-    { id: 81, name: "オールド水割り", price: 750 },
+    { id: 81, name: "オールド（水割り）", price: 790 },
     { id: 82, name: "バドワイザー", price: 800 },
   ],
 };
 
-const CAKES = ["ミルククレープ","リンゴタルト","北海道チーズケーキ","渋皮栗モンブラン","チョコレートケーキ","マロンケーキ","紅茶シフォン"];
-const CAKE_DRINKS = ["コーヒー（HOT）","アイスコーヒー","ホットレモンティ","アイスレモンティ","ホットミルクティ","アイスミルクティ"];
 const TABLES = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"];
 const PEOPLE = [1,2,3,4,5,6,7,8,9,10];
 
@@ -108,7 +107,6 @@ export default function App() {
   const [activeCat, setActiveCat] = useState("コーヒー");
   const [cart, setCart] = useState([]);
   const [sent, setSent] = useState(false);
-  const [selectedCake, setSelectedCake] = useState(null);
   const [changingPeople, setChangingPeople] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
@@ -124,13 +122,6 @@ export default function App() {
     setCart((prev) =>
       prev.map((c) => c.id === id ? { ...c, qty: c.qty - 1 } : c).filter((c) => c.qty > 0)
     );
-  };
-
-  const addCakeSet = (drink) => {
-    const name = `ケーキセット（${selectedCake}＋${drink}）`;
-    setCart((prev) => [...prev, { id: Date.now(), name, price: 1000, qty: 1 }]);
-    setSelectedCake(null);
-    setActiveCat("コーヒー");
   };
 
   const sendOrder = async () => {
@@ -158,14 +149,13 @@ export default function App() {
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
-  // テーブル選択
   if (screen === "table") return (
     <div style={{ padding: 16, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0" }}>
       <h1 style={{ color: "#c9952a", marginBottom: 16, fontFamily: "serif" }}>Lounge Cattleya</h1>
       <p style={{ color: "#8a7050", marginBottom: 12 }}>テーブルを選択</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
         {TABLES.map((t) => (
-          <button key={t} onClick={() => { setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setSelectedCake(null); setActiveCat("コーヒー"); setConfirming(false); }}
+          <button key={t} onClick={() => { setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setActiveCat("コーヒー"); setConfirming(false); }}
             style={{ padding: "12px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#c9952a", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
             {t}
           </button>
@@ -174,7 +164,6 @@ export default function App() {
     </div>
   );
 
-  // 人数選択
   if (screen === "people") return (
     <div style={{ padding: 24, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0" }}>
       <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>Lounge Cattleya</div>
@@ -202,7 +191,6 @@ export default function App() {
     </div>
   );
 
-  // 送信完了
   if (sent) return (
     <div style={{ padding: 32, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", textAlign: "center" }}>
       <div style={{ fontSize: 64 }}>✅</div>
@@ -221,7 +209,6 @@ export default function App() {
     </div>
   );
 
-  // 注文確認モーダル
   const ConfirmModal = () => (
     <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
       <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "80vh", overflow: "auto" }}>
@@ -255,7 +242,6 @@ export default function App() {
     </div>
   );
 
-  // 注文入力
   return (
     <div style={{ background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column" }}>
       {confirming && <ConfirmModal />}
@@ -305,72 +291,42 @@ export default function App() {
             {cat}
           </button>
         ))}
-        <button onClick={() => setActiveCat("ケーキセット")}
-          style={{ padding: "12px 14px", border: "none", background: "none", color: activeCat === "ケーキセット" ? "#c9952a" : "#8a7050", borderBottom: activeCat === "ケーキセット" ? "2px solid #c9952a" : "2px solid transparent", cursor: "pointer", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>
-          ケーキセット
-        </button>
       </div>
 
       <div style={{ flex: 1, overflow: "auto", padding: 12 }}>
-        {activeCat === "ケーキセット" ? (
-          <div>
-            <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 16, marginBottom: 12 }}>ケーキセット ¥1,000</div>
-            <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>① ケーキを選んでください</div>
-            {CAKES.map((cake, i) => (
-              <div key={i} onClick={() => setSelectedCake(cake)}
-                style={{ padding: "13px 14px", background: selectedCake === cake ? "#2a1c0a" : "#201508", border: `1px solid ${selectedCake === cake ? "#c9952a" : "#352510"}`, borderRadius: 10, marginBottom: 6, cursor: "pointer", display: "flex", justifyContent: "space-between" }}>
-                <span>{cake}</span>
-                {selectedCake === cake && <span style={{ color: "#c9952a" }}>✓</span>}
-              </div>
-            ))}
-            {selectedCake && (
-              <>
-                <div style={{ color: "#8a7050", fontSize: 12, margin: "12px 0 8px" }}>② ドリンクを選んでください</div>
-                {CAKE_DRINKS.map((drink, i) => (
-                  <div key={i} onClick={() => addCakeSet(drink)}
-                    style={{ padding: "13px 14px", background: "#201508", border: "1px solid #352510", borderRadius: 10, marginBottom: 6, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span>{drink}</span>
-                    <span style={{ color: "#c9952a", fontSize: 12 }}>追加 →</span>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        ) : (
-          MENU[activeCat].map((item) => {
-            const qty = cart.find((c) => c.id === item.id)?.qty || 0;
-            const isDiscount = item.price < 0;
-            return (
-              <div key={item.id}
-                style={{ display: "flex", alignItems: "center", padding: "11px 14px", background: isDiscount ? "#0a1508" : "#201508", border: `1px solid ${qty > 0 ? "#6a4d15" : isDiscount ? "#1a4020" : "#352510"}`, borderRadius: 10, marginBottom: 6 }}>
-                <div style={{ flex: 1, cursor: "pointer" }} onClick={() => addItem(item)}>
-                  <div style={{ color: isDiscount ? "#4aaa5a" : "#f0e6d0", fontSize: 14 }}>{item.name}</div>
-                  <div style={{ color: isDiscount ? "#4aaa5a" : "#8a7050", fontSize: 12, marginTop: 2 }}>
-                    {isDiscount ? `-¥${Math.abs(item.price)}` : `¥${item.price.toLocaleString()}`}
-                  </div>
+        {MENU[activeCat].map((item) => {
+          const qty = cart.find((c) => c.id === item.id)?.qty || 0;
+          const isDiscount = item.price < 0;
+          return (
+            <div key={item.id}
+              style={{ display: "flex", alignItems: "center", padding: "11px 14px", background: isDiscount ? "#0a1508" : "#201508", border: `1px solid ${qty > 0 ? "#6a4d15" : isDiscount ? "#1a4020" : "#352510"}`, borderRadius: 10, marginBottom: 6 }}>
+              <div style={{ flex: 1, cursor: "pointer" }} onClick={() => addItem(item)}>
+                <div style={{ color: isDiscount ? "#4aaa5a" : "#f0e6d0", fontSize: 14 }}>{item.name}</div>
+                <div style={{ color: isDiscount ? "#4aaa5a" : "#8a7050", fontSize: 12, marginTop: 2 }}>
+                  {isDiscount ? `-¥${Math.abs(item.price)}` : `¥${item.price.toLocaleString()}`}
                 </div>
-                {qty > 0 ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <button onClick={() => decreaseItem(item.id)}
-                      style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid #6a4d15", background: "#1a1008", color: "#c9952a", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      −
-                    </button>
-                    <span style={{ color: "#c9952a", fontWeight: 700, minWidth: 20, textAlign: "center" }}>{qty}</span>
-                    <button onClick={() => addItem(item)}
-                      style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid #6a4d15", background: "#c9952a", color: "#0f0a05", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      ＋
-                    </button>
-                  </div>
-                ) : (
+              </div>
+              {qty > 0 ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <button onClick={() => decreaseItem(item.id)}
+                    style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid #6a4d15", background: "#1a1008", color: "#c9952a", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    −
+                  </button>
+                  <span style={{ color: "#c9952a", fontWeight: 700, minWidth: 20, textAlign: "center" }}>{qty}</span>
                   <button onClick={() => addItem(item)}
-                    style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid #3d2c14", background: "#251a0a", color: "#8a7050", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid #6a4d15", background: "#c9952a", color: "#0f0a05", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     ＋
                   </button>
-                )}
-              </div>
-            );
-          })
-        )}
+                </div>
+              ) : (
+                <button onClick={() => addItem(item)}
+                  style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid #3d2c14", background: "#251a0a", color: "#8a7050", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  ＋
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {cart.length > 0 && (
