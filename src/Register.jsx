@@ -49,6 +49,8 @@ export default function Register() {
   const [tobaccoPayMethod, setTobaccoPayMethod] = useState(null);
   const [tobaccoReceiptType, setTobaccoReceiptType] = useState(null);
   const [tobaccoReceived, setTobaccoReceived] = useState("");
+  const [checkoutDone, setCheckoutDone] = useState(false);
+  const [checkoutInfo, setCheckoutInfo] = useState(null);
 
   useEffect(() => {
     fetchOrders();
@@ -88,20 +90,30 @@ export default function Register() {
   const todayPay = history.filter(h => h.pay === "ペイキャス").reduce((s, h) => s + h.amount, 0);
   const tobaccoTotal = tobaccoHistory.reduce((s, h) => s + h.price, 0);
 
+  const selectedOrders = selected ? tableOrders(selected).filter(o => o.status === "pending" && !o.item_name.startsWith("【人数")) : [];
+  const selectedTotal = selected ? tableTotal(selected) : 0;
+  const selectedPeople = selected ? tablePeople(selected) : "-";
+
   const change = receivedAmount ? parseInt(receivedAmount) - selectedTotal : null;
   const tobaccoChange = tobaccoReceived && tobaccoConfirming ? parseInt(tobaccoReceived) - tobaccoConfirming.price : null;
+
+  const canCheckout = payMethod && receiptType && (payMethod === "ペイキャス" || (receivedAmount && change !== null && change >= 0));
+  const canTobaccoCheckout = tobaccoPayMethod && tobaccoReceiptType && (tobaccoPayMethod === "ペイキャス" || (tobaccoReceived && tobaccoChange !== null && tobaccoChange >= 0));
 
   const checkout = async () => {
     const t = selected;
     const amount = tableTotal(t);
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+    const chg = payMethod === "現金" ? change : null;
     await supabase.from("orders").delete().eq("table_no", String(t));
     setHistory((prev) => [{ table: t, amount, time: now, pay: payMethod, receipt: receiptType }, ...prev]);
+    setCheckoutInfo({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null });
     setSelected(null);
     setConfirming(false);
     setPayMethod(null);
     setReceiptType(null);
     setReceivedAmount("");
+    setCheckoutDone(true);
   };
 
   const addDiscount = () => {
@@ -116,6 +128,7 @@ export default function Register() {
 
   const completeTobaccoSale = () => {
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+    const chg = tobaccoPayMethod === "現金" ? tobaccoChange : null;
     setTobaccoHistory((prev) => [{ name: tobaccoConfirming.name, price: tobaccoConfirming.price, time: now, pay: tobaccoPayMethod, receipt: tobaccoReceiptType }, ...prev]);
     setTobaccoConfirming(null);
     setTobaccoPayMethod(null);
@@ -123,12 +136,44 @@ export default function Register() {
     setTobaccoReceived("");
   };
 
-  const selectedOrders = selected ? tableOrders(selected).filter(o => o.status === "pending" && !o.item_name.startsWith("【人数")) : [];
-  const selectedTotal = selected ? tableTotal(selected) : 0;
-  const selectedPeople = selected ? tablePeople(selected) : "-";
-
-  const canCheckout = payMethod && receiptType && (payMethod === "ペイキャス" || (receivedAmount && change !== null && change >= 0));
-  const canTobaccoCheckout = tobaccoPayMethod && tobaccoReceiptType && (tobaccoPayMethod === "ペイキャス" || (tobaccoReceived && tobaccoChange !== null && tobaccoChange >= 0));
+  // 会計完了画面
+  if (checkoutDone && checkoutInfo) return (
+    <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
+      <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 22, marginBottom: 8 }}>会計完了</div>
+      <div style={{ color: "#8a7050", marginBottom: 24 }}>テーブル {checkoutInfo.table}</div>
+      <div style={{ background: "#181008", borderRadius: 12, padding: 24, width: "100%", maxWidth: 360, marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+          <span style={{ color: "#8a7050" }}>お会計</span>
+          <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 20, fontWeight: 700 }}>¥{checkoutInfo.amount.toLocaleString()}</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+          <span style={{ color: "#8a7050" }}>支払い</span>
+          <span style={{ color: "#f0e6d0" }}>{checkoutInfo.pay}</span>
+        </div>
+        {checkoutInfo.received && (
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+            <span style={{ color: "#8a7050" }}>お預かり</span>
+            <span style={{ color: "#f0e6d0" }}>¥{checkoutInfo.received.toLocaleString()}</span>
+          </div>
+        )}
+        {checkoutInfo.change !== null && (
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderTop: "1px solid #3d2c14", marginTop: 8 }}>
+            <span style={{ color: "#4aaa5a", fontSize: 16 }}>おつり</span>
+            <span style={{ color: "#4aaa5a", fontFamily: "serif", fontSize: 28, fontWeight: 800 }}>¥{checkoutInfo.change.toLocaleString()}</span>
+          </div>
+        )}
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+          <span style={{ color: "#8a7050" }}>書類</span>
+          <span style={{ color: "#f0e6d0" }}>{checkoutInfo.receipt}</span>
+        </div>
+      </div>
+      <button onClick={() => { setCheckoutDone(false); setCheckoutInfo(null); }}
+        style={{ width: "100%", maxWidth: 360, padding: 16, background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
+        次の会計へ
+      </button>
+    </div>
+  );
 
   // 日計画面
   if (mode === "daily") {
@@ -293,7 +338,7 @@ export default function Register() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#0d0905", color: "#f0e6d0", fontFamily: "'Noto Sans JP', sans-serif" }}>
-      <div style={{ background: "#ff0000", color: "#fff", padding: "4px 12px", fontSize: 12 }}>{debugMsg}</div>
+      <div style={{ background: "#333", color: "#fff", padding: "4px 12px", fontSize: 11 }}>{debugMsg}</div>
 
       {confirming && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
@@ -318,7 +363,6 @@ export default function Register() {
               style={{ width: "100%", padding: 10, background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 8, color: "#4aaa5a", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 14 }}>
               セット値引き -150円 を追加
             </button>
-
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>支払い方法</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
               {["現金", "ペイキャス"].map((p) => (
@@ -328,7 +372,6 @@ export default function Register() {
                 </button>
               ))}
             </div>
-
             {payMethod === "現金" && (
               <div style={{ marginBottom: 14 }}>
                 <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 4 }}>受取金額</div>
@@ -347,7 +390,6 @@ export default function Register() {
                 <Keypad value={receivedAmount} onChange={setReceivedAmount} />
               </div>
             )}
-
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>書類</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
               {["レシート", "領収書", "なし"].map((r) => (
@@ -357,7 +399,6 @@ export default function Register() {
                 </button>
               ))}
             </div>
-
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); }}
                 style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
@@ -373,36 +414,36 @@ export default function Register() {
       )}
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        <div style={{ width: 200, background: "#181008", borderRight: "1px solid #3d2c14", display: "flex", flexDirection: "column" }}>
-          <div style={{ padding: "16px 14px", borderBottom: "1px solid #3d2c14" }}>
-            <div style={{ fontFamily: "serif", fontSize: 14, color: "#c9952a", fontWeight: 700 }}>Lounge Cattleya</div>
-            <div style={{ fontSize: 10, color: "#8a7050", marginTop: 2 }}>レジ・会計</div>
+        <div style={{ width: 180, background: "#181008", borderRight: "1px solid #3d2c14", display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: "12px 10px", borderBottom: "1px solid #3d2c14" }}>
+            <div style={{ fontFamily: "serif", fontSize: 12, color: "#c9952a", fontWeight: 700 }}>Lounge Cattleya</div>
+            <div style={{ fontSize: 9, color: "#8a7050", marginTop: 2 }}>レジ・会計</div>
           </div>
-          <div style={{ padding: "10px 12px", borderBottom: "1px solid #3d2c14" }}>
-            <div style={{ fontSize: 10, color: "#8a7050" }}>使用中</div>
-            <div style={{ fontFamily: "serif", fontSize: 24, color: "#c9952a", fontWeight: 700 }}>{occupiedTables.length}<span style={{ fontSize: 11, color: "#8a7050" }}> / 30</span></div>
+          <div style={{ padding: "8px 10px", borderBottom: "1px solid #3d2c14" }}>
+            <div style={{ fontSize: 9, color: "#8a7050" }}>使用中</div>
+            <div style={{ fontFamily: "serif", fontSize: 20, color: "#c9952a", fontWeight: 700 }}>{occupiedTables.length}<span style={{ fontSize: 10, color: "#8a7050" }}> / 30</span></div>
           </div>
-          <div style={{ padding: "10px 12px", borderBottom: "1px solid #3d2c14" }}>
-            <div style={{ fontSize: 10, color: "#8a7050" }}>本日売上</div>
-            <div style={{ fontFamily: "serif", fontSize: 16, color: "#c9952a", fontWeight: 700 }}>¥{todaySales.toLocaleString()}</div>
+          <div style={{ padding: "8px 10px", borderBottom: "1px solid #3d2c14" }}>
+            <div style={{ fontSize: 9, color: "#8a7050" }}>本日売上</div>
+            <div style={{ fontFamily: "serif", fontSize: 14, color: "#c9952a", fontWeight: 700 }}>¥{todaySales.toLocaleString()}</div>
           </div>
-          <div style={{ padding: "8px 10px", borderBottom: "1px solid #3d2c14", display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ padding: "6px 8px", borderBottom: "1px solid #3d2c14", display: "flex", flexDirection: "column", gap: 4 }}>
             <button onClick={() => setMode("tobacco")}
-              style={{ padding: "8px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 11, cursor: "pointer" }}>
+              style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>
               🚬 タバコ販売
             </button>
             <button onClick={() => setMode("daily")}
-              style={{ padding: "8px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 11, cursor: "pointer" }}>
+              style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>
               📊 日計
             </button>
           </div>
-          <div style={{ flex: 1, overflow: "auto", padding: "8px 10px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 5 }}>
+          <div style={{ flex: 1, overflow: "auto", padding: "6px 8px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 4 }}>
               {TABLES.map((t) => {
                 const occ = tableOrders(t).length > 0;
                 return (
                   <div key={t} onClick={() => occ && setSelected(t)}
-                    style={{ padding: "8px 0", borderRadius: 6, border: `1px solid ${selected === t ? "#c9952a" : occ ? "#6a4d15" : "#3d2c14"}`, background: selected === t ? "#2a1c0a" : occ ? "#1a1008" : "#0d0905", color: selected === t ? "#c9952a" : occ ? "#8a6030" : "#3d2c14", textAlign: "center", fontSize: 13, fontWeight: 700, cursor: occ ? "pointer" : "default" }}>
+                    style={{ padding: "6px 0", borderRadius: 5, border: `1px solid ${selected === t ? "#c9952a" : occ ? "#6a4d15" : "#3d2c14"}`, background: selected === t ? "#2a1c0a" : occ ? "#1a1008" : "#0d0905", color: selected === t ? "#c9952a" : occ ? "#8a6030" : "#3d2c14", textAlign: "center", fontSize: 11, fontWeight: 700, cursor: occ ? "pointer" : "default" }}>
                     {t}
                   </div>
                 );
@@ -410,10 +451,10 @@ export default function Register() {
             </div>
           </div>
           {history.length > 0 && (
-            <div style={{ padding: "8px 12px", borderTop: "1px solid #3d2c14", maxHeight: 150, overflow: "auto" }}>
-              <div style={{ fontSize: 10, color: "#8a7050", marginBottom: 6 }}>会計済み</div>
+            <div style={{ padding: "6px 10px", borderTop: "1px solid #3d2c14", maxHeight: 120, overflow: "auto" }}>
+              <div style={{ fontSize: 9, color: "#8a7050", marginBottom: 4 }}>会計済み</div>
               {history.map((h, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#8a7050", padding: "3px 0" }}>
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#8a7050", padding: "2px 0" }}>
                   <span>T{h.table} {h.time}</span>
                   <span style={{ color: "#c9952a" }}>¥{h.amount.toLocaleString()}</span>
                 </div>
