@@ -16,7 +16,7 @@ const TOBACCO = [
   { id: 5, name: "メビウス 6mg", price: 580 },
 ];
 
-const Keypad = ({ value, onChange }) => {
+function Keypad({ value, onChange }) {
   const keys = ["1","2","3","4","5","6","7","8","9","000","0","⌫"];
   const handle = (k) => {
     if (k === "⌫") onChange(value.slice(0, -1));
@@ -32,7 +32,7 @@ const Keypad = ({ value, onChange }) => {
       ))}
     </div>
   );
-};
+}
 
 export default function Register() {
   const [orders, setOrders] = useState([]);
@@ -90,15 +90,23 @@ export default function Register() {
   const todayPay = history.filter(h => h.pay === "ペイキャス").reduce((s, h) => s + h.amount, 0);
   const tobaccoTotal = tobaccoHistory.reduce((s, h) => s + h.price, 0);
 
-  const selectedOrders = selected ? tableOrders(selected).filter(o => o.status === "pending" && !o.item_name.startsWith("【人数")) : [];
+  const selectedOrders = selected
+    ? tableOrders(selected).filter(o => o.status === "pending" && !o.item_name.startsWith("【人数"))
+    : [];
   const selectedTotal = selected ? tableTotal(selected) : 0;
   const selectedPeople = selected ? tablePeople(selected) : "-";
 
   const change = receivedAmount ? parseInt(receivedAmount) - selectedTotal : null;
-  const tobaccoChange = tobaccoReceived && tobaccoConfirming ? parseInt(tobaccoReceived) - tobaccoConfirming.price : null;
+  const tobaccoChange = tobaccoReceived && tobaccoConfirming
+    ? parseInt(tobaccoReceived) - tobaccoConfirming.price
+    : null;
 
-  const canCheckout = payMethod && receiptType && (payMethod === "ペイキャス" || (receivedAmount && change !== null && change >= 0));
-  const canTobaccoCheckout = tobaccoPayMethod && tobaccoReceiptType && (tobaccoPayMethod === "ペイキャス" || (tobaccoReceived && tobaccoChange !== null && tobaccoChange >= 0));
+  const canCheckout = payMethod && receiptType && (
+    payMethod === "ペイキャス" || (receivedAmount && change !== null && change >= 0)
+  );
+  const canTobaccoCheckout = tobaccoPayMethod && tobaccoReceiptType && (
+    tobaccoPayMethod === "ペイキャス" || (tobaccoReceived && tobaccoChange !== null && tobaccoChange >= 0)
+  );
 
   const checkout = async () => {
     const t = selected;
@@ -128,16 +136,20 @@ export default function Register() {
 
   const completeTobaccoSale = () => {
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-    setTobaccoHistory((prev) => [{ name: tobaccoConfirming.name, price: tobaccoConfirming.price, time: now, pay: tobaccoPayMethod, receipt: tobaccoReceiptType }, ...prev]);
+    setTobaccoHistory((prev) => [{
+      name: tobaccoConfirming.name,
+      price: tobaccoConfirming.price,
+      time: now,
+      pay: tobaccoPayMethod,
+      receipt: tobaccoReceiptType
+    }, ...prev]);
     setTobaccoConfirming(null);
     setTobaccoPayMethod(null);
     setTobaccoReceiptType(null);
     setTobaccoReceived("");
     setMode("register");
   };
-  
 
-  // 会計完了画面
   if (checkoutDone && checkoutInfo) return (
     <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
@@ -176,7 +188,6 @@ export default function Register() {
     </div>
   );
 
-  // 日計画面
   if (mode === "daily") {
     const groups = {};
     history.forEach(h => {
@@ -236,17 +247,14 @@ export default function Register() {
     );
   }
 
-  // タバコ単体販売画面
   if (mode === "tobacco") return (
     <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", padding: 16 }}>
-
       {tobaccoConfirming && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
           <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "90vh", overflow: "auto" }}>
             <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>タバコ販売</div>
             <div style={{ color: "#f0e6d0", fontSize: 15, marginBottom: 4 }}>{tobaccoConfirming.name}</div>
             <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 28, fontWeight: 800, marginBottom: 16 }}>¥{tobaccoConfirming.price}</div>
-
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>支払い方法</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
               {["現金", "ペイキャス"].map((p) => (
@@ -256,7 +264,6 @@ export default function Register() {
                 </button>
               ))}
             </div>
-
             {tobaccoPayMethod === "現金" && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 4 }}>受取金額</div>
@@ -275,7 +282,6 @@ export default function Register() {
                 <Keypad value={tobaccoReceived} onChange={setTobaccoReceived} />
               </div>
             )}
-
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>書類</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
               {["レシート", "領収書", "なし"].map((r) => (
@@ -285,7 +291,6 @@ export default function Register() {
                 </button>
               ))}
             </div>
-
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { setTobaccoConfirming(null); setTobaccoPayMethod(null); setTobaccoReceiptType(null); setTobaccoReceived(""); }}
                 style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
@@ -299,13 +304,11 @@ export default function Register() {
           </div>
         </div>
       )}
-
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18 }}>タバコ単体販売</div>
         <button onClick={() => setMode("register")}
           style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>戻る</button>
       </div>
-
       {TOBACCO.map((item) => (
         <div key={item.id} style={{ background: "#181008", border: "1px solid #3d2c14", borderRadius: 10, padding: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
@@ -318,7 +321,6 @@ export default function Register() {
           </button>
         </div>
       ))}
-
       {tobaccoHistory.length > 0 && (
         <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginTop: 16 }}>
           <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>本日タバコ販売履歴</div>
