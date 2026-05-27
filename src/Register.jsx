@@ -16,6 +16,24 @@ const TOBACCO = [
   { id: 5, name: "メビウス 6mg", price: 580 },
 ];
 
+const Keypad = ({ value, onChange }) => {
+  const keys = ["1","2","3","4","5","6","7","8","9","000","0","⌫"];
+  const handle = (k) => {
+    if (k === "⌫") onChange(value.slice(0, -1));
+    else if (value.length < 6) onChange(value + k);
+  };
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginTop: 8 }}>
+      {keys.map((k) => (
+        <button key={k} onClick={() => handle(k)}
+          style={{ padding: "14px 0", background: k === "⌫" ? "#3d1010" : "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: k === "⌫" ? "#c95a5a" : "#c9952a", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
+          {k}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 export default function Register() {
   const [orders, setOrders] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -25,10 +43,12 @@ export default function Register() {
   const [debugMsg, setDebugMsg] = useState("起動中...");
   const [payMethod, setPayMethod] = useState(null);
   const [receiptType, setReceiptType] = useState(null);
+  const [receivedAmount, setReceivedAmount] = useState("");
   const [mode, setMode] = useState("register");
   const [tobaccoConfirming, setTobaccoConfirming] = useState(null);
   const [tobaccoPayMethod, setTobaccoPayMethod] = useState(null);
   const [tobaccoReceiptType, setTobaccoReceiptType] = useState(null);
+  const [tobaccoReceived, setTobaccoReceived] = useState("");
 
   useEffect(() => {
     fetchOrders();
@@ -46,11 +66,8 @@ export default function Register() {
       .from("orders")
       .select("*")
       .order("created_at", { ascending: true });
-    if (error) {
-      setDebugMsg("エラー: " + error.message);
-    } else {
-      setDebugMsg("取得件数: " + (data ? data.length : 0) + "件");
-    }
+    if (error) setDebugMsg("エラー: " + error.message);
+    else setDebugMsg("取得件数: " + (data ? data.length : 0) + "件");
     setOrders(data || []);
   };
 
@@ -71,6 +88,9 @@ export default function Register() {
   const todayPay = history.filter(h => h.pay === "ペイキャス").reduce((s, h) => s + h.amount, 0);
   const tobaccoTotal = tobaccoHistory.reduce((s, h) => s + h.price, 0);
 
+  const change = receivedAmount ? parseInt(receivedAmount) - selectedTotal : null;
+  const tobaccoChange = tobaccoReceived && tobaccoConfirming ? parseInt(tobaccoReceived) - tobaccoConfirming.price : null;
+
   const checkout = async () => {
     const t = selected;
     const amount = tableTotal(t);
@@ -81,6 +101,7 @@ export default function Register() {
     setConfirming(false);
     setPayMethod(null);
     setReceiptType(null);
+    setReceivedAmount("");
   };
 
   const addDiscount = () => {
@@ -99,11 +120,15 @@ export default function Register() {
     setTobaccoConfirming(null);
     setTobaccoPayMethod(null);
     setTobaccoReceiptType(null);
+    setTobaccoReceived("");
   };
 
   const selectedOrders = selected ? tableOrders(selected).filter(o => o.status === "pending" && !o.item_name.startsWith("【人数")) : [];
   const selectedTotal = selected ? tableTotal(selected) : 0;
   const selectedPeople = selected ? tablePeople(selected) : "-";
+
+  const canCheckout = payMethod && receiptType && (payMethod === "ペイキャス" || (receivedAmount && change !== null && change >= 0));
+  const canTobaccoCheckout = tobaccoPayMethod && tobaccoReceiptType && (tobaccoPayMethod === "ペイキャス" || (tobaccoReceived && tobaccoChange !== null && tobaccoChange >= 0));
 
   // 日計画面
   if (mode === "daily") {
@@ -113,15 +138,12 @@ export default function Register() {
       if (!groups[hour]) groups[hour] = 0;
       groups[hour] += h.amount;
     });
-
     return (
       <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", padding: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18 }}>日計</div>
           <button onClick={() => setMode("register")}
-            style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>
-            戻る
-          </button>
+            style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>戻る</button>
         </div>
         <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
@@ -172,23 +194,41 @@ export default function Register() {
   if (mode === "tobacco") return (
     <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", padding: 16 }}>
 
-      {/* タバコ会計モーダル */}
       {tobaccoConfirming && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 28, width: "90%", maxWidth: 400 }}>
+          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "90vh", overflow: "auto" }}>
             <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>タバコ販売</div>
-            <div style={{ color: "#f0e6d0", fontSize: 16, marginBottom: 4 }}>{tobaccoConfirming.name}</div>
-            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 28, fontWeight: 800, marginBottom: 20 }}>¥{tobaccoConfirming.price}</div>
+            <div style={{ color: "#f0e6d0", fontSize: 15, marginBottom: 4 }}>{tobaccoConfirming.name}</div>
+            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 28, fontWeight: 800, marginBottom: 16 }}>¥{tobaccoConfirming.price}</div>
 
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>支払い方法</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
               {["現金", "ペイキャス"].map((p) => (
-                <button key={p} onClick={() => setTobaccoPayMethod(p)}
+                <button key={p} onClick={() => { setTobaccoPayMethod(p); setTobaccoReceived(""); }}
                   style={{ flex: 1, padding: 12, background: tobaccoPayMethod === p ? "#c9952a" : "transparent", border: `1px solid ${tobaccoPayMethod === p ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: tobaccoPayMethod === p ? "#0d0905" : "#8a7050", fontWeight: 700, cursor: "pointer" }}>
                   {p}
                 </button>
               ))}
             </div>
+
+            {tobaccoPayMethod === "現金" && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 4 }}>受取金額</div>
+                <div style={{ fontSize: 28, fontFamily: "serif", color: tobaccoReceived ? "#f0e6d0" : "#3d2c14", marginBottom: 4 }}>
+                  ¥{tobaccoReceived || "0"}
+                </div>
+                {tobaccoChange !== null && tobaccoChange >= 0 && (
+                  <div style={{ background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 8, padding: "10px 14px", marginBottom: 4 }}>
+                    <span style={{ color: "#8a7050", fontSize: 12 }}>おつり </span>
+                    <span style={{ color: "#4aaa5a", fontSize: 24, fontWeight: 800, fontFamily: "serif" }}>¥{tobaccoChange.toLocaleString()}</span>
+                  </div>
+                )}
+                {tobaccoChange !== null && tobaccoChange < 0 && (
+                  <div style={{ color: "#c95a5a", fontSize: 13 }}>金額が足りません</div>
+                )}
+                <Keypad value={tobaccoReceived} onChange={setTobaccoReceived} />
+              </div>
+            )}
 
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>書類</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
@@ -201,12 +241,12 @@ export default function Register() {
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => { setTobaccoConfirming(null); setTobaccoPayMethod(null); setTobaccoReceiptType(null); }}
+              <button onClick={() => { setTobaccoConfirming(null); setTobaccoPayMethod(null); setTobaccoReceiptType(null); setTobaccoReceived(""); }}
                 style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
                 戻る
               </button>
-              <button onClick={completeTobaccoSale} disabled={!tobaccoPayMethod || !tobaccoReceiptType}
-                style={{ flex: 2, padding: 14, background: tobaccoPayMethod && tobaccoReceiptType ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: tobaccoPayMethod && tobaccoReceiptType ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: tobaccoPayMethod && tobaccoReceiptType ? "pointer" : "not-allowed" }}>
+              <button onClick={completeTobaccoSale} disabled={!canTobaccoCheckout}
+                style={{ flex: 2, padding: 14, background: canTobaccoCheckout ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: canTobaccoCheckout ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: canTobaccoCheckout ? "pointer" : "not-allowed" }}>
                 ✅ 販売完了
               </button>
             </div>
@@ -217,9 +257,7 @@ export default function Register() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18 }}>タバコ単体販売</div>
         <button onClick={() => setMode("register")}
-          style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>
-          戻る
-        </button>
+          style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>戻る</button>
       </div>
 
       {TOBACCO.map((item) => (
@@ -259,9 +297,9 @@ export default function Register() {
 
       {confirming && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 28, width: "90%", maxWidth: 400, maxHeight: "90vh", overflow: "auto" }}>
+          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "90vh", overflow: "auto" }}>
             <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 20, marginBottom: 4 }}>テーブル {selected} 会計</div>
-            <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 16 }}>{selectedPeople}名</div>
+            <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 12 }}>{selectedPeople}名</div>
             <div style={{ borderTop: "1px solid #3d2c14", paddingTop: 12, marginBottom: 12 }}>
               {selectedOrders.map((o, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 13, borderBottom: "1px solid #3d2c1433" }}>
@@ -272,25 +310,46 @@ export default function Register() {
                 </div>
               ))}
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <span style={{ color: "#8a7050" }}>お会計合計</span>
-              <span style={{ fontFamily: "serif", fontSize: 32, fontWeight: 800, color: "#c9952a" }}>¥{selectedTotal.toLocaleString()}</span>
+              <span style={{ fontFamily: "serif", fontSize: 28, fontWeight: 800, color: "#c9952a" }}>¥{selectedTotal.toLocaleString()}</span>
             </div>
             <button onClick={addDiscount}
-              style={{ width: "100%", padding: 10, background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 8, color: "#4aaa5a", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 16 }}>
+              style={{ width: "100%", padding: 10, background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 8, color: "#4aaa5a", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 14 }}>
               セット値引き -150円 を追加
             </button>
+
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>支払い方法</div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
               {["現金", "ペイキャス"].map((p) => (
-                <button key={p} onClick={() => setPayMethod(p)}
+                <button key={p} onClick={() => { setPayMethod(p); setReceivedAmount(""); }}
                   style={{ flex: 1, padding: 12, background: payMethod === p ? "#c9952a" : "transparent", border: `1px solid ${payMethod === p ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: payMethod === p ? "#0d0905" : "#8a7050", fontWeight: 700, cursor: "pointer" }}>
                   {p}
                 </button>
               ))}
             </div>
+
+            {payMethod === "現金" && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 4 }}>受取金額</div>
+                <div style={{ fontSize: 28, fontFamily: "serif", color: receivedAmount ? "#f0e6d0" : "#3d2c14", marginBottom: 4 }}>
+                  ¥{receivedAmount || "0"}
+                </div>
+                {change !== null && change >= 0 && (
+                  <div style={{ background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 8, padding: "10px 14px", marginBottom: 4 }}>
+                    <span style={{ color: "#8a7050", fontSize: 12 }}>おつり </span>
+                    <span style={{ color: "#4aaa5a", fontSize: 24, fontWeight: 800, fontFamily: "serif" }}>¥{change.toLocaleString()}</span>
+                  </div>
+                )}
+                {change !== null && change < 0 && (
+                  <div style={{ color: "#c95a5a", fontSize: 13, marginBottom: 4 }}>金額が足りません</div>
+                )}
+                <Keypad value={receivedAmount} onChange={setReceivedAmount} />
+              </div>
+            )}
+
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>書類</div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
               {["レシート", "領収書", "なし"].map((r) => (
                 <button key={r} onClick={() => setReceiptType(r)}
                   style={{ flex: 1, padding: 10, background: receiptType === r ? "#c9952a" : "transparent", border: `1px solid ${receiptType === r ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: receiptType === r ? "#0d0905" : "#8a7050", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
@@ -298,13 +357,14 @@ export default function Register() {
                 </button>
               ))}
             </div>
+
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => { setConfirming(false); setPayMethod(null); setReceiptType(null); }}
+              <button onClick={() => { setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); }}
                 style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
                 戻る
               </button>
-              <button onClick={checkout} disabled={!payMethod || !receiptType}
-                style={{ flex: 2, padding: 14, background: payMethod && receiptType ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: payMethod && receiptType ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: payMethod && receiptType ? "pointer" : "not-allowed" }}>
+              <button onClick={checkout} disabled={!canCheckout}
+                style={{ flex: 2, padding: 14, background: canCheckout ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: canCheckout ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: canCheckout ? "pointer" : "not-allowed" }}>
                 ✅ 会計完了
               </button>
             </div>
