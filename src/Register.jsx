@@ -322,20 +322,21 @@ export default function Register() {
         </div>
       ))}
       {tobaccoHistory.length > 0 && (
-        <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginTop: 16 }}>
-          <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>本日タバコ販売履歴</div>
-          {tobaccoHistory.map((h, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#8a7050", padding: "4px 0", borderBottom: "1px solid #3d2c1433" }}>
-              <span>{h.time} {h.name}</span>
-              <span style={{ color: "#c9952a" }}>¥{h.price}</span>
-            </div>
-          ))}
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, paddingTop: 8, borderTop: "1px solid #3d2c14" }}>
-            <span style={{ color: "#8a7050" }}>合計</span>
-            <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>¥{tobaccoTotal.toLocaleString()}</span>
-          </div>
-        </div>
-      )}
+  <div style={{ background: "#181008", border: "1px solid #6a4d15", borderRadius: 12, padding: 20, marginTop: 20 }}>
+    <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>🚬 本日タバコ販売</div>
+    {tobaccoHistory.map((h, i) => (
+      <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: "#f0e6d0", padding: "8px 0", borderBottom: "1px solid #3d2c1433" }}>
+        <span>{h.time} {h.name}</span>
+        <span style={{ color: "#c9952a", fontWeight: 700 }}>¥{h.price}</span>
+      </div>
+    ))}
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, paddingTop: 14, borderTop: "1px solid #6a4d15" }}>
+      <span style={{ color: "#8a7050", fontSize: 14 }}>本日合計</span>
+      <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 800 }}>¥{tobaccoTotal.toLocaleString()}</span>
+    </div>
+  </div>
+)}
+
     </div>
   );
 
