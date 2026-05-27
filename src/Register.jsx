@@ -20,12 +20,13 @@ export default function Register() {
   const [orders, setOrders] = useState([]);
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
+  const [tobaccoHistory, setTobaccoHistory] = useState([]);
   const [confirming, setConfirming] = useState(false);
   const [debugMsg, setDebugMsg] = useState("起動中...");
   const [payMethod, setPayMethod] = useState(null);
   const [receiptType, setReceiptType] = useState(null);
-  const [mode, setMode] = useState("register"); // register / tobacco / daily / monthly
-  const [dailyData, setDailyData] = useState(null);
+  const [mode, setMode] = useState("register");
+  const [tobaccoSold, setTobaccoSold] = useState(null);
 
   useEffect(() => {
     fetchOrders();
@@ -66,6 +67,7 @@ export default function Register() {
   const todaySales = history.reduce((s, h) => s + h.amount, 0);
   const todayCash = history.filter(h => h.pay === "現金").reduce((s, h) => s + h.amount, 0);
   const todayPay = history.filter(h => h.pay === "ペイキャス").reduce((s, h) => s + h.amount, 0);
+  const tobaccoTotal = tobaccoHistory.reduce((s, h) => s + h.price, 0);
 
   const checkout = async () => {
     const t = selected;
@@ -89,9 +91,11 @@ export default function Register() {
     }).then(() => fetchOrders());
   };
 
-  const tobaccoSale = async (item) => {
+  const tobaccoSale = (item) => {
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-    setHistory((prev) => [{ table: "タバコ", amount: item.price, time: now, pay: "現金", receipt: "なし", tobacco: item.name }, ...prev]);
+    setTobaccoHistory((prev) => [{ name: item.name, price: item.price, time: now }, ...prev]);
+    setTobaccoSold(item);
+    setTimeout(() => setTobaccoSold(null), 2000);
   };
 
   const selectedOrders = selected ? tableOrders(selected).filter(o => o.status === "pending" && !o.item_name.startsWith("【人数")) : [];
@@ -106,8 +110,7 @@ export default function Register() {
       if (!groups[hour]) groups[hour] = 0;
       groups[hour] += h.amount;
     });
-    const tobaccoTotal = history.filter(h => h.tobacco).reduce((s, h) => s + h.amount, 0);
-    const tableCount = history.filter(h => h.table !== "タバコ").length;
+    const tableCount = history.length;
 
     return (
       <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", padding: 16 }}>
@@ -128,24 +131,36 @@ export default function Register() {
             <span style={{ color: "#c9952a", fontFamily: "serif" }}>¥{todayPay.toLocaleString()}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, borderTop: "1px solid #3d2c14", paddingTop: 8 }}>
-            <span style={{ color: "#f0e6d0", fontWeight: 700 }}>総売上</span>
+            <span style={{ color: "#f0e6d0", fontWeight: 700 }}>総売上（タバコ除く）</span>
             <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 20, fontWeight: 700 }}>¥{todaySales.toLocaleString()}</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ color: "#8a7050" }}>タバコ売上</span>
-            <span style={{ color: "#c9952a", fontFamily: "serif" }}>¥{tobaccoTotal.toLocaleString()}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <span style={{ color: "#8a7050" }}>組数</span>
             <span style={{ color: "#c9952a", fontFamily: "serif" }}>{tableCount}組</span>
           </div>
         </div>
-        <div style={{ background: "#181008", borderRadius: 10, padding: 16 }}>
+
+        <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
           <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>時間帯別売上</div>
-          {Object.entries(groups).sort().map(([hour, amount]) => (
+          {Object.keys(groups).length === 0 ? (
+            <div style={{ color: "#3d2c14", fontSize: 13 }}>データなし</div>
+          ) : Object.entries(groups).sort().map(([hour, amount]) => (
             <div key={hour} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #3d2c1433" }}>
               <span style={{ color: "#8a7050" }}>{hour}時台</span>
               <span style={{ color: "#c9952a" }}>¥{amount.toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ background: "#181008", borderRadius: 10, padding: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <span style={{ color: "#8a7050" }}>🚬 タバコ売上</span>
+            <span style={{ color: "#c9952a", fontFamily: "serif" }}>¥{tobaccoTotal.toLocaleString()}</span>
+          </div>
+          {tobaccoHistory.map((h, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#8a7050", padding: "3px 0" }}>
+              <span>{h.time} {h.name}</span>
+              <span>¥{h.price}</span>
             </div>
           ))}
         </div>
@@ -163,6 +178,14 @@ export default function Register() {
           戻る
         </button>
       </div>
+
+      {tobaccoSold && (
+        <div style={{ background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 10, padding: 16, marginBottom: 16, textAlign: "center" }}>
+          <div style={{ color: "#4aaa5a", fontSize: 16, fontWeight: 700 }}>✅ 販売しました！</div>
+          <div style={{ color: "#8a7050", fontSize: 13, marginTop: 4 }}>{tobaccoSold.name} ¥{tobaccoSold.price}</div>
+        </div>
+      )}
+
       {TOBACCO.map((item) => (
         <div key={item.id} style={{ background: "#181008", border: "1px solid #3d2c14", borderRadius: 10, padding: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
@@ -175,6 +198,22 @@ export default function Register() {
           </button>
         </div>
       ))}
+
+      {tobaccoHistory.length > 0 && (
+        <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginTop: 16 }}>
+          <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>本日タバコ販売履歴</div>
+          {tobaccoHistory.map((h, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#8a7050", padding: "4px 0", borderBottom: "1px solid #3d2c1433" }}>
+              <span>{h.time} {h.name}</span>
+              <span style={{ color: "#c9952a" }}>¥{h.price}</span>
+            </div>
+          ))}
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, paddingTop: 8, borderTop: "1px solid #3d2c14" }}>
+            <span style={{ color: "#8a7050" }}>合計</span>
+            <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>¥{tobaccoTotal.toLocaleString()}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -182,13 +221,11 @@ export default function Register() {
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#0d0905", color: "#f0e6d0", fontFamily: "'Noto Sans JP', sans-serif" }}>
       <div style={{ background: "#ff0000", color: "#fff", padding: "4px 12px", fontSize: 12 }}>{debugMsg}</div>
 
-      {/* 会計確認モーダル */}
       {confirming && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 28, width: "90%", maxWidth: 400 }}>
+          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 28, width: "90%", maxWidth: 400, maxHeight: "90vh", overflow: "auto" }}>
             <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 20, marginBottom: 4 }}>テーブル {selected} 会計</div>
             <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 16 }}>{selectedPeople}名</div>
-
             <div style={{ borderTop: "1px solid #3d2c14", paddingTop: 12, marginBottom: 12 }}>
               {selectedOrders.map((o, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 13, borderBottom: "1px solid #3d2c1433" }}>
@@ -199,19 +236,14 @@ export default function Register() {
                 </div>
               ))}
             </div>
-
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <span style={{ color: "#8a7050" }}>お会計合計</span>
               <span style={{ fontFamily: "serif", fontSize: 32, fontWeight: 800, color: "#c9952a" }}>¥{selectedTotal.toLocaleString()}</span>
             </div>
-
-            {/* セット値引きボタン */}
             <button onClick={addDiscount}
               style={{ width: "100%", padding: 10, background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 8, color: "#4aaa5a", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 16 }}>
               セット値引き -150円 を追加
             </button>
-
-            {/* 支払い方法 */}
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>支払い方法</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
               {["現金", "ペイキャス"].map((p) => (
@@ -221,8 +253,6 @@ export default function Register() {
                 </button>
               ))}
             </div>
-
-            {/* レシート種別 */}
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>書類</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
               {["レシート", "領収書", "なし"].map((r) => (
@@ -232,7 +262,6 @@ export default function Register() {
                 </button>
               ))}
             </div>
-
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { setConfirming(false); setPayMethod(null); setReceiptType(null); }}
                 style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
@@ -248,7 +277,6 @@ export default function Register() {
       )}
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {/* 左：テーブルマップ */}
         <div style={{ width: 200, background: "#181008", borderRight: "1px solid #3d2c14", display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "16px 14px", borderBottom: "1px solid #3d2c14" }}>
             <div style={{ fontFamily: "serif", fontSize: 14, color: "#c9952a", fontWeight: 700 }}>Lounge Cattleya</div>
@@ -262,8 +290,6 @@ export default function Register() {
             <div style={{ fontSize: 10, color: "#8a7050" }}>本日売上</div>
             <div style={{ fontFamily: "serif", fontSize: 16, color: "#c9952a", fontWeight: 700 }}>¥{todaySales.toLocaleString()}</div>
           </div>
-
-          {/* ボタン群 */}
           <div style={{ padding: "8px 10px", borderBottom: "1px solid #3d2c14", display: "flex", flexDirection: "column", gap: 6 }}>
             <button onClick={() => setMode("tobacco")}
               style={{ padding: "8px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 11, cursor: "pointer" }}>
@@ -274,7 +300,6 @@ export default function Register() {
               📊 日計
             </button>
           </div>
-
           <div style={{ flex: 1, overflow: "auto", padding: "8px 10px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 5 }}>
               {TABLES.map((t) => {
@@ -288,13 +313,12 @@ export default function Register() {
               })}
             </div>
           </div>
-
           {history.length > 0 && (
             <div style={{ padding: "8px 12px", borderTop: "1px solid #3d2c14", maxHeight: 150, overflow: "auto" }}>
               <div style={{ fontSize: 10, color: "#8a7050", marginBottom: 6 }}>会計済み</div>
               {history.map((h, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#8a7050", padding: "3px 0" }}>
-                  <span>{h.table === "タバコ" ? "🚬" : `T${h.table}`} {h.time}</span>
+                  <span>T{h.table} {h.time}</span>
                   <span style={{ color: "#c9952a" }}>¥{h.amount.toLocaleString()}</span>
                 </div>
               ))}
@@ -302,7 +326,6 @@ export default function Register() {
           )}
         </div>
 
-        {/* 右：注文詳細 */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div style={{ padding: "14px 20px", background: "#181008", borderBottom: "1px solid #3d2c14" }}>
             {selected ? (
@@ -317,7 +340,6 @@ export default function Register() {
               <span style={{ color: "#8a7050" }}>左のテーブルを選択してください</span>
             )}
           </div>
-
           <div style={{ flex: 1, overflow: "auto", padding: 20 }}>
             {!selected ? (
               <div style={{ textAlign: "center", color: "#3d2c14", paddingTop: 60, fontSize: 14 }}>🧾 テーブルを選択してください</div>
@@ -352,7 +374,6 @@ export default function Register() {
               </>
             )}
           </div>
-
           {selected && selectedOrders.length > 0 && (
             <div style={{ padding: "14px 20px", background: "#181008", borderTop: "1px solid #3d2c14" }}>
               <button onClick={() => setConfirming(true)}
