@@ -36,129 +36,6 @@ function Keypad({ value, onChange }) {
   );
 }
 
-function PLUReport({ supabase, onBack }) {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
-
-  useEffect(() => { fetchItems(); }, [selectedMonth]);
-
-  const fetchItems = async () => {
-    setLoading(true);
-    const [year, month] = selectedMonth.split('-');
-    const startDate = `${year}-${month}-01`;
-    const endDate = new Date(year, month, 0).toISOString().split('T')[0];
-    const { data } = await supabase
-      .from("order_items")
-      .select("*")
-      .gte("sale_date", startDate)
-      .lte("sale_date", endDate);
-    setItems(data || []);
-    setLoading(false);
-  };
-
-  // メニュー別集計
-  const byItem = {};
-  items.forEach(item => {
-    if (item.price < 0) return; // 値引きは除外
-    if (!byItem[item.item_name]) {
-      byItem[item.item_name] = { qty: 0, total: 0, price: item.price };
-    }
-    byItem[item.item_name].qty += item.qty;
-    byItem[item.item_name].total += item.price * item.qty;
-  });
-
-  // 売上順にソート
-  const sorted = Object.entries(byItem).sort((a, b) => b[1].total - a[1].total);
-  const grandTotal = sorted.reduce((a, [, v]) => a + v.total, 0);
-  const grandQty = sorted.reduce((a, [, v]) => a + v.qty, 0);
-
-  // カテゴリー分類
-  const categories = {
-    "コーヒー": ["コーヒー（HOT）", "アイスコーヒー", "アメリカン", "カフェ・オ・レ（HOT）", "アイスオ・レ", "ウィンナーコーヒー（HOT）", "アイスウィンナー"],
-    "ストレート": ["トラジャ", "マンデリン", "モカ", "グァテマラ", "キリマンジェロ"],
-    "紅茶": ["レモンティ（HOT）", "アイスレモンティ", "ミルクティ（HOT）", "アイスミルクティ", "ウーロン茶（HOT）", "アイスウーロン茶", "こんぶ茶（HOT）", "梅こん茶（HOT）"],
-    "ジュース": ["ミルク（HOT）", "アイスミルク", "ココア（HOT）", "アイスココア", "トマトジュース", "リンゴジュース", "オレンジジュース", "バナナジュース", "レモンジュース", "レモンスカッシュ", "コカ・コーラ", "ジンジャーエール", "ソーダ水", "カルピス", "野菜ジュース", "グアバドリンク", "マンゴードリンク", "コーヒーフロート", "ソーダフロート"],
-    "フード": ["トースト（バター＆ジャム）", "ピザトースト", "ミックスサンド", "ハムサンド", "野菜サンド", "玉子サンド", "トーストサンド（ミックス）", "トーストサンド（ハム）", "トーストサンド（たまご）"],
-    "スイーツ": ["ミルクレープ", "ガトーショコラ", "フォンダンショコラ", "チーズケーキ", "紅茶のシフォン", "栗のモンブラン", "バニラアイスクリーム", "コーヒーゼリー"],
-    "モーニング": ["モーニング（コーヒーHOT）", "モーニング（コーヒーICE）", "モーニング（紅茶HOT）", "モーニング（紅茶ICE）"],
-    "おかわり": ["コーヒー おかわり（HOT）", "コーヒー おかわり（ICE）", "レモンティ おかわり（HOT）", "レモンティ おかわり（ICE）", "ミルクティ おかわり（HOT）", "ミルクティ おかわり（ICE）", "ウーロン茶 おかわり（HOT）", "ウーロン茶 おかわり（ICE）"],
-    "アルコール": ["オールド（水割り）", "バドワイザー"],
-    "その他": [],
-  };
-
-  const getCategory = (name) => {
-    for (const [cat, items] of Object.entries(categories)) {
-      if (items.includes(name)) return cat;
-    }
-    return "その他";
-  };
-
-  const byCategory = {};
-  sorted.forEach(([name, data]) => {
-    const cat = getCategory(name);
-    if (!byCategory[cat]) byCategory[cat] = { items: [], total: 0, qty: 0 };
-    byCategory[cat].items.push([name, data]);
-    byCategory[cat].total += data.total;
-    byCategory[cat].qty += data.qty;
-  });
-
-  return (
-    <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18 }}>📋 PLU集計</div>
-        <button onClick={onBack} style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>戻る</button>
-      </div>
-
-      <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
-        style={{ width: "100%", padding: "10px 12px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#f0e6d0", fontSize: 14, marginBottom: 16, boxSizing: "border-box" }} />
-
-      {loading ? <div style={{ textAlign: "center", color: "#8a7050", paddingTop: 40 }}>読み込み中...</div> : (
-        <>
-          <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-              <span style={{ color: "#8a7050", fontSize: 12 }}>総売上（値引除く）</span>
-              <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 18, fontWeight: 700 }}>¥{grandTotal.toLocaleString()}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#8a7050", fontSize: 12 }}>総販売数</span>
-              <span style={{ color: "#c9952a" }}>{grandQty}点</span>
-            </div>
-          </div>
-
-          {Object.entries(byCategory).filter(([, d]) => d.items.length > 0).map(([cat, catData]) => (
-            <div key={cat} style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 14 }}>{cat}</div>
-                <div style={{ textAlign: "right" }}>
-                  <span style={{ color: "#8a7050", fontSize: 11, marginRight: 8 }}>{catData.qty}点</span>
-                  <span style={{ color: "#c9952a", fontSize: 13, fontWeight: 700 }}>¥{catData.total.toLocaleString()}</span>
-                </div>
-              </div>
-              {catData.items.map(([name, data]) => (
-                <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #3d2c1433" }}>
-                  <span style={{ color: "#f0e6d0", fontSize: 12 }}>{name}</span>
-                  <div style={{ textAlign: "right" }}>
-                    <span style={{ color: "#8a7050", fontSize: 11, marginRight: 8 }}>{data.qty}点</span>
-                    <span style={{ color: "#c9952a", fontSize: 12 }}>¥{data.total.toLocaleString()}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))}
-
-          {sorted.length === 0 && (
-            <div style={{ textAlign: "center", color: "#3d2c14", paddingTop: 40, fontSize: 14 }}>データなし</div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
 function DailyReport({ supabase, onBack, cashCheckLogs }) {
   const [sales, setSales] = useState([]);
   const [tobaccoSales, setTobaccoSales] = useState([]);
@@ -312,7 +189,7 @@ function MonthlyReport({ supabase, onBack }) {
   const secondHalfPay = sales.filter(s => s.pay_method === "ペイキャス" && parseInt(s.sale_date.split('-')[2]) > 15).reduce((a, s) => a + s.amount, 0);
   const tobaccoTotal = tobaccoSales.reduce((a, s) => a + s.price, 0);
   const tobaccoByItem = {};
-  TOBACCO.forEach(t => { tobaccoByItem[t.name] = { count: 0, total: 0 }; });
+  TOBACCO.forEach(t => { tobaccoByItem[t.name] = { count: 0, total: 0, price: t.price }; });
   tobaccoSales.forEach(s => {
     if (tobaccoByItem[s.item_name]) {
       tobaccoByItem[s.item_name].count += 1;
@@ -530,19 +407,6 @@ export default function Register() {
     }
     const chg = payMethod === "現金" ? change : null;
     const people = tablePeople(t);
-
-    // 注文明細を取得してorder_itemsに保存
-    const tableOrderItems = tableOrders(t).filter(o => o.status === "pending" && !o.item_name.startsWith("【人数"));
-    for (const item of tableOrderItems) {
-      await supabase.from("order_items").insert({
-        table_no: String(t),
-        item_name: item.item_name,
-        price: item.price,
-        qty: item.qty,
-        sale_time: now,
-      });
-    }
-
     await supabase.from("orders").delete().eq("table_no", String(t));
     await supabase.from("sales").insert({ table_no: String(t), amount, pay_method: payMethod, receipt_type: receiptType, people_count: people, sale_time: now });
     await fetchTodaySales();
@@ -561,7 +425,12 @@ export default function Register() {
 
   const completeTobaccoSale = async () => {
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-    await supabase.from("tobacco_sales").insert({ item_name: tobaccoConfirming.name, price: tobaccoConfirming.price, receipt_type: tobaccoReceiptType, sale_time: now });
+    await supabase.from("tobacco_sales").insert({
+      item_name: tobaccoConfirming.name,
+      price: tobaccoConfirming.price,
+      receipt_type: tobaccoReceiptType,
+      sale_time: now,
+    });
     await fetchTodayTobacco();
     await fetchMonthlyTobacco();
     setTobaccoConfirming(null); setTobaccoReceiptType(null); setTobaccoReceived(""); setMode("register");
@@ -618,7 +487,6 @@ export default function Register() {
 
   if (mode === "daily") return <DailyReport supabase={supabase} onBack={() => setMode("register")} cashCheckLogs={cashCheckLogs} />;
   if (mode === "monthly") return <MonthlyReport supabase={supabase} onBack={() => setMode("register")} />;
-  if (mode === "plu") return <PLUReport supabase={supabase} onBack={() => setMode("register")} />;
 
   if (mode === "tobacco") return (
     <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", padding: 16 }}>
@@ -663,10 +531,12 @@ export default function Register() {
           </div>
         </div>
       )}
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18 }}>タバコ単体販売</div>
         <button onClick={() => setMode("register")} style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>戻る</button>
       </div>
+
       {TOBACCO.map((item) => (
         <div key={item.id} style={{ background: "#181008", border: "1px solid #3d2c14", borderRadius: 10, padding: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
@@ -676,6 +546,7 @@ export default function Register() {
           <button onClick={() => openTobaccoConfirm(item)} style={{ padding: "10px 20px", background: "#c9952a", border: "none", borderRadius: 8, color: "#0d0905", fontWeight: 700, cursor: "pointer" }}>販売</button>
         </div>
       ))}
+
       {todayTobaccoFromDB.length > 0 && (
         <div style={{ background: "#181008", border: "1px solid #6a4d15", borderRadius: 12, padding: 20, marginTop: 20 }}>
           <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>🚬 本日タバコ販売</div>
@@ -691,6 +562,7 @@ export default function Register() {
           </div>
         </div>
       )}
+
       <div style={{ background: "#181008", border: "1px solid #3d2c14", borderRadius: 12, padding: 20, marginTop: 16 }}>
         <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 15, fontWeight: 700, marginBottom: 12 }}>
           📅 {now.getMonth() + 1}月 銘柄別累計
@@ -851,7 +723,6 @@ export default function Register() {
             <button onClick={() => setMode("tobacco")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>🚬 タバコ販売</button>
             <button onClick={() => setMode("daily")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>📊 日計</button>
             <button onClick={() => setMode("monthly")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>📅 月次</button>
-            <button onClick={() => setMode("plu")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>📋 PLU</button>
             <button onClick={() => setCashChecking(true)} style={{ padding: "6px 0", background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 6, color: "#4aaa5a", fontSize: 10, cursor: "pointer" }}>💰 レジ確認</button>
           </div>
           <div style={{ flex: 1, overflow: "auto", padding: "6px 8px" }}>
