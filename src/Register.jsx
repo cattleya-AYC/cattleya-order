@@ -112,7 +112,9 @@ export default function Register() {
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
 
     // 重複チェック：同じテーブル・同じ金額・同じ時間なら記録しない
-    if (lastCheckout && lastCheckout.table === t && lastCheckout.amount === amount && lastCheckout.time === now) {
+    const nowMs = Date.now();
+if (lastCheckout && lastCheckout.table === t && lastCheckout.amount === amount && (nowMs - lastCheckout.timestamp) < 120000) {
+
       setConfirming(false);
       setPayMethod(null);
       setReceiptType(null);
@@ -122,9 +124,11 @@ export default function Register() {
 
     const chg = payMethod === "現金" ? change : null;
     await supabase.from("orders").delete().eq("table_no", String(t));
-    const record = { table: t, amount, time: now, pay: payMethod, receipt: receiptType };
-    setHistory((prev) => [record, ...prev]);
-    setLastCheckout(record);
+    
+    const record = { table: t, amount, time: now, pay: payMethod, receipt: receiptType, timestamp: Date.now() };
+setHistory((prev) => [record, ...prev]);
+setLastCheckout(record);
+
     setCheckoutInfo({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null });
     setSelected(null);
     setConfirming(false);
