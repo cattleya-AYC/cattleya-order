@@ -16,6 +16,8 @@ const TOBACCO = [
   { id: 5, name: "メビウス 6mg", price: 580 },
 ];
 
+const STAFF = ["佐々木店長", "宮川", "末永", "井淵"];
+
 function Keypad({ value, onChange }) {
   const keys = ["1","2","3","4","5","6","7","8","9","000","0","⌫"];
   const handle = (k) => {
@@ -51,6 +53,11 @@ export default function Register() {
   const [checkoutDone, setCheckoutDone] = useState(false);
   const [checkoutInfo, setCheckoutInfo] = useState(null);
   const [lastCheckout, setLastCheckout] = useState(null);
+  const [cashCheckLogs, setCashCheckLogs] = useState([]);
+  const [cashChecking, setCashChecking] = useState(false);
+  const [cashCheckStaff, setCashCheckStaff] = useState(null);
+  const [cashCheckOther, setCashCheckOther] = useState("");
+  const [showOtherInput, setShowOtherInput] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -110,25 +117,19 @@ export default function Register() {
     const t = selected;
     const amount = tableTotal(t);
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-
-    // 重複チェック：同じテーブル・同じ金額・同じ時間なら記録しない
     const nowMs = Date.now();
-if (lastCheckout && lastCheckout.table === t && lastCheckout.amount === amount && (nowMs - lastCheckout.timestamp) < 120000) {
-
+    if (lastCheckout && lastCheckout.table === t && lastCheckout.amount === amount && (nowMs - lastCheckout.timestamp) < 120000) {
       setConfirming(false);
       setPayMethod(null);
       setReceiptType(null);
       setReceivedAmount("");
       return;
     }
-
     const chg = payMethod === "現金" ? change : null;
     await supabase.from("orders").delete().eq("table_no", String(t));
-    
     const record = { table: t, amount, time: now, pay: payMethod, receipt: receiptType, timestamp: Date.now() };
-setHistory((prev) => [record, ...prev]);
-setLastCheckout(record);
-
+    setHistory((prev) => [record, ...prev]);
+    setLastCheckout(record);
     setCheckoutInfo({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null });
     setSelected(null);
     setConfirming(false);
@@ -166,6 +167,18 @@ setLastCheckout(record);
     setTobaccoReceiptType(null);
     setTobaccoReceived("");
     setMode("register");
+  };
+
+  const confirmCashCheck = () => {
+    const staffName = showOtherInput ? cashCheckOther : cashCheckStaff;
+    if (!staffName) return;
+    const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+    const systemCash = todayCash + 50000;
+    setCashCheckLogs((prev) => [{ time: now, staff: staffName, systemCash, salesCash: todayCash }, ...prev]);
+    setCashChecking(false);
+    setCashCheckStaff(null);
+    setCashCheckOther("");
+    setShowOtherInput(false);
   };
 
   if (checkoutDone && checkoutInfo) return (
@@ -249,7 +262,7 @@ setLastCheckout(record);
             </div>
           ))}
         </div>
-        <div style={{ background: "#181008", borderRadius: 10, padding: 16 }}>
+        <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
             <span style={{ color: "#8a7050" }}>🚬 タバコ売上（現金・別）</span>
             <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>¥{tobaccoTotal.toLocaleString()}</span>
@@ -261,6 +274,22 @@ setLastCheckout(record);
             </div>
           ))}
         </div>
+        {cashCheckLogs.length > 0 && (
+          <div style={{ background: "#181008", borderRadius: 10, padding: 16 }}>
+            <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>💰 レジ確認履歴</div>
+            {cashCheckLogs.map((log, i) => (
+              <div key={i} style={{ padding: "8px 0", borderBottom: "1px solid #3d2c1433" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                  <span style={{ color: "#f0e6d0" }}>{log.time} {log.staff}</span>
+                  <span style={{ color: "#c9952a" }}>¥{log.systemCash.toLocaleString()}</span>
+                </div>
+                <div style={{ fontSize: 11, color: "#8a7050", marginTop: 2 }}>
+                  釣り銭¥50,000 ＋ 売上¥{log.salesCash.toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -355,6 +384,59 @@ setLastCheckout(record);
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#0d0905", color: "#f0e6d0", fontFamily: "'Noto Sans JP', sans-serif" }}>
       <div style={{ background: "#333", color: "#fff", padding: "4px 12px", fontSize: 11 }}>{debugMsg}</div>
+
+      {cashChecking && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
+          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400 }}>
+            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 16 }}>💰 レジ金額確認</div>
+            <div style={{ background: "#251a0a", borderRadius: 10, padding: 16, marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ color: "#8a7050" }}>釣り銭</span>
+                <span style={{ color: "#f0e6d0" }}>¥50,000</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ color: "#8a7050" }}>現金売上</span>
+                <span style={{ color: "#f0e6d0" }}>¥{todayCash.toLocaleString()}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #3d2c14", paddingTop: 8 }}>
+                <span style={{ color: "#f0e6d0", fontWeight: 700 }}>レジ内合計</span>
+                <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 22, fontWeight: 800 }}>¥{(todayCash + 50000).toLocaleString()}</span>
+              </div>
+            </div>
+            <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 10 }}>確認者</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8, marginBottom: 10 }}>
+              {STAFF.map((s) => (
+                <button key={s} onClick={() => { setCashCheckStaff(s); setShowOtherInput(false); setCashCheckOther(""); }}
+                  style={{ padding: 12, background: cashCheckStaff === s && !showOtherInput ? "#c9952a" : "transparent", border: `1px solid ${cashCheckStaff === s && !showOtherInput ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: cashCheckStaff === s && !showOtherInput ? "#0d0905" : "#8a7050", fontWeight: 700, cursor: "pointer" }}>
+                  {s}
+                </button>
+              ))}
+              <button onClick={() => { setShowOtherInput(true); setCashCheckStaff(null); }}
+                style={{ padding: 12, background: showOtherInput ? "#c9952a" : "transparent", border: `1px solid ${showOtherInput ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: showOtherInput ? "#0d0905" : "#8a7050", fontWeight: 700, cursor: "pointer" }}>
+                その他
+              </button>
+            </div>
+            {showOtherInput && (
+              <input
+                value={cashCheckOther}
+                onChange={(e) => setCashCheckOther(e.target.value)}
+                placeholder="名前を入力"
+                style={{ width: "100%", padding: "10px 12px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#f0e6d0", fontSize: 14, marginBottom: 10, boxSizing: "border-box" }}
+              />
+            )}
+            <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+              <button onClick={() => { setCashChecking(false); setCashCheckStaff(null); setCashCheckOther(""); setShowOtherInput(false); }}
+                style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
+                キャンセル
+              </button>
+              <button onClick={confirmCashCheck} disabled={!cashCheckStaff && !cashCheckOther}
+                style={{ flex: 2, padding: 14, background: (cashCheckStaff || cashCheckOther) ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: (cashCheckStaff || cashCheckOther) ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: (cashCheckStaff || cashCheckOther) ? "pointer" : "not-allowed" }}>
+                ✅ 確認完了
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirming && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
@@ -457,6 +539,10 @@ setLastCheckout(record);
             <button onClick={() => setMode("daily")}
               style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>
               📊 日計
+            </button>
+            <button onClick={() => setCashChecking(true)}
+              style={{ padding: "6px 0", background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 6, color: "#4aaa5a", fontSize: 10, cursor: "pointer" }}>
+              💰 レジ確認
             </button>
           </div>
           <div style={{ flex: 1, overflow: "auto", padding: "6px 8px" }}>
