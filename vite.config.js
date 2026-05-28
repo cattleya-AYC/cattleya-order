@@ -8,7 +8,6 @@ export default defineConfig({
       input: {
         main: 'index.html',
         register: 'register.html',
-        admin: 'admin.html',
       }
     }
   }
