@@ -50,6 +50,7 @@ export default function Register() {
   const [tobaccoReceived, setTobaccoReceived] = useState("");
   const [checkoutDone, setCheckoutDone] = useState(false);
   const [checkoutInfo, setCheckoutInfo] = useState(null);
+  const [lastCheckout, setLastCheckout] = useState(null);
 
   useEffect(() => {
     fetchOrders();
@@ -109,9 +110,21 @@ export default function Register() {
     const t = selected;
     const amount = tableTotal(t);
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+
+    // 重複チェック：同じテーブル・同じ金額・同じ時間なら記録しない
+    if (lastCheckout && lastCheckout.table === t && lastCheckout.amount === amount && lastCheckout.time === now) {
+      setConfirming(false);
+      setPayMethod(null);
+      setReceiptType(null);
+      setReceivedAmount("");
+      return;
+    }
+
     const chg = payMethod === "現金" ? change : null;
     await supabase.from("orders").delete().eq("table_no", String(t));
-    setHistory((prev) => [{ table: t, amount, time: now, pay: payMethod, receipt: receiptType }, ...prev]);
+    const record = { table: t, amount, time: now, pay: payMethod, receipt: receiptType };
+    setHistory((prev) => [record, ...prev]);
+    setLastCheckout(record);
     setCheckoutInfo({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null });
     setSelected(null);
     setConfirming(false);
@@ -256,9 +269,14 @@ export default function Register() {
             <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>タバコ販売（現金のみ）</div>
             <div style={{ color: "#f0e6d0", fontSize: 15, marginBottom: 4 }}>{tobaccoConfirming.name}</div>
             <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 28, fontWeight: 800, marginBottom: 16 }}>¥{tobaccoConfirming.price}</div>
-
             <div style={{ marginBottom: 16 }}>
-              <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 4 }}>受取金額（現金）</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <div style={{ color: "#8a7050", fontSize: 12 }}>受取金額（現金）</div>
+                <button onClick={() => setTobaccoReceived("")}
+                  style={{ padding: "4px 10px", background: "#3d1010", border: "1px solid #c95a5a", borderRadius: 6, color: "#c95a5a", fontSize: 11, cursor: "pointer" }}>
+                  訂正
+                </button>
+              </div>
               <div style={{ fontSize: 28, fontFamily: "serif", color: tobaccoReceived ? "#f0e6d0" : "#3d2c14", marginBottom: 4 }}>
                 ¥{tobaccoReceived || "0"}
               </div>
@@ -273,7 +291,6 @@ export default function Register() {
               )}
               <Keypad value={tobaccoReceived} onChange={setTobaccoReceived} />
             </div>
-
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>書類</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
               {["レシート", "領収書", "なし"].map((r) => (
@@ -283,7 +300,6 @@ export default function Register() {
                 </button>
               ))}
             </div>
-
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { setTobaccoConfirming(null); setTobaccoReceiptType(null); setTobaccoReceived(""); }}
                 style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
@@ -297,13 +313,11 @@ export default function Register() {
           </div>
         </div>
       )}
-
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18 }}>タバコ単体販売</div>
         <button onClick={() => setMode("register")}
           style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>戻る</button>
       </div>
-
       {TOBACCO.map((item) => (
         <div key={item.id} style={{ background: "#181008", border: "1px solid #3d2c14", borderRadius: 10, padding: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
@@ -316,7 +330,6 @@ export default function Register() {
           </button>
         </div>
       ))}
-
       {tobaccoHistory.length > 0 && (
         <div style={{ background: "#181008", border: "1px solid #6a4d15", borderRadius: 12, padding: 20, marginTop: 20 }}>
           <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>🚬 本日タバコ販売</div>
@@ -373,7 +386,13 @@ export default function Register() {
             </div>
             {payMethod === "現金" && (
               <div style={{ marginBottom: 14 }}>
-                <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 4 }}>受取金額</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <div style={{ color: "#8a7050", fontSize: 12 }}>受取金額</div>
+                  <button onClick={() => setReceivedAmount("")}
+                    style={{ padding: "4px 10px", background: "#3d1010", border: "1px solid #c95a5a", borderRadius: 6, color: "#c95a5a", fontSize: 11, cursor: "pointer" }}>
+                    訂正
+                  </button>
+                </div>
                 <div style={{ fontSize: 28, fontFamily: "serif", color: receivedAmount ? "#f0e6d0" : "#3d2c14", marginBottom: 4 }}>
                   ¥{receivedAmount || "0"}
                 </div>
