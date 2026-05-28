@@ -818,3 +818,4 @@ function TobaccoMode({ tobaccoConfirming, tobaccoReceived, setTobaccoReceived, t
     </div>
   );
 }
+}
