@@ -36,17 +36,22 @@ function Keypad({ value, onChange }) {
   );
 }
 
-function DailyReport({ supabase, onBack, tobaccoHistory, tobaccoTotal, cashCheckLogs }) {
+function DailyReport({ supabase, onBack, cashCheckLogs }) {
   const [sales, setSales] = useState([]);
+  const [tobaccoSales, setTobaccoSales] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchTodaySales(); }, []);
+  useEffect(() => { fetchAll(); }, []);
 
-  const fetchTodaySales = async () => {
+  const fetchAll = async () => {
     setLoading(true);
     const today = new Date().toISOString().split('T')[0];
-    const { data } = await supabase.from("sales").select("*").eq("sale_date", today).order("created_at", { ascending: true });
-    setSales(data || []);
+    const [{ data: s }, { data: t }] = await Promise.all([
+      supabase.from("sales").select("*").eq("sale_date", today).order("created_at", { ascending: true }),
+      supabase.from("tobacco_sales").select("*").eq("sale_date", today).order("created_at", { ascending: true }),
+    ]);
+    setSales(s || []);
+    setTobaccoSales(t || []);
     setLoading(false);
   };
 
@@ -55,6 +60,7 @@ function DailyReport({ supabase, onBack, tobaccoHistory, tobaccoTotal, cashCheck
   const todayTotal = sales.reduce((a, s) => a + s.amount, 0);
   const todayCount = sales.length;
   const todayPeople = sales.reduce((a, s) => a + (s.people_count || 0), 0);
+  const tobaccoTotal = tobaccoSales.reduce((a, s) => a + s.price, 0);
   const groups = {};
   sales.forEach(s => {
     const hour = s.sale_time ? s.sale_time.split(":")[0] : "不明";
@@ -67,7 +73,7 @@ function DailyReport({ supabase, onBack, tobaccoHistory, tobaccoTotal, cashCheck
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18 }}>📊 日計</div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={fetchTodaySales} style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer", fontSize: 11 }}>更新</button>
+          <button onClick={fetchAll} style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer", fontSize: 11 }}>更新</button>
           <button onClick={onBack} style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>戻る</button>
         </div>
       </div>
@@ -111,9 +117,9 @@ function DailyReport({ supabase, onBack, tobaccoHistory, tobaccoTotal, cashCheck
               <span style={{ color: "#8a7050" }}>🚬 タバコ売上（現金・別）</span>
               <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>¥{tobaccoTotal.toLocaleString()}</span>
             </div>
-            {tobaccoHistory.map((h, i) => (
+            {tobaccoSales.map((h, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#8a7050", padding: "3px 0" }}>
-                <span>{h.time} {h.name}</span>
+                <span>{h.sale_time} {h.item_name}</span>
                 <span>¥{h.price}</span>
               </div>
             ))}
@@ -140,21 +146,26 @@ function DailyReport({ supabase, onBack, tobaccoHistory, tobaccoTotal, cashCheck
 
 function MonthlyReport({ supabase, onBack }) {
   const [sales, setSales] = useState([]);
+  const [tobaccoSales, setTobaccoSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  useEffect(() => { fetchSales(); }, [selectedMonth]);
+  useEffect(() => { fetchAll(); }, [selectedMonth]);
 
-  const fetchSales = async () => {
+  const fetchAll = async () => {
     setLoading(true);
     const [year, month] = selectedMonth.split('-');
     const startDate = `${year}-${month}-01`;
     const endDate = new Date(year, month, 0).toISOString().split('T')[0];
-    const { data } = await supabase.from("sales").select("*").gte("sale_date", startDate).lte("sale_date", endDate).order("sale_date", { ascending: true });
-    setSales(data || []);
+    const [{ data: s }, { data: t }] = await Promise.all([
+      supabase.from("sales").select("*").gte("sale_date", startDate).lte("sale_date", endDate).order("sale_date", { ascending: true }),
+      supabase.from("tobacco_sales").select("*").gte("sale_date", startDate).lte("sale_date", endDate),
+    ]);
+    setSales(s || []);
+    setTobaccoSales(t || []);
     setLoading(false);
   };
 
@@ -176,6 +187,15 @@ function MonthlyReport({ supabase, onBack }) {
   const totalPeople = sales.reduce((a, s) => a + (s.people_count || 0), 0);
   const firstHalfPay = sales.filter(s => s.pay_method === "ペイキャス" && parseInt(s.sale_date.split('-')[2]) <= 15).reduce((a, s) => a + s.amount, 0);
   const secondHalfPay = sales.filter(s => s.pay_method === "ペイキャス" && parseInt(s.sale_date.split('-')[2]) > 15).reduce((a, s) => a + s.amount, 0);
+  const tobaccoTotal = tobaccoSales.reduce((a, s) => a + s.price, 0);
+  const tobaccoByItem = {};
+  TOBACCO.forEach(t => { tobaccoByItem[t.name] = { count: 0, total: 0, price: t.price }; });
+  tobaccoSales.forEach(s => {
+    if (tobaccoByItem[s.item_name]) {
+      tobaccoByItem[s.item_name].count += 1;
+      tobaccoByItem[s.item_name].total += s.price;
+    }
+  });
 
   return (
     <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", padding: 16 }}>
@@ -198,7 +218,7 @@ function MonthlyReport({ supabase, onBack }) {
               <span style={{ color: "#c9952a" }}>¥{totalPay.toLocaleString()}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, borderTop: "1px solid #3d2c14", paddingTop: 6 }}>
-              <span style={{ color: "#f0e6d0", fontSize: 13, fontWeight: 700 }}>総売上</span>
+              <span style={{ color: "#f0e6d0", fontSize: 13, fontWeight: 700 }}>総売上（タバコ除く）</span>
               <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 18, fontWeight: 700 }}>¥{totalAmount.toLocaleString()}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -223,6 +243,22 @@ function MonthlyReport({ supabase, onBack }) {
             <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #3d2c14", paddingTop: 6 }}>
               <span style={{ color: "#f0e6d0", fontSize: 12, fontWeight: 700 }}>合計</span>
               <span style={{ color: "#c9952a", fontWeight: 700 }}>¥{totalPay.toLocaleString()}</span>
+            </div>
+          </div>
+          <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
+            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 14, marginBottom: 10 }}>🚬 タバコ月間集計（別）</div>
+            {TOBACCO.map(t => (
+              <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #3d2c1433" }}>
+                <span style={{ color: "#f0e6d0", fontSize: 12 }}>{t.name}</span>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ color: "#8a7050", fontSize: 11, marginRight: 8 }}>{tobaccoByItem[t.name]?.count || 0}本</span>
+                  <span style={{ color: "#c9952a" }}>¥{(tobaccoByItem[t.name]?.total || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, paddingTop: 8, borderTop: "1px solid #6a4d15" }}>
+              <span style={{ color: "#8a7050", fontSize: 12 }}>月計</span>
+              <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>¥{tobaccoTotal.toLocaleString()}</span>
             </div>
           </div>
           <div style={{ background: "#181008", borderRadius: 10, padding: 16 }}>
@@ -253,7 +289,6 @@ export default function Register() {
   const [orders, setOrders] = useState([]);
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
-  const [tobaccoHistory, setTobaccoHistory] = useState([]);
   const [confirming, setConfirming] = useState(false);
   const [debugMsg, setDebugMsg] = useState("起動中...");
   const [payMethod, setPayMethod] = useState(null);
@@ -272,14 +307,15 @@ export default function Register() {
   const [cashCheckOther, setCashCheckOther] = useState("");
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [todaySalesFromDB, setTodaySalesFromDB] = useState([]);
-  const [monthlyTobaccoTotal, setMonthlyTobaccoTotal] = useState(0);
+  const [todayTobaccoFromDB, setTodayTobaccoFromDB] = useState([]);
+  const [monthlyTobaccoFromDB, setMonthlyTobaccoFromDB] = useState([]);
 
   useEffect(() => {
     fetchOrders();
     fetchTodaySales();
+    fetchTodayTobacco();
     fetchMonthlyTobacco();
-    const subscription = supabase
-      .channel("orders")
+    const subscription = supabase.channel("orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => { fetchOrders(); })
       .subscribe();
     return () => supabase.removeChannel(subscription);
@@ -298,9 +334,20 @@ export default function Register() {
     setTodaySalesFromDB(data || []);
   };
 
+  const fetchTodayTobacco = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const { data } = await supabase.from("tobacco_sales").select("*").eq("sale_date", today).order("created_at", { ascending: false });
+    setTodayTobaccoFromDB(data || []);
+  };
+
   const fetchMonthlyTobacco = async () => {
-    // タバコはsalesテーブルに入っていないのでtobaccoHistoryから集計
-    // 将来的にtobaccoテーブルを作る場合はここを変更
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const startDate = `${year}-${month}-01`;
+    const endDate = new Date(year, now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const { data } = await supabase.from("tobacco_sales").select("*").gte("sale_date", startDate).lte("sale_date", endDate);
+    setMonthlyTobaccoFromDB(data || []);
   };
 
   const tableOrders = (tableNo) =>
@@ -321,8 +368,18 @@ export default function Register() {
 
   const occupiedTables = TABLES.filter((t) => tableOrders(t).length > 0);
   const todaySales = todaySalesFromDB.reduce((s, h) => s + h.amount, 0);
-  const tobaccoTotal = tobaccoHistory.reduce((s, h) => s + h.price, 0);
+  const todayTobaccoTotal = todayTobaccoFromDB.reduce((a, s) => a + s.price, 0);
   const todayCashFromDB = todaySalesFromDB.filter(s => s.pay_method === "現金").reduce((a, s) => a + s.amount, 0);
+
+  const monthlyTobaccoByItem = {};
+  TOBACCO.forEach(t => { monthlyTobaccoByItem[t.name] = { count: 0, total: 0 }; });
+  monthlyTobaccoFromDB.forEach(s => {
+    if (monthlyTobaccoByItem[s.item_name]) {
+      monthlyTobaccoByItem[s.item_name].count += 1;
+      monthlyTobaccoByItem[s.item_name].total += s.price;
+    }
+  });
+  const monthlyTobaccoTotal = monthlyTobaccoFromDB.reduce((a, s) => a + s.price, 0);
 
   const selectedOrders = selected
     ? tableOrders(selected).filter(o => o.status === "pending" && !o.item_name.startsWith("【人数"))
@@ -366,9 +423,16 @@ export default function Register() {
 
   const openTobaccoConfirm = (item) => { setTobaccoConfirming(item); setTobaccoReceiptType(null); setTobaccoReceived(""); };
 
-  const completeTobaccoSale = () => {
+  const completeTobaccoSale = async () => {
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-    setTobaccoHistory((prev) => [{ name: tobaccoConfirming.name, price: tobaccoConfirming.price, time: now, receipt: tobaccoReceiptType }, ...prev]);
+    await supabase.from("tobacco_sales").insert({
+      item_name: tobaccoConfirming.name,
+      price: tobaccoConfirming.price,
+      receipt_type: tobaccoReceiptType,
+      sale_time: now,
+    });
+    await fetchTodayTobacco();
+    await fetchMonthlyTobacco();
     setTobaccoConfirming(null); setTobaccoReceiptType(null); setTobaccoReceived(""); setMode("register");
   };
 
@@ -381,9 +445,7 @@ export default function Register() {
     setCashChecking(false); setCashCheckStaff(null); setCashCheckOther(""); setShowOtherInput(false);
   };
 
-  // タバコ月累計（今月分のtobaccoHistoryから）
   const now = new Date();
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   if (checkoutDone && checkoutInfo) return (
     <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
@@ -423,7 +485,7 @@ export default function Register() {
     </div>
   );
 
-  if (mode === "daily") return <DailyReport supabase={supabase} onBack={() => setMode("register")} tobaccoHistory={tobaccoHistory} tobaccoTotal={tobaccoTotal} cashCheckLogs={cashCheckLogs} />;
+  if (mode === "daily") return <DailyReport supabase={supabase} onBack={() => setMode("register")} cashCheckLogs={cashCheckLogs} />;
   if (mode === "monthly") return <MonthlyReport supabase={supabase} onBack={() => setMode("register")} />;
 
   if (mode === "tobacco") return (
@@ -485,43 +547,38 @@ export default function Register() {
         </div>
       ))}
 
-      {tobaccoHistory.length > 0 && (
+      {todayTobaccoFromDB.length > 0 && (
         <div style={{ background: "#181008", border: "1px solid #6a4d15", borderRadius: 12, padding: 20, marginTop: 20 }}>
           <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, fontWeight: 700, marginBottom: 14 }}>🚬 本日タバコ販売</div>
-          {tobaccoHistory.map((h, i) => (
+          {todayTobaccoFromDB.map((h, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: "#f0e6d0", padding: "8px 0", borderBottom: "1px solid #3d2c1433" }}>
-              <span>{h.time} {h.name}</span>
+              <span>{h.sale_time} {h.item_name}</span>
               <span style={{ color: "#c9952a", fontWeight: 700 }}>¥{h.price}</span>
             </div>
           ))}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, paddingTop: 14, borderTop: "1px solid #6a4d15" }}>
             <span style={{ color: "#8a7050", fontSize: 14 }}>本日合計</span>
-            <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 800 }}>¥{tobaccoTotal.toLocaleString()}</span>
+            <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 800 }}>¥{todayTobaccoTotal.toLocaleString()}</span>
           </div>
         </div>
       )}
 
-      {/* 銘柄別月累計 */}
       <div style={{ background: "#181008", border: "1px solid #3d2c14", borderRadius: 12, padding: 20, marginTop: 16 }}>
         <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 15, fontWeight: 700, marginBottom: 12 }}>
           📅 {now.getMonth() + 1}月 銘柄別累計
         </div>
-        {TOBACCO.map((item) => {
-          const count = tobaccoHistory.filter(h => h.name === item.name).length;
-          const amount = count * item.price;
-          return (
-            <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #3d2c1433" }}>
-              <span style={{ color: "#f0e6d0", fontSize: 13 }}>{item.name}</span>
-              <div style={{ textAlign: "right" }}>
-                <span style={{ color: "#8a7050", fontSize: 11, marginRight: 8 }}>{count}本</span>
-                <span style={{ color: "#c9952a", fontWeight: 700 }}>¥{amount.toLocaleString()}</span>
-              </div>
+        {TOBACCO.map((item) => (
+          <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #3d2c1433" }}>
+            <span style={{ color: "#f0e6d0", fontSize: 13 }}>{item.name}</span>
+            <div style={{ textAlign: "right" }}>
+              <span style={{ color: "#8a7050", fontSize: 11, marginRight: 8 }}>{monthlyTobaccoByItem[item.name]?.count || 0}本</span>
+              <span style={{ color: "#c9952a", fontWeight: 700 }}>¥{(monthlyTobaccoByItem[item.name]?.total || 0).toLocaleString()}</span>
             </div>
-          );
-        })}
+          </div>
+        ))}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 12, borderTop: "1px solid #6a4d15" }}>
           <span style={{ color: "#8a7050", fontSize: 13 }}>月累計合計</span>
-          <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 22, fontWeight: 800 }}>¥{tobaccoTotal.toLocaleString()}</span>
+          <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 22, fontWeight: 800 }}>¥{monthlyTobaccoTotal.toLocaleString()}</span>
         </div>
       </div>
     </div>
