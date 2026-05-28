@@ -88,6 +88,11 @@ export default function Register() {
 
   const tablePeople = (tableNo) => {
     const info = orders.find((o) => String(o.table_no) === String(tableNo) && o.status === "info");
+    return info ? parseInt(info.item_name.replace("【人数：", "").replace("名】", "")) || 0 : 0;
+  };
+
+  const tablePeopleStr = (tableNo) => {
+    const info = orders.find((o) => String(o.table_no) === String(tableNo) && o.status === "info");
     return info ? info.item_name.replace("【人数：", "").replace("名】", "") : "-";
   };
 
@@ -101,7 +106,7 @@ export default function Register() {
     ? tableOrders(selected).filter(o => o.status === "pending" && !o.item_name.startsWith("【人数"))
     : [];
   const selectedTotal = selected ? tableTotal(selected) : 0;
-  const selectedPeople = selected ? tablePeople(selected) : "-";
+  const selectedPeople = selected ? tablePeopleStr(selected) : "-";
 
   const change = receivedAmount ? parseInt(receivedAmount) - selectedTotal : null;
   const tobaccoChange = tobaccoReceived && tobaccoConfirming
@@ -126,7 +131,19 @@ export default function Register() {
       return;
     }
     const chg = payMethod === "現金" ? change : null;
+    const people = tablePeople(t);
     await supabase.from("orders").delete().eq("table_no", String(t));
+
+    // salesテーブルに保存
+    await supabase.from("sales").insert({
+      table_no: String(t),
+      amount,
+      pay_method: payMethod,
+      receipt_type: receiptType,
+      people_count: people,
+      sale_time: now,
+    });
+
     const record = { table: t, amount, time: now, pay: payMethod, receipt: receiptType, timestamp: Date.now() };
     setHistory((prev) => [record, ...prev]);
     setLastCheckout(record);
@@ -218,6 +235,10 @@ export default function Register() {
       </button>
     </div>
   );
+
+  if (mode === "monthly") {
+    return <MonthlyReport supabase={supabase} onBack={() => setMode("register")} />;
+  }
 
   if (mode === "daily") {
     const groups = {};
@@ -417,12 +438,8 @@ export default function Register() {
               </button>
             </div>
             {showOtherInput && (
-              <input
-                value={cashCheckOther}
-                onChange={(e) => setCashCheckOther(e.target.value)}
-                placeholder="名前を入力"
-                style={{ width: "100%", padding: "10px 12px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#f0e6d0", fontSize: 14, marginBottom: 10, boxSizing: "border-box" }}
-              />
+              <input value={cashCheckOther} onChange={(e) => setCashCheckOther(e.target.value)} placeholder="名前を入力"
+                style={{ width: "100%", padding: "10px 12px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#f0e6d0", fontSize: 14, marginBottom: 10, boxSizing: "border-box" }} />
             )}
             <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
               <button onClick={() => { setCashChecking(false); setCashCheckStaff(null); setCashCheckOther(""); setShowOtherInput(false); }}
@@ -540,6 +557,10 @@ export default function Register() {
               style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>
               📊 日計
             </button>
+            <button onClick={() => setMode("monthly")}
+              style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>
+              📅 月次
+            </button>
             <button onClick={() => setCashChecking(true)}
               style={{ padding: "6px 0", background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 6, color: "#4aaa5a", fontSize: 10, cursor: "pointer" }}>
               💰 レジ確認
@@ -629,6 +650,143 @@ export default function Register() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function MonthlyReport({ supabase, onBack }) {
+  const [sales, setSales] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  useEffect(() => {
+    fetchSales();
+  }, [selectedMonth]);
+
+  const fetchSales = async () => {
+    setLoading(true);
+    const [year, month] = selectedMonth.split('-');
+    const startDate = `${year}-${month}-01`;
+    const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+    const { data } = await supabase
+      .from("sales")
+      .select("*")
+      .gte("sale_date", startDate)
+      .lte("sale_date", endDate)
+      .order("sale_date", { ascending: true });
+    setSales(data || []);
+    setLoading(false);
+  };
+
+  // 日別集計
+  const byDate = {};
+  sales.forEach(s => {
+    const d = s.sale_date;
+    if (!byDate[d]) byDate[d] = { cash: 0, pay: 0, total: 0, count: 0, people: 0 };
+    byDate[d].total += s.amount;
+    byDate[d].count += 1;
+    byDate[d].people += s.people_count || 0;
+    if (s.pay_method === "現金") byDate[d].cash += s.amount;
+    else byDate[d].pay += s.amount;
+  });
+
+  const totalCash = sales.filter(s => s.pay_method === "現金").reduce((a, s) => a + s.amount, 0);
+  const totalPay = sales.filter(s => s.pay_method === "ペイキャス").reduce((a, s) => a + s.amount, 0);
+  const totalAmount = sales.reduce((a, s) => a + s.amount, 0);
+  const totalCount = sales.length;
+  const totalPeople = sales.reduce((a, s) => a + (s.people_count || 0), 0);
+
+  const firstHalfPay = sales.filter(s => {
+    const day = parseInt(s.sale_date.split('-')[2]);
+    return s.pay_method === "ペイキャス" && day <= 15;
+  }).reduce((a, s) => a + s.amount, 0);
+  const secondHalfPay = sales.filter(s => {
+    const day = parseInt(s.sale_date.split('-')[2]);
+    return s.pay_method === "ペイキャス" && day > 15;
+  }).reduce((a, s) => a + s.amount, 0);
+
+  return (
+    <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", padding: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18 }}>📅 月次レポート</div>
+        <button onClick={onBack}
+          style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>戻る</button>
+      </div>
+
+      <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
+        style={{ width: "100%", padding: "10px 12px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#f0e6d0", fontSize: 14, marginBottom: 16, boxSizing: "border-box" }} />
+
+      {loading ? (
+        <div style={{ textAlign: "center", color: "#8a7050", paddingTop: 40 }}>読み込み中...</div>
+      ) : (
+        <>
+          {/* 月合計 */}
+          <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
+            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 14, marginBottom: 10 }}>月間合計</div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ color: "#8a7050", fontSize: 12 }}>現金合計</span>
+              <span style={{ color: "#c9952a" }}>¥{totalCash.toLocaleString()}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ color: "#8a7050", fontSize: 12 }}>ペイキャス合計</span>
+              <span style={{ color: "#c9952a" }}>¥{totalPay.toLocaleString()}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, borderTop: "1px solid #3d2c14", paddingTop: 6 }}>
+              <span style={{ color: "#f0e6d0", fontSize: 13, fontWeight: 700 }}>総売上</span>
+              <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 18, fontWeight: 700 }}>¥{totalAmount.toLocaleString()}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={{ color: "#8a7050", fontSize: 12 }}>総組数</span>
+              <span style={{ color: "#c9952a" }}>{totalCount}組</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "#8a7050", fontSize: 12 }}>総人数</span>
+              <span style={{ color: "#c9952a" }}>{totalPeople}名</span>
+            </div>
+          </div>
+
+          {/* ペイキャス前半・後半 */}
+          <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
+            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 14, marginBottom: 10 }}>ペイキャス内訳</div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ color: "#8a7050", fontSize: 12 }}>1日〜15日</span>
+              <span style={{ color: "#c9952a" }}>¥{firstHalfPay.toLocaleString()}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ color: "#8a7050", fontSize: 12 }}>16日〜月末</span>
+              <span style={{ color: "#c9952a" }}>¥{secondHalfPay.toLocaleString()}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #3d2c14", paddingTop: 6 }}>
+              <span style={{ color: "#f0e6d0", fontSize: 12, fontWeight: 700 }}>合計</span>
+              <span style={{ color: "#c9952a", fontWeight: 700 }}>¥{totalPay.toLocaleString()}</span>
+            </div>
+          </div>
+
+          {/* 日別一覧 */}
+          <div style={{ background: "#181008", borderRadius: 10, padding: 16 }}>
+            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 14, marginBottom: 10 }}>日別売上</div>
+            {Object.keys(byDate).length === 0 ? (
+              <div style={{ color: "#3d2c14", fontSize: 13 }}>データなし</div>
+            ) : Object.entries(byDate).sort().map(([date, d]) => (
+              <div key={date} style={{ padding: "10px 0", borderBottom: "1px solid #3d2c1433" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span style={{ color: "#f0e6d0", fontSize: 13 }}>{date.split('-')[2]}日</span>
+                  <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>¥{d.total.toLocaleString()}</span>
+                </div>
+                <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#8a7050" }}>
+                  <span>現金¥{d.cash.toLocaleString()}</span>
+                  <span>ペイキャス¥{d.pay.toLocaleString()}</span>
+                  <span>{d.count}組</span>
+                  <span>{d.people}名</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
