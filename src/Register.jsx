@@ -36,6 +36,7 @@ function getNextReceiptNo() {
 // PassPRNT 用レシートHTML生成（58mm 熱転写レシート）
 // =========================================================
 const RECEIPT_LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWgAAACDAQAAAACIaryNAAAFg0lEQVR42u2XQWwc1RnHf29m4l2XCI+oIAkJ8aCCAhWHRULCUDszRRxy4MCBCxKCFYqqnMAprZJWJhk7lhI4FEsglAga+8ABJA4ckAgoxG/jSLEigVctQgEpZByZepWksBun9ex2Zj4Ou453nfGalapKFL/L7tv327/+7/tm/vNGCR0Mg3X6Z02H4OERDAAJwcRKbPJm7ar1LrEykFzVAKgor7EyGzTTs91ZVXjkHE+fcWDqtsHMqcrLSgGlqoPD6EbG6riIiMiiQJ/xUsRdMvP9PjnKvJvIgkxmKr1Rb/Lg1ZFeERGxlmwI/Aqzv9CYlvL1z2sa2MW2fJOTarcNbLSAQIfEL7yUq8OB5ZioQzF+6y4LqvK38rEzdinXg3nHXwBiVWdQRlRqotWi7okgex/82j93zI72LYkEAFGy574mWro96NkZ7tg5mPEG5nNdrwKY4qM84Jz5sL2y3uKxCSyAsmKiSfwMOmh1ArXRjZzWkZ5yREU3JHzgUc7arU4qVljOXouerOaBvUq8+i6z93uS/Q16Redd14IKT/47lwuSrUnSKEeY0SqEXt1EZ4bLpVrWpstySpsZVGSjxi4dAKJZr1n7dQIoA2j7XxoGqy2XYKblipXnvWkTpksug9nSEQOuNdajIsRDrU5qw8UPDN/uL+Iqo+jA2AUbYuVvuX2iWjJeab0brnDiEaWBApAvwu/d8mlM8cXSmVB9TovvbfT5no7I+7+VBHyGQQFgAuSWnKj1RP5J0MWQOMDDm/hR2h6UKbasRm2dhOK1zknaaDvJ0RvTWeVRrt/FTbnQGIliELO6EGbGA1wRCXDlrCS90jSWtQXg8gaybLoIkBE4j5pI1ZbP90kkGndmXC6KiMyLG7nyvaRrhz74HsHHzy+XxOP8UpSs2GUEBq7o3LK1EtxJkErr7gctNM7h4yDKuATeDi5tYlwZKXQXPf0MK7fRn2Az0odkWjqwTB+e0gqobQaUJJAoTUBtWJKbaSEBDsjH9o01n0awpWh7fwedXL81W586xIDiSjrtT0At7lqabqcGbOedVFrJY/6cjwkU7nYAvgCIj6ZrJ8OfzgWL1nKTdwHM5dM7/9niBzKlcXNLPx0UOSgLLZ1fpmcWF2TqrCzTKWM9B/+79PQadGu9ragT7aQTJ9KZbwHxprkGc4AzJ950+5rUZh5l5k/ZCzhx+a9J8ZPVaQVU9X62q/AZIf7i5B/1ibXqPcrdYICBh2O1oRUYVQGNcwDLHjEW3Ta0D5YTIx7EP7LzIYk4AOWkPe0CvMm3/h5qYOG3pZ366a/ncJ7rUIrWcKKB3OlbAWJnLd92ANyilY746irF/6ykW+uZLRPBAbAgEziP2221rXBs6Vng2uLMNQ5Xq9BG9Q9dG4YYvx4865N4012lT9v2MhH9Ht8NTF+FaGSvq8+TnoMiIuITuabosLcgvaGiv/fQKjkoIiK6TQjenIMVWzpIiGxHeWKpTmizkzxZT+T/E9ovrRn3y/RIKTJmzRvvwmvQfR9ejsxjKoGqdeR0peqN2UcuVfy77OyZFPrr/UXrjvob30m2YuYPPsWVxUn10QNfptAPPTSHVat/z+uNIdj528BwvHtS7mKdKcSaIQ6KTM4fjxa+eWJh/viLJ8f/Ue1POcdevHyvearnUOPAHVEPWEUpbZdS2PbW/IHRWeUAOKPWd41/pZ411WuXfvfy/IbjsnTKrT8caqv2MtEX9uibanxiFTp4buvbp+rdCYaiTB/APwdzqXTFYZeDarzIW/RM+7B/fIw/qxT6l2PGQLy7Md9JVhtldkKtzFCqky27D71d/3bnt3MDE+r9LRu6PfP+N36RSk+MxLsbV6GDBT5kfYMjaYmMmnwtRAodZOz6Pb9O/8/pHwC0Ax0u5QfKZgAAAABJRU5ErkJggg==";
+const RECEIPT_ADDR = "data:image/png;base64,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";
 
 function buildReceiptHTML(info) {
   const isInvoice = info.receipt === "領収書";
@@ -64,28 +65,22 @@ function buildReceiptHTML(info) {
 
   return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
 body{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;margin:0;padding:4px 4px;width:100%;box-sizing:border-box;color:#000;font-size:26px;text-align:center;}
-.no{text-align:right;font-size:22px;margin-bottom:2px;}
-.title{font-size:30px;font-weight:900;letter-spacing:8px;white-space:nowrap;margin-bottom:4px;}
-.logo{width:90%;height:auto;margin:2px auto 6px;display:block;}
-.info{font-size:21px;line-height:1.65;margin-bottom:6px;}
-.dt{font-size:24px;font-weight:bold;margin:6px 0 4px;}
+.no{text-align:right;font-size:15px;margin-bottom:4px;}
+.logo{width:90%;height:auto;margin:2px auto 4px;display:block;}
+.addr{width:90%;height:auto;margin:2px auto 6px;display:block;}
+.dt{font-size:17px;font-weight:bold;margin:6px 0 4px;}
 .atena{text-align:right;font-size:48px;margin:6px 14px 2px;}
 .dline{border:none;border-top:1px dotted #000;margin:6px 0 10px;}
 .sline{border:none;border-top:3px solid #000;margin:8px 0;}
-.total-row{font-size:42px;font-weight:900;}
+.total-row{font-size:21px;font-weight:900;}
 .tax{font-size:21px;color:#222;margin:4px 0 6px;}
 .foot{font-size:24px;font-weight:bold;margin-top:16px;}
 table{width:100%;border-collapse:collapse;}
 </style></head><body>
   <div class="no">No.${receiptNo}</div>
-  <div class="title">${isInvoice ? "領\u3000収\u3000書" : "レシート"}</div>
+  ${isInvoice ? '<div style="font-size:30px;font-weight:900;letter-spacing:8px;margin-bottom:4px">領\u3000収\u3000書</div>' : ''}
   <img class="logo" src="${RECEIPT_LOGO}"/>
-  <div class="info">
-    東京都港区新橋2丁目16-1-3階<br>
-    株式会社エー・ワイ・シー<br>
-    &#128222;\u200a03-3504-2200<br>
-    登録番号\u3000T1010401004300
-  </div>
+  <img class="addr" src="${RECEIPT_ADDR}"/>
   <div class="dt">${dateStr}</div>
   ${isInvoice ? '<div class="atena">\u6a19</div>' : ''}
   <hr class="dline"/>
