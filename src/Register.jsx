@@ -66,21 +66,21 @@ function buildReceiptHTML(info) {
   return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
 <style>
   html,body{ margin:0; padding:0; }
-  body{ font-family:'Hiragino Mincho ProN','Yu Mincho',serif; width:100%; padding:1mm 1mm; box-sizing:border-box; color:#000; text-align:center; font-size:3mm; }
-  .no{ text-align:right; font-size:2.1mm; margin-bottom:0.5mm; }
-  .inv-title{ font-size:5mm; font-weight:900; letter-spacing:2mm; margin-bottom:1mm; }
-  .logo{ width:97%; height:auto; display:block; margin:0.5mm auto 1mm; }
-  .addr{ width:90%; height:auto; display:block; margin:0.5mm auto 1.5mm; }
-  .dt{ font-size:2.6mm; font-weight:bold; margin:1mm 0; }
-  .atena{ text-align:right; font-size:7mm; margin:1mm 3mm 0.5mm; }
+  body{ font-family:'Hiragino Mincho ProN','Yu Mincho',serif; width:100%; padding:1mm 1mm; box-sizing:border-box; color:#000; text-align:center; font-size:2.4mm; }
+  .no{ text-align:right; font-size:1.8mm; margin-bottom:0.5mm; }
+  .inv-title{ font-size:4mm; font-weight:900; letter-spacing:1.5mm; margin-bottom:1mm; }
+  .logo{ width:72%; height:auto; display:block; margin-left:auto; margin-right:auto; margin-top:0.5mm; margin-bottom:1mm; }
+  .addr{ width:66%; height:auto; display:block; margin-left:auto; margin-right:auto; margin-top:0.5mm; margin-bottom:1.5mm; }
+  .dt{ font-size:2.1mm; font-weight:bold; margin:1mm 0; }
+  .atena{ text-align:right; font-size:5.5mm; margin:1mm 3mm 0.5mm; }
   .dline{ border:none; border-top:0.2mm dotted #000; margin:1mm 0 2mm; }
   .sline{ border:none; border-top:0.5mm solid #000; margin:1.5mm 0; }
   table{ width:100%; border-collapse:collapse; }
-  .items td{ font-size:3mm; }
-  .total td{ font-size:5.5mm; font-weight:900; }
-  .tax{ font-size:2.4mm; color:#000; margin:0.5mm 0 1mm; }
-  .pay td{ font-size:2.5mm; }
-  .foot{ font-size:3mm; font-weight:bold; margin-top:2.5mm; }
+  .items td{ font-size:2.4mm; }
+  .total td{ font-size:4.4mm; font-weight:900; }
+  .tax{ font-size:1.9mm; color:#000; margin:0.5mm 0 1mm; }
+  .pay td{ font-size:2mm; }
+  .foot{ font-size:2.4mm; font-weight:bold; margin-top:2.5mm; }
 </style></head><body>
   <div class="no">No.${receiptNo}</div>
   ${isInvoice ? '<div class="inv-title">領\u3000収\u3000書</div>' : ''}
