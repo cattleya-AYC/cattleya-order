@@ -35,7 +35,7 @@ function getNextReceiptNo() {
 // =========================================================
 // PassPRNT 用レシートHTML生成（58mm 熱転写レシート）
 // =========================================================
-const HEADER_IMG_FLOWER = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgAQAAAACjtFqAAAAES0lEQVR42u2WT2gcdRTHPzOzZje6dlepmGLJbhHEg0jRS8E2MxW8924PpYdSvCieKoTspkH0ZIUiKCqNUsRjL54s7cRI46FlAwWpos2kLUkRaXablU7izO/rYf5k/x0KehE6l9n98N7v9973vd/7jSWGH5tH8P8F74+AneoIuByOgEuj4IHsn3oedzN555axB+7DxXm4JGsAxk8e/pXtAfjn9lg1dyqk78/uTMQZ62aWT09gY3cBaGdwHGhGyW+TwVfB8vNF02Q2JB18sCFJuprHeQsI55OIMhg824QgiWo5g6ZY5ShNAI5ncDfHsVrHAJRvtCrTuH5RkmQaGexItesX1/v1fAIudL/bA4CVWRpXm1fWZmqSlKtkBcBNq91foyXF15pakqS1HN5eUctRR5LW8jSf8aBMsb9GhTrx/lTzHDq82/UHpFN7KihKpiHpTm7ZPtIsgfH7LD/wqSxKFUnrOay5c89HDbV6YXRKa6s6o5Yk5XBTH/2k20lKuXRLql1thNrsle7+jS1gzBvrbZvC/L56NdFqB677Vu0SfOv0pnktLl34Cl7q9sLzP06eBMZ3eb2CeNFv4DmzPWma6dc+/PQ5d0Vyd+KMFkK38Pm5SgIz9x8KwMZAz3/RVTT/SrDVC53AeesdKmGh4fUEz7WVMoyXQ/UdrgOWgS2rr3C/gE3llumDLyBg70Mc2DrvjzjFC28zeI60Xum45zQwGQiLw+7j3mPUsw7Orp74+uMn8PvPO87y1yN2d6/IG4L3JsxQSFrVQQ2FNKlDo+bn9rC7zNKwe++zYxnVRlkeYzBNiJ2B3SOYdfIgbIBZqwSHM6uzzcLgxiul398cCqmKSaRzlYw+20AZ42e7xwVoWJd9qN6YyAcLIN+VdC4JXlkP7feIm146bSxrHEcBJZibnU9yN2DJUaBIpuHXQvVBo0iBGyaCSM10nkVMsIUNWHA6axPGaA+2Yge8TGRTlKUFSYuS5pRDaUGSI6nYq7yfJBuX0jVNKdd6p3BRJXENalK7lrpHyYBXvQ7LeY3qoLRF/HrqHriSqaiJFJHVPfBhuwoOnLcy9wUgrOPthfpYBk8DbQ/qQCkNydQkzUqr6fJIUihJaXvdzgbLpiSTVvCBJOvRJ9x/DwWCeaT3+r4uALz00scGtmzLA2Ttm0eWVQ+RFMIBOEjL/ZhJKaIAFI21VUoXgKhwKF2zKC1+iffyqQCTrCnbagJdAdzdJkKSmYkaEFIOA3Z11vV9f/BNEPEbGXSj4hm/eHO6XT6ZH9iGG6l2tRFFM6ppo8d91ab30p+JWCjEWH4XX3fjp2yA0wWgO03zbHjEHN0Z1MYSUObIX584i0nT1nTpb0PrchnTCbVoA/xxgWMGYD/8XOCEDXB+N3WH6a2GJ1505NgAJZQJ7FXhdSRFk+G0MVO0zLSmYO8GkkJj9gSaohVFTEHtng0Usb4BfwbHxpMC/uXp+AdDCC0IMYo/bgAAAABJRU5ErkJggg==";
+const RECEIPT_LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWgAAACDAQAAAACIaryNAAAFg0lEQVR42u2XQWwc1RnHf29m4l2XCI+oIAkJ8aCCAhWHRULCUDszRRxy4MCBCxKCFYqqnMAprZJWJhk7lhI4FEsglAga+8ABJA4ckAgoxG/jSLEigVctQgEpZByZepWksBun9ex2Zj4Ou453nfGalapKFL/L7tv327/+7/tm/vNGCR0Mg3X6Z02H4OERDAAJwcRKbPJm7ar1LrEykFzVAKgor7EyGzTTs91ZVXjkHE+fcWDqtsHMqcrLSgGlqoPD6EbG6riIiMiiQJ/xUsRdMvP9PjnKvJvIgkxmKr1Rb/Lg1ZFeERGxlmwI/Aqzv9CYlvL1z2sa2MW2fJOTarcNbLSAQIfEL7yUq8OB5ZioQzF+6y4LqvK38rEzdinXg3nHXwBiVWdQRlRqotWi7okgex/82j93zI72LYkEAFGy574mWro96NkZ7tg5mPEG5nNdrwKY4qM84Jz5sL2y3uKxCSyAsmKiSfwMOmh1ArXRjZzWkZ5yREU3JHzgUc7arU4qVljOXouerOaBvUq8+i6z93uS/Q16Redd14IKT/47lwuSrUnSKEeY0SqEXt1EZ4bLpVrWpstySpsZVGSjxi4dAKJZr1n7dQIoA2j7XxoGqy2XYKblipXnvWkTpksug9nSEQOuNdajIsRDrU5qw8UPDN/uL+Iqo+jA2AUbYuVvuX2iWjJeab0brnDiEaWBApAvwu/d8mlM8cXSmVB9TovvbfT5no7I+7+VBHyGQQFgAuSWnKj1RP5J0MWQOMDDm/hR2h6UKbasRm2dhOK1zknaaDvJ0RvTWeVRrt/FTbnQGIliELO6EGbGA1wRCXDlrCS90jSWtQXg8gaybLoIkBE4j5pI1ZbP90kkGndmXC6KiMyLG7nyvaRrhz74HsHHzy+XxOP8UpSs2GUEBq7o3LK1EtxJkErr7gctNM7h4yDKuATeDi5tYlwZKXQXPf0MK7fRn2Az0odkWjqwTB+e0gqobQaUJJAoTUBtWJKbaSEBDsjH9o01n0awpWh7fwedXL81W586xIDiSjrtT0At7lqabqcGbOedVFrJY/6cjwkU7nYAvgCIj6ZrJ8OfzgWL1nKTdwHM5dM7/9niBzKlcXNLPx0UOSgLLZ1fpmcWF2TqrCzTKWM9B/+79PQadGu9ragT7aQTJ9KZbwHxprkGc4AzJ950+5rUZh5l5k/ZCzhx+a9J8ZPVaQVU9X62q/AZIf7i5B/1ibXqPcrdYICBh2O1oRUYVQGNcwDLHjEW3Ta0D5YTIx7EP7LzIYk4AOWkPe0CvMm3/h5qYOG3pZ366a/ncJ7rUIrWcKKB3OlbAWJnLd92ANyilY746irF/6ykW+uZLRPBAbAgEziP2221rXBs6Vng2uLMNQ5Xq9BG9Q9dG4YYvx4865N4012lT9v2MhH9Ht8NTF+FaGSvq8+TnoMiIuITuabosLcgvaGiv/fQKjkoIiK6TQjenIMVWzpIiGxHeWKpTmizkzxZT+T/E9ovrRn3y/RIKTJmzRvvwmvQfR9ejsxjKoGqdeR0peqN2UcuVfy77OyZFPrr/UXrjvob30m2YuYPPsWVxUn10QNfptAPPTSHVat/z+uNIdj528BwvHtS7mKdKcSaIQ6KTM4fjxa+eWJh/viLJ8f/Ue1POcdevHyvearnUOPAHVEPWEUpbZdS2PbW/IHRWeUAOKPWd41/pZ411WuXfvfy/IbjsnTKrT8caqv2MtEX9uibanxiFTp4buvbp+rdCYaiTB/APwdzqXTFYZeDarzIW/RM+7B/fIw/qxT6l2PGQLy7Md9JVhtldkKtzFCqky27D71d/3bnt3MDE+r9LRu6PfP+N36RSk+MxLsbV6GDBT5kfYMjaYmMmnwtRAodZOz6Pb9O/8/pHwC0Ax0u5QfKZgAAAABJRU5ErkJggg==";
 
 function buildReceiptHTML(info) {
   const isInvoice = info.receipt === "領収書";
@@ -51,41 +51,35 @@ function buildReceiptHTML(info) {
       ? `&#8722;${Math.abs(o.price * o.qty).toLocaleString()}`
       : (o.price * o.qty).toLocaleString();
     return `<tr>
-      <td style="width:54%;padding:6px 1px;font-size:25px;word-break:keep-all">${o.item_name}</td>
+      <td style="width:54%;padding:6px 1px;font-size:25px;text-align:left;word-break:keep-all">${o.item_name}</td>
       <td style="width:10%;text-align:center;padding:6px 1px;font-size:25px">${o.qty}</td>
       <td style="width:36%;text-align:right;padding:6px 1px;font-size:25px">${subtotal}</td>
     </tr>`;
   }).join("");
 
   const payRow = (info.pay === "現金" && info.received)
-    ? `<tr><td style="padding:4px 0">現金お預かり</td><td style="text-align:right;padding:4px 0">${(info.received).toLocaleString()}</td></tr>
-       <tr><td style="padding:4px 0">お\u3000釣\u3000り</td><td style="text-align:right;padding:4px 0">${(info.change||0).toLocaleString()}</td></tr>`
-    : `<tr><td style="padding:4px 0">ペイキャス</td><td style="text-align:right;padding:4px 0">\u2014</td></tr>`;
+    ? `<tr><td style="padding:4px 0;text-align:left">現金お預かり</td><td style="text-align:right;padding:4px 0">${(info.received).toLocaleString()}</td></tr>
+       <tr><td style="padding:4px 0;text-align:left">お\u3000釣\u3000り</td><td style="text-align:right;padding:4px 0">${(info.change||0).toLocaleString()}</td></tr>`
+    : `<tr><td style="padding:4px 0;text-align:left">ペイキャス</td><td style="text-align:right;padding:4px 0">\u2014</td></tr>`;
 
   return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
-body{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;margin:0;padding:2px 4px;width:100%;box-sizing:border-box;color:#000;font-size:26px;text-align:center;}
+body{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;margin:0;padding:4px 4px;width:100%;box-sizing:border-box;color:#000;font-size:26px;text-align:center;}
 .no{text-align:right;font-size:22px;margin-bottom:2px;}
-.hd{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;}
-.flower{width:64px;height:auto;}
-.title{font-size:28px;font-weight:900;letter-spacing:6px;white-space:nowrap;}
-.store{font-size:40px;font-weight:900;letter-spacing:3px;white-space:nowrap;margin:4px 0 6px;}
-.info{font-size:20px;line-height:1.6;margin-bottom:6px;}
+.title{font-size:30px;font-weight:900;letter-spacing:8px;white-space:nowrap;margin-bottom:4px;}
+.logo{width:90%;height:auto;margin:2px auto 6px;display:block;}
+.info{font-size:21px;line-height:1.65;margin-bottom:6px;}
 .dt{font-size:24px;font-weight:bold;margin:6px 0 4px;}
-.atena{text-align:right;font-size:46px;margin:4px 12px 2px;}
+.atena{text-align:right;font-size:48px;margin:6px 14px 2px;}
 .dline{border:none;border-top:1px dotted #000;margin:6px 0 10px;}
 .sline{border:none;border-top:3px solid #000;margin:8px 0;}
-.total-row{font-size:40px;font-weight:900;}
+.total-row{font-size:42px;font-weight:900;}
 .tax{font-size:21px;color:#222;margin:4px 0 6px;}
-.foot{font-size:22px;margin-top:14px;}
+.foot{font-size:24px;font-weight:bold;margin-top:16px;}
 table{width:100%;border-collapse:collapse;}
-td{text-align:left;}
 </style></head><body>
   <div class="no">No.${receiptNo}</div>
-  <div class="hd">
-    <img class="flower" src="${HEADER_IMG_FLOWER}"/>
-    <div class="title">${isInvoice ? "領\u3000収\u3000書" : "レシート"}</div>
-  </div>
-  <div class="store">ラウンジ\u3000カトレア</div>
+  <div class="title">${isInvoice ? "領\u3000収\u3000書" : "レシート"}</div>
+  <img class="logo" src="${RECEIPT_LOGO}"/>
   <div class="info">
     東京都港区新橋2丁目16-1-3階<br>
     株式会社エー・ワイ・シー<br>
@@ -98,7 +92,7 @@ td{text-align:left;}
   <table>${itemRows}</table>
   <hr class="sline"/>
   <table>
-    <tr class="total-row"><td>合\u3000計</td><td style="text-align:right">&#165;${info.amount.toLocaleString()}</td></tr>
+    <tr class="total-row"><td style="text-align:left">合\u3000計</td><td style="text-align:right">&#165;${info.amount.toLocaleString()}</td></tr>
   </table>
   <div class="tax">\uff08内消費税10%対象\u3000${taxAmount.toLocaleString()}\uff09</div>
   <table style="font-size:25px">${payRow}</table>
@@ -572,6 +566,7 @@ export default function Register() {
   const [lastCheckout, setLastCheckout] = useState(null);
   const [cashCheckLogs, setCashCheckLogs] = useState([]);
   const [cashChecking, setCashChecking] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState(null);
   const [cashCheckStaff, setCashCheckStaff] = useState(null);
   const [cashCheckOther, setCashCheckOther] = useState("");
   const [showOtherInput, setShowOtherInput] = useState(false);
@@ -704,6 +699,20 @@ export default function Register() {
       const passprntUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
       setTimeout(() => { window.location.href = passprntUrl; }, 1200);
     }
+  };
+
+  const showPreview = (type) => {
+    const sampleItems = [
+      { item_name: "アイスコーヒー", price: 670, qty: 1 },
+      { item_name: "シフォンケーキ", price: 650, qty: 2 },
+      { item_name: "アイスミルクティ", price: 670, qty: 1 },
+    ];
+    const total = sampleItems.reduce((a, o) => a + o.price * o.qty, 0);
+    const html = buildReceiptHTML({
+      table: 3, amount: total, pay: "現金", receipt: type,
+      change: 360, received: 3000, items: sampleItems, receiptNo: "010031211",
+    });
+    setPreviewHtml(html);
   };
 
   const addDiscount = () => {
@@ -908,6 +917,16 @@ export default function Register() {
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#0d0905", color: "#f0e6d0", fontFamily: "'Noto Sans JP', sans-serif" }}>
       <div style={{ background: "#333", color: "#fff", padding: "4px 12px", fontSize: 11 }}>{debugMsg}</div>
 
+      {previewHtml && (
+        <div onClick={() => setPreviewHtml(null)} style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 16 }}>
+          <div style={{ color: "#c9952a", fontFamily: "serif", marginBottom: 8, fontSize: 14 }}>レシートプレビュー（実際の印刷イメージ）</div>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 8, width: 280, maxHeight: "75vh", overflow: "auto", boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }}>
+            <iframe title="preview" srcDoc={previewHtml} style={{ width: "100%", height: 600, border: "none" }} />
+          </div>
+          <button onClick={() => setPreviewHtml(null)} style={{ marginTop: 14, padding: "12px 28px", background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>閉じる</button>
+        </div>
+      )}
+
       {cashChecking && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
           <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400 }}>
@@ -1045,6 +1064,8 @@ export default function Register() {
             <button onClick={() => setMode("monthly")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>📅 月次</button>
             <button onClick={() => setMode("plu")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>📋 PLU</button>
             <button onClick={() => setCashChecking(true)} style={{ padding: "6px 0", background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 6, color: "#4aaa5a", fontSize: 10, cursor: "pointer" }}>💰 レジ確認</button>
+            <button onClick={() => showPreview("レシート")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>🧾 レシート見本</button>
+            <button onClick={() => showPreview("領収書")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>🧾 領収書見本</button>
           </div>
           <div style={{ flex: 1, overflow: "auto", padding: "6px 8px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 4 }}>
