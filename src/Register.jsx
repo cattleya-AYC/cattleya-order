@@ -33,7 +33,7 @@ function getNextReceiptNo() {
 }
 
 // =========================================================
-// PassPRNT 用レシートHTML生成（58mm 熱転写レシート）
+// PassPRNT 用レシートHTML生成（mPOP 約48mm印字 / mm基準）
 // =========================================================
 const RECEIPT_LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXwAAACKAQAAAACBIMzXAAAEs0lEQVR42u1YT2gcVRj/vTeTzBhDd4oeIghZbz2uF4kQ2EERPBSsN28G72IuQpGWPDSYggcRr9VEEC9eRDyKnTaB9paqBQXBTtJAIgh9odt0ts7Oz8PM7s5sJrvvHaKXfodlZnd/7/vzvu/3vu8JwkoOJSzlvwXQFpCFloCHp+7DL7aA85YAtmw1hLEJggNJuM6JoksaRNqyNClJ7AAJmrYbl9oCgtNIDXf46MvTTj5mlgAXmR1ArspT9kFE6Pl2GpKtrjIGUCDGG1lkDMigFFsiNgZ0sgg6xFfGgAfiAqTCDWVYotrjzS/2yMwzL9EmdgBxydCkR1cwAxfAu4aAYBkeAGA2NAOkgIsZAIjNk099B+DhshlgCxDaBXDmLbOweiQ/bZDkvlFYu0PWCMxMSgCE6AoRaiPW+MeDaPw23yBwYBilLjpptmBM95tcI/U+SW6Pd7oARClJTZJsGEVp3gEgAGCtZeSDBoD3AOADs1x6FgA3fACRmdOHJFMpJ/o88MHbQBx/9pLaY2jBSwo4kxmSgLsMrZt3cD/VZgB5qNDBWjT7tKEG0VoNAX9p1zXlpe3LePu81NcnHtWDFVfwE/hme9mcvdcjyKuxBd03M2gocwAXU3RfsTiBsotiNd2JLEzqPMomsli5were3730zPa6eYOV6C8/n25a+CCjT84eJNrCBxwBQWgO0OtnMWdzsLuZ2PzWzZ1YNdq4sIPni43uhQbJ56sH/hSSfulN1hCnV/70+xstAAAfjjfpYOaO3C390hNqfFinoY7GB2hHqBLgxl/e3T++L2YhWfNnIZpVDRfel68tFH1KSboiqDcpAMU5m41jcwZe83g3e+I+ZNeeOgp/8Pt2NGrTMKqsdfHHzU7cAg6D4pAcb1IPeP2xjQ+PgXemPo5qJoPkhPQWuLo3PNWzyemNyGR8GAJ8LEnJyZPvALCMc/jb3SifLpNq+sVvAoTlkHOEREZyCdOvjhbaXpXBIoTVZv2juGRIKCul2iBv1YwDzoiKrdIA1stH1fHzQ6+UO3tFJOoaluFENM8UHtMVMoMTYdjNVCQCowLgMYVH3SYJB6LaStdJno76NgCVQZ7gQ2Q9NIkRzEZnuNBJxShK61Hlb013bFhFyREqAJjzTwKMfJmUrZH9AtPFtqbhsUS9jTwpZTA8FBM0eJMk48V1wiMECRHBYYrp/F9K8NroPmwAATQHmhfg5tVa+BMOTXKoAbygMBvqYb15UcEH8nhHBuy8HLQA6YQlglv0jzGh7JOzLwgfekoBGIywTtQveEDJ4xF0gctKod/hS/RvOoISK+RR2mdjh42Md2OupGjE8Eg4JJkCQJtM89d+lOaKzQ2f6+WTlj+ajmnhiKxj86AmS5KRLGBAAL2mTGsIabrfzlc0zDNAGiKBA0RVJX7JSlkh31sKvwIaqnoR1KobLZuFcxEwO2pSWL7q6d93rTBp/+4w9UgSaJfCmscT7UpHligkoe/ia7+8aC6z+UdYMUkDUPDRDHLTVIkMg7riugf8jGAZWAKAlhgSfpy3mk7/vfBhvpjH7pEsbgYiZ/hM8npljhuVmkkon4K1ML5kTnzLS2b//7hkfgJ4AngCsJR/AWOrWladKr9+AAAAAElFTkSuQmCC";
 const RECEIPT_ADDR = "data:image/png;base64,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";
@@ -41,7 +41,7 @@ const RECEIPT_ADDR = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXwAAACKAQAA
 function buildReceiptHTML(info) {
   const isInvoice = info.receipt === "領収書";
   const now = new Date();
-  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日\u3000${String(now.getHours()).padStart(2,"0")}時${String(now.getMinutes()).padStart(2,"0")}分`;
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日\u3000${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
   const receiptNo = info.receiptNo || "000000000";
   const taxAmount = Math.round(info.amount / 11);
   const items = info.items || [];
@@ -52,45 +52,49 @@ function buildReceiptHTML(info) {
       ? `&#8722;${Math.abs(o.price * o.qty).toLocaleString()}`
       : (o.price * o.qty).toLocaleString();
     return `<tr>
-      <td style="width:54%;padding:5px 1px;font-size:17px;text-align:left;word-break:keep-all">${o.item_name}</td>
-      <td style="width:10%;text-align:center;padding:5px 1px;font-size:17px">${o.qty}</td>
-      <td style="width:36%;text-align:right;padding:5px 1px;font-size:17px">${subtotal}</td>
+      <td style="text-align:left;padding:0.6mm 0">${o.item_name}</td>
+      <td style="text-align:center;padding:0.6mm 0;width:6mm">${o.qty}</td>
+      <td style="text-align:right;padding:0.6mm 0;width:14mm">${subtotal}</td>
     </tr>`;
   }).join("");
 
   const payRow = (info.pay === "現金" && info.received)
-    ? `<tr><td style="padding:4px 0;text-align:left">現金お預かり</td><td style="text-align:right;padding:4px 0">${(info.received).toLocaleString()}</td></tr>
-       <tr><td style="padding:4px 0;text-align:left">お\u3000釣\u3000り</td><td style="text-align:right;padding:4px 0">${(info.change||0).toLocaleString()}</td></tr>`
-    : `<tr><td style="padding:4px 0;text-align:left">ペイキャス</td><td style="text-align:right;padding:4px 0">\u2014</td></tr>`;
+    ? `<tr><td style="text-align:left;padding:0.4mm 0">現金お預かり</td><td style="text-align:right">${(info.received).toLocaleString()}</td></tr>
+       <tr><td style="text-align:left;padding:0.4mm 0">お\u3000釣\u3000り</td><td style="text-align:right">${(info.change||0).toLocaleString()}</td></tr>`
+    : `<tr><td style="text-align:left;padding:0.4mm 0">ペイキャス</td><td style="text-align:right">\u2014</td></tr>`;
 
-  return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
-body{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;margin:0;padding:4px 4px;width:100%;box-sizing:border-box;color:#000;font-size:26px;text-align:center;}
-.no{text-align:right;font-size:15px;margin-bottom:4px;}
-.logo{width:94.5%;height:auto;margin:2px auto 4px;display:block;}
-.addr{width:90%;height:auto;margin:2px auto 6px;display:block;}
-.dt{font-size:17px;font-weight:bold;margin:6px 0 4px;}
-.atena{text-align:right;font-size:48px;margin:6px 14px 2px;}
-.dline{border:none;border-top:1px dotted #000;margin:6px 0 10px;}
-.sline{border:none;border-top:3px solid #000;margin:8px 0;}
-.total-row{font-size:21px;font-weight:900;}
-.tax{font-size:17px;color:#222;margin:4px 0 6px;}
-.foot{font-size:24px;font-weight:bold;margin-top:16px;}
-table{width:100%;border-collapse:collapse;}
+  return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
+<style>
+  @page { size: 48mm auto; margin: 0; }
+  html,body{ margin:0; padding:0; }
+  body{ font-family:'Hiragino Mincho ProN','Yu Mincho',serif; width:48mm; padding:1mm 1.5mm; box-sizing:border-box; color:#000; text-align:center; font-size:3mm; }
+  .no{ text-align:right; font-size:2.1mm; margin-bottom:0.5mm; }
+  .inv-title{ font-size:5mm; font-weight:900; letter-spacing:2mm; margin-bottom:1mm; }
+  .logo{ width:97%; height:auto; display:block; margin:0.5mm auto 1mm; }
+  .addr{ width:90%; height:auto; display:block; margin:0.5mm auto 1.5mm; }
+  .dt{ font-size:2.6mm; font-weight:bold; margin:1mm 0; }
+  .atena{ text-align:right; font-size:7mm; margin:1mm 3mm 0.5mm; }
+  .dline{ border:none; border-top:0.2mm dotted #000; margin:1mm 0 2mm; }
+  .sline{ border:none; border-top:0.5mm solid #000; margin:1.5mm 0; }
+  table{ width:100%; border-collapse:collapse; }
+  .items td{ font-size:3mm; }
+  .total td{ font-size:5.5mm; font-weight:900; }
+  .tax{ font-size:2.4mm; color:#000; margin:0.5mm 0 1mm; }
+  .pay td{ font-size:2.5mm; }
+  .foot{ font-size:3mm; font-weight:bold; margin-top:2.5mm; }
 </style></head><body>
   <div class="no">No.${receiptNo}</div>
-  ${isInvoice ? '<div style="font-size:30px;font-weight:900;letter-spacing:8px;margin-bottom:4px">領\u3000収\u3000書</div>' : ''}
+  ${isInvoice ? '<div class="inv-title">領\u3000収\u3000書</div>' : ''}
   <img class="logo" src="${RECEIPT_LOGO}"/>
   <img class="addr" src="${RECEIPT_ADDR}"/>
   <div class="dt">${dateStr}</div>
   ${isInvoice ? '<div class="atena">\u6a19</div>' : ''}
   <hr class="dline"/>
-  <table>${itemRows}</table>
+  <table class="items">${itemRows}</table>
   <hr class="sline"/>
-  <table>
-    <tr class="total-row"><td style="text-align:left">合\u3000計</td><td style="text-align:right">&#165;${info.amount.toLocaleString()}</td></tr>
-  </table>
+  <table class="total"><tr><td style="text-align:left">合\u3000計</td><td style="text-align:right">&#165;${info.amount.toLocaleString()}</td></tr></table>
   <div class="tax">\uff08内消費税10%対象\u3000${taxAmount.toLocaleString()}\uff09</div>
-  <table style="font-size:18px">${payRow}</table>
+  <table class="pay">${payRow}</table>
   <div class="foot">ありがとうございました</div>
 </body></html>`;
 }
@@ -914,9 +918,9 @@ export default function Register() {
 
       {previewHtml && (
         <div onClick={() => setPreviewHtml(null)} style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 16 }}>
-          <div style={{ color: "#c9952a", fontFamily: "serif", marginBottom: 8, fontSize: 14 }}>レシートプレビュー（実際の印刷イメージ）</div>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 8, width: 280, maxHeight: "75vh", overflow: "auto", boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }}>
-            <iframe title="preview" srcDoc={previewHtml} style={{ width: "100%", height: 600, border: "none" }} />
+          <div style={{ color: "#c9952a", fontFamily: "serif", marginBottom: 8, fontSize: 14 }}>レシートプレビュー（実寸48mm幅）</div>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 4, width: "48mm", maxHeight: "75vh", overflow: "auto", boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }}>
+            <iframe title="preview" srcDoc={previewHtml} style={{ width: "48mm", height: 600, border: "none", display: "block" }} />
           </div>
           <button onClick={() => setPreviewHtml(null)} style={{ marginTop: 14, padding: "12px 28px", background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>閉じる</button>
         </div>
