@@ -295,13 +295,15 @@ function MonthlyReport({ supabase, onBack }) {
   const byDate = {};
   sales.forEach(s => {
     const d = s.sale_date;
-    if (!byDate[d]) byDate[d] = { cash: 0, pay: 0, total: 0, count: 0, people: 0 };
+    if (!byDate[d]) byDate[d] = { cash: 0, pay: 0, total: 0, count: 0, people: 0, firstHalf: 0 };
     byDate[d].total += s.amount;
     byDate[d].count += 1;
     byDate[d].people += s.people_count || 0;
     if (s.pay_method === "現金") byDate[d].cash += s.amount;
     else byDate[d].pay += s.amount;
+    if (s.sale_time && s.sale_time < "15:00") byDate[d].firstHalf += s.amount;
   });
+  const totalFirstHalf = Object.values(byDate).reduce((a, d) => a + d.firstHalf, 0);
 
   const totalCash = sales.filter(s => s.pay_method === "現金").reduce((a, s) => a + s.amount, 0);
   const totalPay = sales.filter(s => s.pay_method === "ペイキャス").reduce((a, s) => a + s.amount, 0);
@@ -320,11 +322,66 @@ function MonthlyReport({ supabase, onBack }) {
     }
   });
 
+  const printMonthly = () => {
+    const [y, m] = selectedMonth.split('-');
+    const rows = Object.entries(byDate).sort().map(([date, d]) => {
+      const day = Number(date.split('-')[2]);
+      return `<tr>
+        <td>${day}日</td>
+        <td>¥${d.firstHalf.toLocaleString()}</td>
+        <td>¥${d.total.toLocaleString()}</td>
+        <td>¥${d.pay.toLocaleString()}</td>
+        <td>¥${d.cash.toLocaleString()}</td>
+        <td>${d.count}</td>
+      </tr>`;
+    }).join('');
+    const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"/>
+      <title>月次日計 ${y}年${Number(m)}月</title>
+      <style>
+        @page { size: A4 portrait; margin: 15mm; }
+        body { font-family: 'Noto Sans JP', sans-serif; font-size: 11px; color: #111; }
+        h2 { font-size: 16px; text-align: center; margin-bottom: 4px; }
+        p { text-align: center; color: #555; font-size: 10px; margin: 0 0 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #222; color: #fff; padding: 7px 8px; font-size: 10px; text-align: right; }
+        th:first-child { text-align: left; }
+        td { padding: 6px 8px; border-bottom: 1px solid #ddd; text-align: right; font-size: 11px; }
+        td:first-child { text-align: left; }
+        tr:last-child td { border-bottom: none; }
+        .total-row td { background: #f5f5f5; font-weight: 700; border-top: 2px solid #999; }
+      </style></head><body>
+      <h2>Lounge Cattleya　${y}年${Number(m)}月　月次日計</h2>
+      <p>出力日: ${new Date().toLocaleString('ja-JP')}</p>
+      <table>
+        <thead><tr>
+          <th>日付</th><th>〜15時</th><th>1日分</th><th>ペイキャス</th><th>現金</th><th>件数</th>
+        </tr></thead>
+        <tbody>${rows}
+          <tr class="total-row">
+            <td>合計</td>
+            <td>¥${totalFirstHalf.toLocaleString()}</td>
+            <td>¥${totalAmount.toLocaleString()}</td>
+            <td>¥${totalPay.toLocaleString()}</td>
+            <td>¥${totalCash.toLocaleString()}</td>
+            <td>${totalCount}</td>
+          </tr>
+        </tbody>
+      </table>
+      </body></html>`;
+    const w = window.open('', '_blank');
+    w.document.write(html);
+    w.document.close();
+    w.print();
+  };
+
   return (
     <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", padding: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18 }}>📅 月次レポート</div>
-        <button onClick={onBack} style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>戻る</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={printMonthly} style={{ padding: "6px 14px", background: "#c9952a", border: "none", borderRadius: 8, color: "#0d0905", cursor: "pointer", fontWeight: 700, fontSize: 11 }}>🖨 日計印刷</button>
+          <button onClick={onBack} style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>戻る</button>
+        </div>
       </div>
       <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
         style={{ width: "100%", padding: "10px 12px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#f0e6d0", fontSize: 14, marginBottom: 16, boxSizing: "border-box" }} />
@@ -374,7 +431,7 @@ function MonthlyReport({ supabase, onBack }) {
               <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #3d2c1433" }}>
                 <span style={{ color: "#f0e6d0", fontSize: 12 }}>{t.name}</span>
                 <div style={{ textAlign: "right" }}>
-                  <span style={{ color: "#8a7050", fontSize: 11, marginRight: 8 }}>{tobaccoByItem[t.name]?.count || 0}本</span>
+                  <span style={{ color: "#8a7050", fontSize: 11, marginRight: 8 }}>{tobaccoByItem[t.name]?.count || 0}個</span>
                   <span style={{ color: "#c9952a" }}>¥{(tobaccoByItem[t.name]?.total || 0).toLocaleString()}</span>
                 </div>
               </div>
@@ -691,8 +748,46 @@ export default function Register() {
         </div>
       )}
       <div style={{ background: "#181008", border: "1px solid #3d2c14", borderRadius: 12, padding: 20, marginTop: 16 }}>
-        <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 15, fontWeight: 700, marginBottom: 12 }}>
-          📅 {now.getMonth() + 1}月 銘柄別累計
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 15, fontWeight: 700 }}>
+            📅 {now.getMonth() + 1}月 銘柄別累計
+          </div>
+          <button onClick={() => {
+            const rows = TOBACCO.map(item => `<tr>
+              <td>${item.name}</td>
+              <td>${monthlyTobaccoByItem[item.name]?.count || 0}個</td>
+              <td>¥${(monthlyTobaccoByItem[item.name]?.total || 0).toLocaleString()}</td>
+            </tr>`).join('');
+            const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"/>
+              <title>タバコ月集計 ${now.getFullYear()}年${now.getMonth()+1}月</title>
+              <style>
+                @page { size: A4 portrait; margin: 20mm; }
+                body { font-family: sans-serif; font-size: 12px; color: #111; }
+                h2 { font-size: 16px; text-align: center; margin-bottom: 4px; }
+                p { text-align: center; color: #555; font-size: 10px; margin: 0 0 16px; }
+                table { width: 100%; border-collapse: collapse; }
+                th { background: #222; color: #fff; padding: 8px; text-align: left; }
+                td { padding: 8px; border-bottom: 1px solid #ddd; }
+                td:not(:first-child) { text-align: right; }
+                .total td { font-weight: 700; border-top: 2px solid #999; background: #f5f5f5; }
+              </style></head><body>
+              <h2>Lounge Cattleya　${now.getFullYear()}年${now.getMonth()+1}月　タバコ月集計</h2>
+              <p>出力日: ${new Date().toLocaleString('ja-JP')}</p>
+              <table>
+                <thead><tr><th>銘柄</th><th>個数</th><th>金額</th></tr></thead>
+                <tbody>${rows}
+                  <tr class="total">
+                    <td>合計</td>
+                    <td>${monthlyTobaccoFromDB.length}個</td>
+                    <td>¥${monthlyTobaccoTotal.toLocaleString()}</td>
+                  </tr>
+                </tbody>
+              </table></body></html>`;
+            const w = window.open('', '_blank');
+            w.document.write(html);
+            w.document.close();
+            w.print();
+          }} style={{ padding: "6px 12px", background: "#c9952a", border: "none", borderRadius: 8, color: "#0d0905", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>🖨 印刷</button>
         </div>
         {TOBACCO.map((item) => (
           <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #3d2c1433" }}>
