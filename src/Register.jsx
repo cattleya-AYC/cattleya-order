@@ -65,9 +65,8 @@ function buildReceiptHTML(info) {
 
   return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
 <style>
-  @page { size: 48mm auto; margin: 0; }
   html,body{ margin:0; padding:0; }
-  body{ font-family:'Hiragino Mincho ProN','Yu Mincho',serif; width:48mm; padding:1mm 1.5mm; box-sizing:border-box; color:#000; text-align:center; font-size:3mm; }
+  body{ font-family:'Hiragino Mincho ProN','Yu Mincho',serif; width:100%; padding:1mm 1mm; box-sizing:border-box; color:#000; text-align:center; font-size:3mm; }
   .no{ text-align:right; font-size:2.1mm; margin-bottom:0.5mm; }
   .inv-title{ font-size:5mm; font-weight:900; letter-spacing:2mm; margin-bottom:1mm; }
   .logo{ width:97%; height:auto; display:block; margin:0.5mm auto 1mm; }
