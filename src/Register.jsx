@@ -371,6 +371,7 @@ function MonthlyReport({ supabase, onBack }) {
     const w = window.open('', '_blank');
     w.document.write(html);
     w.document.close();
+    w.onafterprint = () => w.close();
     w.print();
   };
 
@@ -786,6 +787,7 @@ export default function Register() {
             const w = window.open('', '_blank');
             w.document.write(html);
             w.document.close();
+            w.onafterprint = () => w.close();
             w.print();
           }} style={{ padding: "6px 12px", background: "#c9952a", border: "none", borderRadius: 8, color: "#0d0905", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>🖨 印刷</button>
         </div>
