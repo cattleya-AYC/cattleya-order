@@ -19,49 +19,88 @@ const TOBACCO = [
 const STAFF = ["佐々木店長", "宮川", "末永", "井淵"];
 
 // =========================================================
+// 通し番号
+// =========================================================
+function getNextReceiptNo() {
+  try {
+    const key = "cattleya_receipt_no";
+    const n = parseInt(localStorage.getItem(key) || "10031210") + 1;
+    localStorage.setItem(key, String(n));
+    return String(n).padStart(9, "0");
+  } catch (e) {
+    return String(Date.now()).slice(-9);
+  }
+}
+
+// =========================================================
 // PassPRNT 用レシートHTML生成（58mm 熱転写レシート）
 // =========================================================
 function buildReceiptHTML(info) {
   const isInvoice = info.receipt === "領収書";
-  const date = new Date().toLocaleString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  const now = new Date();
+  const y = now.getFullYear();
+  const mo = now.getMonth() + 1;
+  const d = now.getDate();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const dateStr = `${y}年${mo}月${d}日　${hh}時${mm}分`;
+  const receiptNo = info.receiptNo || "000000000";
+  const taxAmount = Math.round(info.amount / 11);
   const items = info.items || [];
 
   const itemRows = items.map(o => {
-    const subtotal = o.price < 0
-      ? `−¥${Math.abs(o.price * o.qty).toLocaleString()}`
-      : `¥${(o.price * o.qty).toLocaleString()}`;
-    return `<tr><td style="width:70%">${o.item_name}&nbsp;×${o.qty}</td><td style="text-align:right">${subtotal}</td></tr>`;
+    const isDiscount = o.price < 0;
+    const subtotal = isDiscount
+      ? `&#8722;${Math.abs(o.price * o.qty).toLocaleString()}`
+      : (o.price * o.qty).toLocaleString();
+    return `<tr>
+      <td style="width:54%;padding:4px 1px;font-size:12px">${o.item_name}</td>
+      <td style="width:8%;text-align:center;padding:4px 1px;font-size:12px">${o.qty}</td>
+      <td style="width:38%;text-align:right;padding:4px 1px;font-size:12px">${subtotal}</td>
+    </tr>`;
   }).join("");
 
-  return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
-<style>
-  body{font-family:'Hiragino Kaku Gothic ProN',sans-serif;font-size:13px;margin:0;padding:6px;width:52mm;}
-  h2{text-align:center;font-size:15px;margin:4px 0 2px;}
-  .sub{text-align:center;font-size:11px;color:#555;margin:0 0 6px;}
-  .hr{border:none;border-top:1px dashed #999;margin:5px 0;}
-  table{width:100%;border-collapse:collapse;}
-  td{padding:2px 1px;vertical-align:top;}
-  .total-row td{font-size:15px;font-weight:bold;padding-top:5px;}
-  .foot{text-align:center;font-size:11px;margin-top:8px;}
-  .invoice-title{text-align:center;font-size:18px;font-weight:bold;letter-spacing:4px;margin:6px 0 2px;}
-  .atena{text-align:center;font-size:13px;border-bottom:1px solid #000;margin:4px 16px 8px;padding-bottom:2px;}
-  .note{font-size:11px;color:#555;text-align:center;margin-top:4px;}
+  const flowerSVG = `<svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#000"><path d="M20 22C19 14 17 7 20 1C23 7 21 14 20 22" stroke-width="1.2"/><path d="M18 24C11 22 5 17 1 12C6 15 12 21 18 24" stroke-width="1.2"/><path d="M22 24C29 22 35 17 39 12C34 15 28 21 22 24" stroke-width="1.2"/><path d="M17 21C14 16 8 11 3 9C7 11 13 17 17 21" stroke-width="2"/><path d="M23 21C26 16 32 11 37 9C33 11 27 17 23 21" stroke-width="2"/><path d="M16 25C11 28 10 35 13 41C15 45 18 48 20 49C22 48 25 45 27 41C30 35 29 28 24 25C22 27 18 27 16 25Z" stroke-width="1.3"/><path d="M14 35C12 34 9 35 7 34" stroke-width="0.8"/><path d="M26 35C28 34 31 35 33 34" stroke-width="0.8"/><path d="M13 40C11 39 8 40 6 39" stroke-width="0.8"/><path d="M27 40C29 39 32 40 34 39" stroke-width="0.8"/><ellipse cx="20" cy="24" rx="2.2" ry="2.8" fill="#111" stroke="none"/></svg>`;
+
+  const payRow = (info.pay === "現金" && info.received)
+    ? `<tr><td style="padding:3px 0">現金お預かり</td><td style="text-align:right;padding:3px 0">${(info.received).toLocaleString()}</td></tr>
+       <tr><td style="padding:3px 0">お　釣　り</td><td style="text-align:right;padding:3px 0">${(info.change||0).toLocaleString()}</td></tr>`
+    : `<tr><td style="padding:3px 0">ペイキャス</td><td style="text-align:right;padding:3px 0">—</td></tr>`;
+
+  return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
+body{font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;margin:0;padding:5px 7px;width:50mm;color:#000;}
+.hd{display:flex;align-items:center;gap:4px;margin-bottom:3px;}
+.hd-mid{flex:1;text-align:center;}
+.big-title{font-size:19px;font-weight:900;letter-spacing:5px;}
+.no{font-size:10px;white-space:nowrap;padding-top:2px;}
+.store{text-align:center;font-size:22px;font-weight:900;letter-spacing:2px;margin:2px 0 5px;}
+.inf{text-align:center;font-size:10px;line-height:1.7;margin-bottom:5px;}
+.dt{text-align:center;font-size:12px;font-weight:bold;margin:5px 0 3px;}
+.atena{text-align:right;font-size:26px;margin:2px 10px 1px;}
+.dline{border:none;border-top:1px dotted #000;margin:3px 0 8px;}
+.sline{border:none;border-top:2px solid #000;margin:4px 0;}
+tbl{width:100%;border-collapse:collapse;}
+.total{font-size:18px;font-weight:900;}
+.tax{font-size:10px;color:#444;margin:2px 0 4px;}
+.foot{text-align:center;font-size:11px;margin-top:10px;}
 </style></head><body>
-  <h2>ラウンジ カトレア</h2>
-  ${isInvoice
-    ? `<div class="invoice-title">領　収　書</div><div class="atena">　　　　　　　 様</div>`
-    : ``}
-  <div class="sub">${date}　テーブル ${info.table}</div>
-  <hr class="hr">
-  <table>${itemRows}</table>
-  <hr class="hr">
-  <table>
-    <tr class="total-row"><td>合　計</td><td style="text-align:right">¥${info.amount.toLocaleString()}</td></tr>
-    <tr><td style="font-size:12px">お支払</td><td style="text-align:right;font-size:12px">${info.pay}</td></tr>
-    ${info.received ? `<tr><td style="font-size:12px">お預かり</td><td style="text-align:right;font-size:12px">¥${info.received.toLocaleString()}</td></tr>` : ""}
-    ${info.change !== null ? `<tr><td style="font-size:12px">お　つ　り</td><td style="text-align:right;font-size:12px">¥${info.change.toLocaleString()}</td></tr>` : ""}
+  <div class="hd">
+    <div>${flowerSVG}</div>
+    <div class="hd-mid"><div class="big-title">${isInvoice ? "領 収 書" : "レシート"}</div></div>
+    <div class="no">No.${receiptNo}</div>
+  </div>
+  <div class="store">ラウンジ カトレア</div>
+  <div class="inf">東京都港区新橋2丁目16-1-3階<br>株式会社エー・ワイ・シー<br>&#128222; 03-3504-2200<br>登録番号　T1010401004300</div>
+  <div class="dt">${dateStr}</div>
+  ${isInvoice ? '<div class="atena">様</div>' : ""}
+  <hr class="dline"/>
+  <table style="width:100%;border-collapse:collapse">${itemRows}</table>
+  <hr class="sline"/>
+  <table style="width:100%;border-collapse:collapse">
+    <tr class="total"><td>合　計</td><td style="text-align:right">&#165;${info.amount.toLocaleString()}</td></tr>
   </table>
-  ${isInvoice ? `<div class="note">上記正に領収いたしました<br>（飲食代として）</div>` : ""}
+  <div class="tax">（内消費税10%対象　${taxAmount.toLocaleString()}）</div>
+  <table style="width:100%;border-collapse:collapse;font-size:12px">${payRow}</table>
   <div class="foot">ありがとうございました</div>
 </body></html>`;
 }
@@ -659,7 +698,8 @@ export default function Register() {
 
     // PassPRNT 自動印刷（レシート or 領収書 のときだけ）
     if (receiptType !== "なし") {
-      const html = buildReceiptHTML({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null, items: tableOrderItems });
+      const receiptNo = getNextReceiptNo();
+      const html = buildReceiptHTML({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null, items: tableOrderItems, receiptNo });
       const passprntUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
       setTimeout(() => { window.location.href = passprntUrl; }, 1200);
     }
