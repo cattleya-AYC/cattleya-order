@@ -66,14 +66,14 @@ function buildReceiptHTML(info) {
   return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
 body{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;margin:0;padding:4px 4px;width:100%;box-sizing:border-box;color:#000;font-size:26px;text-align:center;}
 .no{text-align:right;font-size:15px;margin-bottom:4px;}
-.logo{width:90%;height:auto;margin:2px auto 4px;display:block;}
+.logo{width:94.5%;height:auto;margin:2px auto 4px;display:block;}
 .addr{width:90%;height:auto;margin:2px auto 6px;display:block;}
 .dt{font-size:17px;font-weight:bold;margin:6px 0 4px;}
 .atena{text-align:right;font-size:48px;margin:6px 14px 2px;}
 .dline{border:none;border-top:1px dotted #000;margin:6px 0 10px;}
 .sline{border:none;border-top:3px solid #000;margin:8px 0;}
 .total-row{font-size:21px;font-weight:900;}
-.tax{font-size:21px;color:#222;margin:4px 0 6px;}
+.tax{font-size:17px;color:#222;margin:4px 0 6px;}
 .foot{font-size:24px;font-weight:bold;margin-top:16px;}
 table{width:100%;border-collapse:collapse;}
 </style></head><body>
@@ -90,7 +90,7 @@ table{width:100%;border-collapse:collapse;}
     <tr class="total-row"><td style="text-align:left">合\u3000計</td><td style="text-align:right">&#165;${info.amount.toLocaleString()}</td></tr>
   </table>
   <div class="tax">\uff08内消費税10%対象\u3000${taxAmount.toLocaleString()}\uff09</div>
-  <table style="font-size:22px">${payRow}</table>
+  <table style="font-size:18px">${payRow}</table>
   <div class="foot">ありがとうございました</div>
 </body></html>`;
 }
