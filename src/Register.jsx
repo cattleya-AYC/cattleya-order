@@ -35,7 +35,8 @@ function getNextReceiptNo() {
 // =========================================================
 // PassPRNT 用レシートHTML生成（58mm 熱転写レシート）
 // =========================================================
-const HEADER_IMG_INVOICE = "data:image/png;base64,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";
+const HEADER_IMG_INVOICE = "data:image/png;base64,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";
+const HEADER_IMG_FLOWER  = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgAQAAAACjtFqAAAAES0lEQVR42u2WT2gcdRTHPzOzZje6dlepmGLJbhHEg0jRS8E2MxW8924PpYdSvCieKoTspkH0ZIUiKCqNUsRjL54s7cRI46FlAwWpos2kLUkRaXablU7izO/rYf5k/x0KehE6l9n98N7v9973vd/7jSWGH5tH8P8F74+AneoIuByOgEuj4IHsn3oedzN555axB+7DxXm4JGsAxk8e/pXtAfjn9lg1dyqk78/uTMQZ62aWT09gY3cBaGdwHGhGyW+TwVfB8vNF02Q2JB18sCFJuprHeQsI55OIMhg824QgiWo5g6ZY5ShNAI5ncDfHsVrHAJRvtCrTuH5RkmQaGexItesX1/v1fAIudL/bA4CVWRpXm1fWZmqSlKtkBcBNq91foyXF15pakqS1HN5eUctRR5LW8jSf8aBMsb9GhTrx/lTzHDq82/UHpFN7KihKpiHpTm7ZPtIsgfH7LD/wqSxKFUnrOay5c89HDbV6YXRKa6s6o5Yk5XBTH/2k20lKuXRLql1thNrsle7+jS1gzBvrbZvC/L56NdFqB677Vu0SfOv0pnktLl34Cl7q9sLzP06eBMZ3eb2CeNFv4DmzPWma6dc+/PQ5d0Vyd+KMFkK38Pm5SgIz9x8KwMZAz3/RVTT/SrDVC53AeesdKmGh4fUEz7WVMoyXQ/UdrgOWgS2rr3C/gE3llumDLyBg70Mc2DrvjzjFC28zeI60Xum45zQwGQiLw+7j3mPUsw7Orp74+uMn8PvPO87y1yN2d6/IG4L3JsxQSFrVQQ2FNKlDo+bn9rC7zNKwe++zYxnVRlkeYzBNiJ2B3SOYdfIgbIBZqwSHM6uzzcLgxiul398cCqmKSaRzlYw+20AZ42e7xwVoWJd9qN6YyAcLIN+VdC4JXlkP7feIm146bSxrHEcBJZibnU9yN2DJUaBIpuHXQvVBo0iBGyaCSM10nkVMsIUNWHA6axPGaA+2Yge8TGRTlKUFSYuS5pRDaUGSI6nYq7yfJBuX0jVNKdd6p3BRJXENalK7lrpHyYBXvQ7LeY3qoLRF/HrqHriSqaiJFJHVPfBhuwoOnLcy9wUgrOPthfpYBk8DbQ/qQCkNydQkzUqr6fJIUihJaXvdzgbLpiSTVvCBJOvRJ9x/DwWCeaT3+r4uALz00scGtmzLA2Ttm0eWVQ+RFMIBOEjL/ZhJKaIAFI21VUoXgKhwKF2zKC1+iffyqQCTrCnbagJdAdzdJkKSmYkaEFIOA3Z11vV9f/BNEPEbGXSj4hm/eHO6XT6ZH9iGG6l2tRFFM6ppo8d91ab30p+JWCjEWH4XX3fjp2yA0wWgO03zbHjEHN0Z1MYSUObIX584i0nT1nTpb0PrchnTCbVoA/xxgWMGYD/8XOCEDXB+N3WH6a2GJ1505NgAJZQJ7FXhdSRFk+G0MVO0zLSmYO8GkkJj9gSaohVFTEHtng0Usb4BfwbHxpMC/uXp+AdDCC0IMYo/bgAAAABJRU5ErkJggg==";
 
 function buildReceiptHTML(info) {
   const isInvoice = info.receipt === "領収書";
@@ -51,7 +52,7 @@ function buildReceiptHTML(info) {
       ? `&#8722;${Math.abs(o.price * o.qty).toLocaleString()}`
       : (o.price * o.qty).toLocaleString();
     return `<tr>
-      <td style="width:55%;padding:5px 1px;font-size:17px;word-break:keep-all">${o.item_name}</td>
+      <td style="width:55%;padding:5px 1px;font-size:26px;word-break:keep-all">${o.item_name}</td>
       <td style="width:8%;text-align:center;padding:5px 1px;font-size:17px">${o.qty}</td>
       <td style="width:37%;text-align:right;padding:5px 1px;font-size:14px">${subtotal}</td>
     </tr>`;
@@ -62,12 +63,15 @@ function buildReceiptHTML(info) {
        <tr><td style="padding:4px 0">お　釣　り</td><td style="text-align:right;padding:4px 0">${(info.change||0).toLocaleString()}</td></tr>`
     : `<tr><td style="padding:4px 0">ペイキャス</td><td style="text-align:right;padding:4px 0">—</td></tr>`;
 
-  /* レシート用テキストヘッダー（領収書画像を流用しない） */
+  /* レシート用ヘッダー（花イラスト＋テキスト） */
   const receiptHeader = `
-    <div style="text-align:center;margin-bottom:4px">
-      <div style="font-size:20px;font-weight:900;letter-spacing:5px">レシート</div>
-      <div style="font-size:20px;font-weight:900;letter-spacing:2px;margin:3px 0 5px">ラウンジ　カトレア</div>
-      <div style="font-size:12px;line-height:1.8">
+    <div class="rh">
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:4px">
+        <img src="${HEADER_IMG_FLOWER}" style="width:22%;vertical-align:middle"/>
+        <div class="rh-title">レシート</div>
+      </div>
+      <div class="rh-store">ラウンジ　カトレア</div>
+      <div class="rh-info">
         東京都港区新橋2丁目16-1-3階<br>
         株式会社エー・ワイ・シー<br>
         &#128222; 03-3504-2200<br>
@@ -76,16 +80,19 @@ function buildReceiptHTML(info) {
     </div>`;
 
   return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
-body{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;margin:0;padding:3px 3px;width:100%;color:#000;font-size:18px;-webkit-print-color-adjust:exact;}
-*{-webkit-text-stroke:0.2px #000;}
-.no{text-align:right;font-size:14px;margin-bottom:3px;font-family:'Hiragino Kaku Gothic ProN',sans-serif;}
-.dt{text-align:center;font-size:17px;font-weight:bold;margin:5px 0 4px;}
-.atena{text-align:right;font-size:34px;margin:4px 8px 2px;}
-.dline{border:none;border-top:1px dotted #000;margin:5px 0 10px;}
-.sline{border:none;border-top:2.5px solid #000;margin:6px 0;}
-.total{font-size:24px;font-weight:900;}
-.tax{font-size:14px;color:#333;margin:3px 0 5px;}
-.foot{text-align:center;font-size:15px;margin-top:12px;}
+body{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;margin:0;padding:2px 4px;width:100%;box-sizing:border-box;color:#000;font-size:28px;}
+.no{text-align:right;font-size:22px;margin-bottom:4px;}
+.rh{text-align:center;margin-bottom:6px;}
+.rh-title{font-size:30px;font-weight:900;letter-spacing:4px;}
+.rh-store{font-size:32px;font-weight:900;letter-spacing:2px;margin:4px 0;}
+.rh-info{font-size:21px;line-height:1.7;}
+.dt{text-align:center;font-size:26px;font-weight:bold;margin:6px 0 5px;}
+.atena{text-align:right;font-size:46px;margin:4px 8px 2px;}
+.dline{border:none;border-top:1px dotted #000;margin:6px 0 12px;}
+.sline{border:none;border-top:2.5px solid #000;margin:7px 0;}
+.total{font-size:36px;font-weight:900;}
+.tax{font-size:22px;color:#333;margin:4px 0 6px;}
+.foot{text-align:center;font-size:23px;margin-top:14px;}
 table{width:100%;border-collapse:collapse;}
 </style></head><body>
   <div class="no">No.${receiptNo}</div>
@@ -101,7 +108,7 @@ table{width:100%;border-collapse:collapse;}
     <tr class="total"><td>合　計</td><td style="text-align:right">&#165;${info.amount.toLocaleString()}</td></tr>
   </table>
   <div class="tax">（内消費税10%対象　${taxAmount.toLocaleString()}）</div>
-  <table style="font-size:17px">${payRow}</table>
+  <table style="font-size:26px">${payRow}</table>
   <div class="foot">ありがとうございました</div>
 </body></html>`;
 }
