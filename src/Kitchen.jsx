@@ -120,13 +120,13 @@ export default function Kitchen() {
             return (
               <div key={table} style={{ background: "#1a1d22", border: `2.5px solid ${urgent ? "#c95a5a" : "#2a4a2a"}`, borderRadius: 14, padding: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
-                  <span style={{ fontSize: 32, fontWeight: 900, color: "#fff" }}>テーブル {table}</span>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: "#aaa" }}>テーブル {table}</span>
                   <span style={{ fontSize: 15, color: urgent ? "#c95a5a" : "#888" }}>{timeAgo(oldest)}</span>
                 </div>
                 {items.map(o => (
-                  <div key={o.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 22, padding: "8px 0", borderBottom: "1px solid #2a2d33" }}>
+                  <div key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 44, padding: "10px 0", borderBottom: "1px solid #2a2d33" }}>
                     <span style={{ flex: 1 }}>{o.item_name}</span>
-                    <span style={{ color: "#c9952a", fontWeight: 700, marginLeft: 8 }}>×{o.qty}</span>
+                    <span style={{ color: "#c9952a", fontWeight: 900, marginLeft: 12, fontSize: 44 }}>×{o.qty}</span>
                   </div>
                 ))}
                 {urgent && (
