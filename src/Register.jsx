@@ -286,6 +286,9 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
 
   useEffect(() => { fetchAll(); }, []);
 
+  const today = new Date().toISOString().split("T")[0];
+  const drawerLogs = JSON.parse(localStorage.getItem(`cattleya_drawer_${today}`) || "[]");
+
   const fetchAll = async () => {
     setLoading(true);
     const today = new Date().toISOString().split("T")[0];
@@ -457,6 +460,19 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
                   <div style={{ fontSize: 11, color: "#8a7050", marginTop: 2 }}>釣り銭¥50,000 ＋ 売上¥{log.salesCash.toLocaleString()}</div>
                 </div>
               ))}
+            </div>
+          )}
+          {/* ドロア開閉履歴 */}
+          {drawerLogs.length > 0 && (
+            <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginTop: 12 }}>
+              <div style={{ color: "#3a9a8a", fontSize: 12, marginBottom: 8 }}>🔓 ドロア開閉履歴</div>
+              {drawerLogs.map((log, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #1a4a3a33", fontSize: 13 }}>
+                  <span style={{ color: "#3a9a8a" }}>{log.sale_time}</span>
+                  <span style={{ color: "#8a7050" }}>ドロアを開けました</span>
+                </div>
+              ))}
+              <div style={{ textAlign: "right", color: "#3a9a8a", fontSize: 12, marginTop: 6 }}>計 {drawerLogs.length}回</div>
             </div>
           )}
         </>
@@ -833,7 +849,15 @@ export default function Register() {
   };
 
   const openDrawer = () => {
-    // mPOP ドロアオープン（空白レシートをPassPRNTに送る）
+    // 時刻をlocalStorageに記録
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const timeStr = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+    const key = `cattleya_drawer_${today}`;
+    const existing = JSON.parse(localStorage.getItem(key) || "[]");
+    existing.push(timeStr);
+    localStorage.setItem(key, JSON.stringify(existing));
+    // mPOP ドロアオープン
     const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;width:1px;height:1px;"></body></html>`;
     const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
     window.location.href = url;
@@ -895,10 +919,6 @@ export default function Register() {
           <span style={{ color: "#f0e6d0" }}>{checkoutInfo.receipt}</span>
         </div>
       </div>
-      <button onClick={openDrawer}
-        style={{ marginTop: 10, padding: "12px 0", width: "100%", background: "#0a1a18", border: "1px solid #1a4a3a", borderRadius: 10, color: "#3a9a8a", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
-        🔓 ドロアを開ける
-      </button>
       <button onClick={() => { setCheckoutDone(false); setCheckoutInfo(null); }}
         style={{ width: "100%", maxWidth: 360, padding: 16, background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
         次の会計へ
