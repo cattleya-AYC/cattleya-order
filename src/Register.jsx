@@ -323,7 +323,58 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
   });
 
   // PDF印刷
-  const printPDF = () => window.print();
+  const printPDF = () => {
+    const today = new Date().toLocaleDateString("ja-JP");
+    const hourRows = Object.entries(groups).sort().map(([h, g]) =>
+      `<tr><td>${h}:00〜${Number(h)+1}:00</td><td style="text-align:right">${g.count}件</td><td style="text-align:right">¥${g.amount.toLocaleString()}</td></tr>`
+    ).join("");
+    const drawerRows = drawerLogs.map(t => `<tr><td>${t}</td><td>ドロアを開けました</td></tr>`).join("");
+    const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
+<style>
+  body{font-family:'Hiragino Mincho ProN',serif;background:#fff;color:#000;padding:20px;font-size:13px;}
+  h2{text-align:center;font-size:18px;margin-bottom:4px;}
+  .sub{text-align:center;font-size:12px;color:#555;margin-bottom:16px;}
+  table{width:100%;border-collapse:collapse;margin-bottom:16px;}
+  th{background:#f0f0f0;padding:6px;text-align:left;font-size:12px;border:1px solid #ccc;}
+  td{padding:6px;border:1px solid #eee;font-size:13px;}
+  .total{font-size:16px;font-weight:900;}
+  .section{font-weight:700;margin:12px 0 4px;font-size:13px;border-bottom:1px solid #ccc;padding-bottom:4px;}
+</style></head><body>
+  <h2>ラウンジ カトレア　日計レポート</h2>
+  <div class="sub">${today}　集計時刻: ${new Date().toLocaleTimeString("ja-JP", {hour:"2-digit",minute:"2-digit"})}</div>
+
+  <div class="section">売上集計</div>
+  <table>
+    <tr><td>純売上（タバコ除く）</td><td class="total" style="text-align:right">¥${todayTotal.toLocaleString()}</td></tr>
+    <tr><td>　内消費税10%</td><td style="text-align:right">¥${todayTax.toLocaleString()}</td></tr>
+    <tr><td>現金合計（${todayCashCount}件）</td><td style="text-align:right">¥${todayCash.toLocaleString()}</td></tr>
+    <tr><td>ペイキャス合計（${todayPayCount}件）</td><td style="text-align:right">¥${todayPay.toLocaleString()}</td></tr>
+    <tr><td>領収書発行</td><td style="text-align:right">${todayReceiptCount}件</td></tr>
+    <tr><td>来客組数</td><td style="text-align:right">${todayCount}組</td></tr>
+    <tr><td>来客人数</td><td style="text-align:right">${todayPeople}名</td></tr>
+    <tr><td>タバコ売上</td><td style="text-align:right">¥${tobaccoTotal.toLocaleString()}</td></tr>
+  </table>
+
+  <div class="section">時間帯別売上</div>
+  <table>
+    <tr><th>時間帯</th><th style="text-align:right">件数</th><th style="text-align:right">売上</th></tr>
+    ${hourRows || "<tr><td colspan='3' style='color:#999'>データなし</td></tr>"}
+  </table>
+
+  ${drawerLogs.length > 0 ? `
+  <div class="section">ドロア開閉履歴</div>
+  <table>
+    <tr><th>時刻</th><th>内容</th></tr>
+    ${drawerRows}
+  </table>` : ""}
+</body></html>`;
+
+    const w = window.open("", "_blank");
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { w.print(); }, 400);
+  };
 
   // mPOP 集計レシート印刷
   const printSummary = () => {
