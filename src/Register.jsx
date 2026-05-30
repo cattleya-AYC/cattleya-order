@@ -926,7 +926,7 @@ export default function Register() {
     localStorage.setItem(key, JSON.stringify(existing));
     // mPOP ドロアオープン
     const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;width:1px;height:1px;"></body></html>`;
-    const url = "starpassprnt://v1/print/nopreview?drawer=true&back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
+    const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
     window.location.href = url;
   };
 
