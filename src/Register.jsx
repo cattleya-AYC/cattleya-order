@@ -46,9 +46,9 @@ function buildInvoiceHTML(info) {
   html,body{ margin:0; padding:0; }
   body{ font-family:'Hiragino Mincho ProN','Yu Mincho',serif; width:384px; margin:0; padding:0; box-sizing:border-box; color:#000; text-align:center; }
   .no{ text-align:right; font-size:22px; margin:6px 4px 0; }
-  .ititle{ font-size:40px; font-weight:900; letter-spacing:14px; margin:8px 0 14px; }
+  .ititle{ font-size:40px; font-weight:900; letter-spacing:7px; margin:8px 0 14px; }
   .logo{ width:100%; height:auto; display:block; margin:6px 0 34px; }
-  .atena{ display:flex; align-items:baseline; justify-content:space-between; margin:14px 6px 2px; gap:6px; border-bottom:2px solid #000; padding-bottom:2px; }
+  .atena{ display:flex; align-items:baseline; justify-content:space-between; margin:14px 42px 2px 6px; gap:6px; border-bottom:2px solid #000; padding-bottom:2px; }
   .aspace{ flex:1; }
   .asama{ font-size:32px; white-space:nowrap; }
   .kingaku{ display:flex; align-items:flex-end; justify-content:space-between; margin:22px 6px 2px; gap:18px; }
@@ -56,7 +56,7 @@ function buildInvoiceHTML(info) {
   .kval{ flex:1; border-bottom:2px solid #000; font-size:34px; font-weight:900; text-align:center; padding-bottom:2px; }
   .ryos{ font-size:18px; margin:8px 0 4px; }
   .tax{ font-size:18px; margin:4px 0 16px; }
-  .dt{ font-size:30px; font-weight:bold; margin:10px 0 6px; }
+  .dt{ font-size:27px; font-weight:bold; margin:10px 0 6px; }
   .addr{ width:100%; height:auto; display:block; margin:6px 0 6px; }
   .inkan{ text-align:right; font-size:24px; margin:6px 30px 12px; }
   </style></head><body>
@@ -67,7 +67,9 @@ function buildInvoiceHTML(info) {
     <div class="kingaku"><div class="klabel">金額</div><div class="kval">&#165;${info.amount.toLocaleString()}</div></div>
     <div class="ryos">但し　　　　として上記正に領収いたしました</div>
     <div class="tax">（うち、消費税　&#165;${taxAmount.toLocaleString()}）</div>
+    <br>
     <div class="dt">${dateStr}</div>
+    <br><br>
     <img class="addr" src="${RECEIPT_ADDR}"/>
     <div class="inkan">印</div>
   </body></html>`;
