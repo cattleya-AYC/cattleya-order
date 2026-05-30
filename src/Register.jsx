@@ -390,14 +390,14 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
     ).join("");
 
     const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
-      body{font-family:'Hiragino Mincho ProN',serif;width:384px;margin:0;padding:4px 6px;font-size:22px;color:#000;}
+      body{font-family:'Hiragino Mincho ProN',serif;width:384px;margin:0;padding:4px 6px;font-size:28px;font-weight:700;color:#000;}
       .title{text-align:center;font-size:28px;font-weight:900;margin:4px 0 2px;}
-      .sub{text-align:center;font-size:16px;margin-bottom:8px;color:#333;}
+      .sub{text-align:center;font-size:28px;font-weight:700;margin-bottom:8px;}
       .hr{border:none;border-top:1px solid #000;margin:6px 0;}
-      table{width:100%;border-collapse:collapse;font-size:19px;}
-      td{padding:4px 2px;}
+      table{width:100%;border-collapse:collapse;font-size:28px;}
+      td{padding:6px 2px;font-size:28px;font-weight:700;}
       .total{font-size:28px;font-weight:900;}
-      .lbl{color:#555;font-size:16px;}
+      .lbl{color:#000;font-size:28px;font-weight:700;}
     </style></head><body>
       <div class="title">ラウンジ カトレア</div>
       <div class="sub">日計集計レシート</div>
@@ -409,16 +409,16 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
       <hr class="hr"/>
       <table>
         <tr class="total"><td>総売上</td><td style="text-align:right">¥${todayTotal.toLocaleString()}</td></tr>
-        <tr><td class="lbl">　現金（${todayCashCount}件）</td><td style="text-align:right;font-size:18px">¥${todayCash.toLocaleString()}</td></tr>
-        <tr><td class="lbl">　ペイキャス（${todayPayCount}件）</td><td style="text-align:right;font-size:18px">¥${todayPay.toLocaleString()}</td></tr>
-        <tr><td class="lbl">　内消費税10%</td><td style="text-align:right;font-size:18px">¥${todayTax.toLocaleString()}</td></tr>
-        <tr><td class="lbl">　領収書発行</td><td style="text-align:right;font-size:18px">${todayReceiptCount}件</td></tr>
-        <tr><td class="lbl">　来客組数</td><td style="text-align:right;font-size:18px">${todayCount}組</td></tr>
-        <tr><td class="lbl">　来客人数</td><td style="text-align:right;font-size:18px">${todayPeople}名</td></tr>
-        <tr><td class="lbl">🚬 タバコ</td><td style="text-align:right;font-size:18px">¥${tobaccoTotal.toLocaleString()}</td></tr>
+        <tr><td class="lbl">現金（${todayCashCount}件）</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayCash.toLocaleString()}</td></tr>
+        <tr><td class="lbl">ペイキャス（${todayPayCount}件）</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayPay.toLocaleString()}</td></tr>
+        <tr><td class="lbl">内消費税10%</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayTax.toLocaleString()}</td></tr>
+        <tr><td class="lbl">領収書発行</td><td style="text-align:right;font-size:28px;font-weight:700">${todayReceiptCount}件</td></tr>
+        <tr><td class="lbl">来客組数</td><td style="text-align:right;font-size:28px;font-weight:700">${todayCount}組</td></tr>
+        <tr><td class="lbl">来客人数</td><td style="text-align:right;font-size:28px;font-weight:700">${todayPeople}名</td></tr>
+        <tr><td class="lbl">🚬 タバコ</td><td style="text-align:right;font-size:28px;font-weight:700">¥${tobaccoTotal.toLocaleString()}</td></tr>
       </table>
       <hr class="hr"/>
-      <div style="text-align:center;font-size:14px;color:#555">ありがとうございました</div>
+      <div style="text-align:center;font-size:28px;font-weight:700;color:#000">ありがとうございました</div>
     </body></html>`;
 
     const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
@@ -502,15 +502,29 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
           {cashCheckLogs.length > 0 && (
             <div style={{ background: "#181008", borderRadius: 10, padding: 16 }}>
               <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>💰 レジ確認履歴</div>
-              {cashCheckLogs.map((log, i) => (
-                <div key={i} style={{ padding: "8px 0", borderBottom: "1px solid #3d2c1433" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                    <span style={{ color: "#f0e6d0" }}>{log.time} {log.staff}</span>
-                    <span style={{ color: "#c9952a" }}>¥{log.systemCash.toLocaleString()}</span>
+              {cashCheckLogs.map((log, i) => {
+                const resultLabel = log.result === "same" ? { text: "✅ 同じ", color: "#4aaa5a" } : log.result === "short" ? { text: "⚠️ 不足", color: "#c95a5a" } : { text: "💡 多い", color: "#5a8aca" };
+                return (
+                  <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid #3d2c1433" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ color: "#f0e6d0", fontWeight: 700 }}>{log.time}　{log.staff}</span>
+                      <span style={{ color: resultLabel.color, fontWeight: 700 }}>{resultLabel.text}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: "#8a7050" }}>あるべき金額</span>
+                      <span style={{ color: "#c9952a" }}>¥{log.systemCash.toLocaleString()}</span>
+                    </div>
+                    {log.diff !== 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginTop: 2 }}>
+                        <span style={{ color: "#8a7050" }}>差額</span>
+                        <span style={{ color: log.diff < 0 ? "#c95a5a" : "#5a8aca", fontWeight: 700 }}>
+                          {log.diff > 0 ? "+" : ""}¥{log.diff.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div style={{ fontSize: 11, color: "#8a7050", marginTop: 2 }}>釣り銭¥50,000 ＋ 売上¥{log.salesCash.toLocaleString()}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
           {/* ドロア開閉履歴 */}
@@ -749,6 +763,8 @@ export default function Register() {
   const [lastCheckout, setLastCheckout] = useState(null);
   const [cashCheckLogs, setCashCheckLogs] = useState([]);
   const [cashChecking, setCashChecking] = useState(false);
+  const [cashCheckResult, setCashCheckResult] = useState(null); // "same" | "short" | "over"
+  const [cashCheckDiff, setCashCheckDiff] = useState("");
   const [previewHtml, setPreviewHtml] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const [cashCheckStaff, setCashCheckStaff] = useState(null);
@@ -910,7 +926,7 @@ export default function Register() {
     localStorage.setItem(key, JSON.stringify(existing));
     // mPOP ドロアオープン
     const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;width:1px;height:1px;"></body></html>`;
-    const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
+    const url = "starpassprnt://v1/print/nopreview?drawer=true&back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
     window.location.href = url;
   };
 
@@ -930,11 +946,14 @@ export default function Register() {
 
   const confirmCashCheck = () => {
     const staffName = showOtherInput ? cashCheckOther : cashCheckStaff;
-    if (!staffName) return;
+    if (!staffName || !cashCheckResult) return;
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
     const systemCash = todayCashFromDB + 50000;
-    setCashCheckLogs((prev) => [{ time: now, staff: staffName, systemCash, salesCash: todayCashFromDB }, ...prev]);
+    const diff = cashCheckResult === "same" ? 0 : parseInt(cashCheckDiff || "0");
+    const diffSigned = cashCheckResult === "short" ? -diff : cashCheckResult === "over" ? diff : 0;
+    setCashCheckLogs((prev) => [{ time: now, staff: staffName, systemCash, salesCash: todayCashFromDB, result: cashCheckResult, diff: diffSigned }, ...prev]);
     setCashChecking(false); setCashCheckStaff(null); setCashCheckOther(""); setShowOtherInput(false);
+    setCashCheckResult(null); setCashCheckDiff("");
   };
 
   const now = new Date();
@@ -1143,24 +1162,49 @@ export default function Register() {
       )}
 
       {cashChecking && (
-        <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400 }}>
-            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 16 }}>💰 レジ金額確認</div>
-            <div style={{ background: "#251a0a", borderRadius: 10, padding: 16, marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ color: "#8a7050" }}>釣り銭</span>
+        <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 16, overflowY: "auto" }}>
+          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 20, width: "100%", maxWidth: 400 }}>
+            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 14 }}>💰 レジ金額確認</div>
+
+            {/* レジ内金額 */}
+            <div style={{ background: "#251a0a", borderRadius: 10, padding: 14, marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ color: "#8a7050" }}>釣り銭（固定）</span>
                 <span style={{ color: "#f0e6d0" }}>¥50,000</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ color: "#8a7050" }}>現金売上</span>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ color: "#8a7050" }}>本日の現金売上</span>
                 <span style={{ color: "#f0e6d0" }}>¥{todayCashFromDB.toLocaleString()}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #3d2c14", paddingTop: 8 }}>
-                <span style={{ color: "#f0e6d0", fontWeight: 700 }}>レジ内合計</span>
-                <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 22, fontWeight: 800 }}>¥{(todayCashFromDB + 50000).toLocaleString()}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #3d2c14", paddingTop: 10 }}>
+                <span style={{ color: "#f0e6d0", fontWeight: 700, fontSize: 16 }}>レジ内あるべき金額</span>
+                <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 24, fontWeight: 900 }}>¥{(todayCashFromDB + 50000).toLocaleString()}</span>
               </div>
             </div>
-            <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 10 }}>確認者</div>
+
+            {/* 照合結果 */}
+            <div style={{ color: "#f0e6d0", fontSize: 14, marginBottom: 8, fontWeight: 700 }}>実際のレジ内金額と一致していますか？</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 12 }}>
+              {[["same","✅ 同じ","#2a6a3a","#4aaa5a"],["short","⚠️ 不足","#6a2a2a","#c95a5a"],["over","💡 多い","#2a4a6a","#5a8aca"]].map(([key, label, bg, color]) => (
+                <button key={key} onClick={() => { setCashCheckResult(key); if (key === "same") setCashCheckDiff(""); }}
+                  style={{ padding: "12px 4px", background: cashCheckResult === key ? bg : "transparent", border: `2px solid ${cashCheckResult === key ? color : "#3d2c14"}`, borderRadius: 10, color: cashCheckResult === key ? "#fff" : "#8a7050", fontWeight: 900, fontSize: 15, cursor: "pointer" }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* 差額入力 */}
+            {(cashCheckResult === "short" || cashCheckResult === "over") && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 6 }}>差額（円）を入力してください</div>
+                <input type="number" value={cashCheckDiff} onChange={(e) => setCashCheckDiff(e.target.value)}
+                  placeholder="例：500"
+                  style={{ width: "100%", padding: "12px", background: "#251a0a", border: "1px solid #c9952a", borderRadius: 8, color: "#f0e6d0", fontSize: 18, fontWeight: 700, boxSizing: "border-box" }} />
+              </div>
+            )}
+
+            {/* 確認者 */}
+            <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>確認者</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8, marginBottom: 10 }}>
               {STAFF.map((s) => (
                 <button key={s} onClick={() => { setCashCheckStaff(s); setShowOtherInput(false); setCashCheckOther(""); }}
@@ -1177,11 +1221,14 @@ export default function Register() {
               <input value={cashCheckOther} onChange={(e) => setCashCheckOther(e.target.value)} placeholder="名前を入力"
                 style={{ width: "100%", padding: "10px 12px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#f0e6d0", fontSize: 14, marginBottom: 10, boxSizing: "border-box" }} />
             )}
-            <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-              <button onClick={() => { setCashChecking(false); setCashCheckStaff(null); setCashCheckOther(""); setShowOtherInput(false); }}
+
+            {/* ボタン */}
+            <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+              <button onClick={() => { setCashChecking(false); setCashCheckStaff(null); setCashCheckOther(""); setShowOtherInput(false); setCashCheckResult(null); setCashCheckDiff(""); }}
                 style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>キャンセル</button>
-              <button onClick={confirmCashCheck} disabled={!cashCheckStaff && !cashCheckOther}
-                style={{ flex: 2, padding: 14, background: (cashCheckStaff || cashCheckOther) ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: (cashCheckStaff || cashCheckOther) ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: (cashCheckStaff || cashCheckOther) ? "pointer" : "not-allowed" }}>
+              <button onClick={confirmCashCheck}
+                disabled={(!cashCheckStaff && !cashCheckOther) || !cashCheckResult || ((cashCheckResult === "short" || cashCheckResult === "over") && !cashCheckDiff)}
+                style={{ flex: 2, padding: 14, background: ((cashCheckStaff || cashCheckOther) && cashCheckResult) ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: ((cashCheckStaff || cashCheckOther) && cashCheckResult) ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
                 ✅ 確認完了
               </button>
             </div>
