@@ -6,21 +6,17 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODM2MTksImV4cCI6MjA5NTI1OTYxOX0.vNndS7JEzIUsa007EPO2zRoYhUr-z01LM32BKIhMSz4"
 );
 
-function playChime() {
+function speak(text) {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [880, 1100, 1320].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = freq;
-      osc.type = "sine";
-      const t = ctx.currentTime + i * 0.2;
-      gain.gain.setValueAtTime(0.001, t);
-      gain.gain.exponentialRampToValueAtTime(0.6, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-      osc.start(t); osc.stop(t + 0.5);
-    });
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    synth.cancel(); // 前の読み上げをキャンセル
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "ja-JP";
+    utter.rate = 0.9;
+    utter.pitch = 1.1;
+    utter.volume = 1.0;
+    synth.speak(utter);
   } catch (e) {}
 }
 
@@ -50,7 +46,19 @@ export default function Kitchen() {
     const curIds = new Set(list.map(o => o.id));
     let isNew = false;
     curIds.forEach(id => { if (!prevIds.current.has(id)) isNew = true; });
-    if (isNew && prevIds.current.size > 0 && soundOn) playChime();
+    if (isNew && prevIds.current.size > 0 && soundOn) {
+      // 新しく追加されたテーブルごとに読み上げ
+      const newItems = list.filter(o => !prevIds.current.has(o.id));
+      const byTable = {};
+      newItems.forEach(o => {
+        if (!byTable[o.table_no]) byTable[o.table_no] = [];
+        byTable[o.table_no].push(o.item_name);
+      });
+      Object.entries(byTable).forEach(([table, items], i) => {
+        const msg = `テーブル${table}、${items.join("、")}、ご注文が入りました`;
+        setTimeout(() => speak(msg), i * 3000);
+      });
+    }
     prevIds.current = curIds;
 
     setOrders(list);
@@ -90,7 +98,7 @@ export default function Kitchen() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontSize: 16, color: "#888" }}>{tables.length}テーブル 調理中</span>
           {!soundOn ? (
-            <button onClick={() => { setSoundOn(true); playChime(); }}
+            <button onClick={() => { setSoundOn(true); speak("音声通知をオンにしました"); }}
               style={{ padding: "10px 18px", background: "#c9952a", border: "none", borderRadius: 8, color: "#0d0905", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
               🔔 音をON
             </button>
