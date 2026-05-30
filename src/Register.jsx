@@ -282,12 +282,13 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
   const [sales, setSales] = useState([]);
   const [tobaccoSales, setTobaccoSales] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [lastPrintTime, setLastPrintTime] = useState(() => localStorage.getItem("cattleya_last_summary") || null);
 
   useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     setLoading(true);
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
     const [{ data: s }, { data: t }] = await Promise.all([
       supabase.from("sales").select("*").eq("sale_date", today).order("created_at", { ascending: true }),
       supabase.from("tobacco_sales").select("*").eq("sale_date", today).order("created_at", { ascending: true }),
@@ -302,58 +303,134 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
   const todayTotal = sales.reduce((a, s) => a + s.amount, 0);
   const todayCount = sales.length;
   const todayPeople = sales.reduce((a, s) => a + (s.people_count || 0), 0);
+  const todayCashCount = sales.filter(s => s.pay_method === "現金").length;
+  const todayPayCount = sales.filter(s => s.pay_method === "ペイキャス").length;
+  const todayReceiptCount = sales.filter(s => s.receipt_type === "領収書").length;
+  const todayTax = Math.round(todayTotal / 11);
   const tobaccoTotal = tobaccoSales.reduce((a, s) => a + s.price, 0);
+
+  // 時間帯別（件数＋金額）
   const groups = {};
   sales.forEach(s => {
-    const hour = s.sale_time ? s.sale_time.split(":")[0] : "不明";
-    if (!groups[hour]) groups[hour] = 0;
-    groups[hour] += s.amount;
+    const raw = s.sale_time || "";
+    const hour = raw.includes(":") ? raw.split(":")[0] : "不明";
+    if (!groups[hour]) groups[hour] = { count: 0, amount: 0 };
+    groups[hour].count += 1;
+    groups[hour].amount += s.amount;
   });
+
+  // PDF印刷
+  const printPDF = () => window.print();
+
+  // mPOP 集計レシート印刷
+  const printSummary = () => {
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+    const summaryNo = parseInt(localStorage.getItem("cattleya_summary_no") || "0") + 1;
+    localStorage.setItem("cattleya_summary_no", String(summaryNo));
+    localStorage.setItem("cattleya_last_summary", timeStr);
+    setLastPrintTime(timeStr);
+
+    const hourRows = Object.entries(groups).sort().map(([h, g]) =>
+      `<tr><td>${h}:00〜${Number(h)+1}:00</td><td style="text-align:right">${g.count}件</td><td style="text-align:right">¥${g.amount.toLocaleString()}</td></tr>`
+    ).join("");
+
+    const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
+      body{font-family:'Hiragino Mincho ProN',serif;width:384px;margin:0;padding:4px 6px;font-size:22px;color:#000;}
+      .title{text-align:center;font-size:28px;font-weight:900;margin:4px 0 2px;}
+      .sub{text-align:center;font-size:16px;margin-bottom:8px;color:#333;}
+      .hr{border:none;border-top:1px solid #000;margin:6px 0;}
+      table{width:100%;border-collapse:collapse;font-size:19px;}
+      td{padding:4px 2px;}
+      .total{font-size:28px;font-weight:900;}
+      .lbl{color:#555;font-size:16px;}
+    </style></head><body>
+      <div class="title">ラウンジ カトレア</div>
+      <div class="sub">日計集計レシート</div>
+      <div class="lbl" style="text-align:right">精算 No.${String(summaryNo).padStart(6,"0")}</div>
+      <div class="lbl" style="text-align:right">${timeStr}</div>
+      <hr class="hr"/>
+      <div style="margin:4px 0;font-size:18px">時間帯別</div>
+      <table>${hourRows}</table>
+      <hr class="hr"/>
+      <table>
+        <tr class="total"><td>総売上</td><td style="text-align:right">¥${todayTotal.toLocaleString()}</td></tr>
+        <tr><td class="lbl">　現金（${todayCashCount}件）</td><td style="text-align:right;font-size:18px">¥${todayCash.toLocaleString()}</td></tr>
+        <tr><td class="lbl">　ペイキャス（${todayPayCount}件）</td><td style="text-align:right;font-size:18px">¥${todayPay.toLocaleString()}</td></tr>
+        <tr><td class="lbl">　内消費税10%</td><td style="text-align:right;font-size:18px">¥${todayTax.toLocaleString()}</td></tr>
+        <tr><td class="lbl">　領収書発行</td><td style="text-align:right;font-size:18px">${todayReceiptCount}件</td></tr>
+        <tr><td class="lbl">　来客組数</td><td style="text-align:right;font-size:18px">${todayCount}組</td></tr>
+        <tr><td class="lbl">　来客人数</td><td style="text-align:right;font-size:18px">${todayPeople}名</td></tr>
+        <tr><td class="lbl">🚬 タバコ</td><td style="text-align:right;font-size:18px">¥${tobaccoTotal.toLocaleString()}</td></tr>
+      </table>
+      <hr class="hr"/>
+      <div style="text-align:center;font-size:14px;color:#555">ありがとうございました</div>
+    </body></html>`;
+
+    const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
+    window.location.href = url;
+  };
 
   return (
     <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      {/* ヘッダー */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
         <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18 }}>📊 日計</div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={fetchAll} style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer", fontSize: 11 }}>更新</button>
-          <button onClick={onBack} style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>戻る</button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={printSummary} style={{ padding: "6px 12px", background: "#c9952a", border: "none", borderRadius: 8, color: "#0d0905", cursor: "pointer", fontWeight: 700, fontSize: 11 }}>🖨 集計印刷（レシート）</button>
+          <button onClick={printPDF} style={{ padding: "6px 12px", background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 8, color: "#4aaa5a", cursor: "pointer", fontWeight: 700, fontSize: 11 }}>🖨 PDF印刷</button>
+          <button onClick={fetchAll} style={{ padding: "6px 12px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer", fontSize: 11 }}>更新</button>
+          <button onClick={onBack} style={{ padding: "6px 12px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>戻る</button>
         </div>
       </div>
+      {lastPrintTime && <div style={{ color: "#8a7050", fontSize: 11, marginBottom: 8 }}>最終集計印刷: {lastPrintTime}</div>}
+
       {loading ? <div style={{ textAlign: "center", color: "#8a7050", paddingTop: 40 }}>読み込み中...</div> : (
         <>
+          {/* メイン集計 */}
           <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
             <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 14, marginBottom: 10 }}>{new Date().toLocaleDateString("ja-JP")} 本日集計</div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ color: "#8a7050" }}>現金合計</span>
-              <span style={{ color: "#c9952a", fontFamily: "serif" }}>¥{todayCash.toLocaleString()}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ color: "#8a7050" }}>ペイキャス合計</span>
-              <span style={{ color: "#c9952a", fontFamily: "serif" }}>¥{todayPay.toLocaleString()}</span>
-            </div>
+            {[
+              ["現金合計", `¥${todayCash.toLocaleString()}（${todayCashCount}件）`],
+              ["ペイキャス合計", `¥${todayPay.toLocaleString()}（${todayPayCount}件）`],
+            ].map(([label, val]) => (
+              <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ color: "#8a7050" }}>{label}</span>
+                <span style={{ color: "#c9952a", fontFamily: "serif" }}>{val}</span>
+              </div>
+            ))}
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, borderTop: "1px solid #3d2c14", paddingTop: 8 }}>
-              <span style={{ color: "#f0e6d0", fontWeight: 700 }}>総売上（タバコ除く）</span>
+              <span style={{ color: "#f0e6d0", fontWeight: 700 }}>純売上（タバコ除く）</span>
               <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 20, fontWeight: 700 }}>¥{todayTotal.toLocaleString()}</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ color: "#8a7050" }}>組数</span>
-              <span style={{ color: "#c9952a", fontFamily: "serif" }}>{todayCount}組</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#8a7050" }}>人数</span>
-              <span style={{ color: "#c9952a", fontFamily: "serif" }}>{todayPeople}名</span>
-            </div>
+            {[
+              ["内消費税10%", `¥${todayTax.toLocaleString()}`],
+              ["領収書発行", `${todayReceiptCount}件`],
+              ["来客組数", `${todayCount}組`],
+              ["来客人数", `${todayPeople}名`],
+            ].map(([label, val]) => (
+              <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ color: "#8a7050" }}>{label}</span>
+                <span style={{ color: "#c9952a", fontFamily: "serif" }}>{val}</span>
+              </div>
+            ))}
           </div>
+
+          {/* 時間帯別 */}
           <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>時間帯別売上</div>
-            {Object.keys(groups).length === 0 ? <div style={{ color: "#3d2c14", fontSize: 13 }}>データなし</div>
-              : Object.entries(groups).sort().map(([hour, amount]) => (
+            {Object.keys(groups).length === 0
+              ? <div style={{ color: "#3d2c14", fontSize: 13 }}>データなし</div>
+              : Object.entries(groups).sort().map(([hour, g]) => (
                 <div key={hour} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #3d2c1433" }}>
-                  <span style={{ color: "#8a7050" }}>{hour}時台</span>
-                  <span style={{ color: "#c9952a" }}>¥{amount.toLocaleString()}</span>
+                  <span style={{ color: "#8a7050" }}>{hour}:00〜{Number(hour)+1}:00</span>
+                  <span style={{ color: "#8a7050", fontSize: 12 }}>{g.count}件</span>
+                  <span style={{ color: "#c9952a" }}>¥{g.amount.toLocaleString()}</span>
                 </div>
               ))}
           </div>
+
+          {/* タバコ */}
           <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ color: "#8a7050" }}>🚬 タバコ売上（現金・別）</span>
@@ -366,6 +443,8 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
               </div>
             ))}
           </div>
+
+          {/* レジ確認履歴 */}
           {cashCheckLogs.length > 0 && (
             <div style={{ background: "#181008", borderRadius: 10, padding: 16 }}>
               <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>💰 レジ確認履歴</div>
@@ -753,6 +832,13 @@ export default function Register() {
     setPreviewHtml(html);
   };
 
+  const openDrawer = () => {
+    // mPOP ドロアオープン（空白レシートをPassPRNTに送る）
+    const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;width:1px;height:1px;"></body></html>`;
+    const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
+    window.location.href = url;
+  };
+
   const addDiscount = () => {
     supabase.from("orders").insert({ table_no: String(selected), item_name: "セット値引き", price: -150, qty: 1, status: "pending" }).then(() => fetchOrders());
   };
@@ -809,6 +895,10 @@ export default function Register() {
           <span style={{ color: "#f0e6d0" }}>{checkoutInfo.receipt}</span>
         </div>
       </div>
+      <button onClick={openDrawer}
+        style={{ marginTop: 10, padding: "12px 0", width: "100%", background: "#0a1a18", border: "1px solid #1a4a3a", borderRadius: 10, color: "#3a9a8a", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
+        🔓 ドロアを開ける
+      </button>
       <button onClick={() => { setCheckoutDone(false); setCheckoutInfo(null); }}
         style={{ width: "100%", maxWidth: 360, padding: 16, background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
         次の会計へ
@@ -1115,6 +1205,7 @@ export default function Register() {
           <div style={{ padding: "6px 8px", borderBottom: "1px solid #3d2c14", display: "flex", flexDirection: "column", gap: 4 }}>
             <button onClick={() => setMode("tobacco")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>🚬 タバコ販売</button>
             <button onClick={() => setCashChecking(true)} style={{ padding: "6px 0", background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 6, color: "#4aaa5a", fontSize: 10, cursor: "pointer" }}>💰 レジ確認</button>
+            <button onClick={openDrawer} style={{ padding: "6px 0", background: "#0a1a18", border: "1px solid #1a4a3a", borderRadius: 6, color: "#3a9a8a", fontSize: 10, cursor: "pointer" }}>🔓 ドロアを開ける</button>
             <button onClick={() => setShowAdmin(true)} style={{ padding: "6px 0", background: "#10182a", border: "1px solid #2a3a6a", borderRadius: 6, color: "#5a8aca", fontSize: 10, cursor: "pointer" }}>⚙️ 管理メニュー</button>
           </div>
           <div style={{ flex: 1, overflow: "auto", padding: "6px 8px" }}>
