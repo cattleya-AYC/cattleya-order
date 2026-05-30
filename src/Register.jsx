@@ -66,21 +66,21 @@ function buildReceiptHTML(info) {
   return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
 <style>
   html,body{ margin:0; padding:0; }
-  body{ font-family:'Hiragino Mincho ProN','Yu Mincho',serif; width:100%; padding:1.5% 2%; box-sizing:border-box; color:#000; text-align:center; font-size:6vw; }
-  .no{ text-align:right; font-size:4vw; margin-bottom:1%; }
-  .inv-title{ font-size:9vw; font-weight:900; letter-spacing:3vw; margin-bottom:2%; }
-  .logo{ width:72%; height:auto; display:block; margin-left:auto; margin-right:auto; margin-top:1%; margin-bottom:2%; }
-  .addr{ width:88%; height:auto; display:block; margin-left:auto; margin-right:auto; margin-top:1%; margin-bottom:3%; }
-  .dt{ font-size:5vw; font-weight:bold; margin:2% 0; }
-  .atena{ text-align:right; font-size:13vw; margin:2% 6% 1%; }
-  .dline{ border:none; border-top:1px dotted #000; margin:2% 0 3%; }
-  .sline{ border:none; border-top:2px solid #000; margin:3% 0; }
+  body{ font-family:'Hiragino Mincho ProN','Yu Mincho',serif; width:48mm; margin:0 auto; padding:0 1mm; box-sizing:border-box; color:#000; text-align:center; font-size:2.6mm; }
+  .no{ text-align:right; font-size:1.9mm; margin-bottom:0.5mm; }
+  .inv-title{ font-size:4.5mm; font-weight:900; letter-spacing:1.5mm; margin-bottom:1mm; }
+  .logo{ width:100%; height:auto; display:block; margin:0.5mm 0 1mm; }
+  .addr{ width:100%; height:auto; display:block; margin:0.5mm 0 1.5mm; }
+  .dt{ font-size:2.3mm; font-weight:bold; margin:1mm 0; }
+  .atena{ text-align:right; font-size:6mm; margin:1mm 3mm 0.5mm; }
+  .dline{ border:none; border-top:1px dotted #000; margin:1mm 0 1.5mm; }
+  .sline{ border:none; border-top:0.5mm solid #000; margin:1.5mm 0; }
   table{ width:100%; border-collapse:collapse; }
-  .items td{ font-size:5.5vw; padding:1% 0; }
-  .total td{ font-size:9vw; font-weight:900; padding:1% 0; }
-  .tax{ font-size:4.2vw; color:#000; margin:1% 0 2%; }
-  .pay td{ font-size:4.8vw; padding:0.6% 0; }
-  .foot{ font-size:5.5vw; font-weight:bold; margin-top:4%; }
+  .items td{ font-size:2.5mm; padding:0.5mm 0; }
+  .total td{ font-size:4.5mm; font-weight:900; padding:0.5mm 0; }
+  .tax{ font-size:2mm; color:#000; margin:0.5mm 0 1mm; }
+  .pay td{ font-size:2.3mm; padding:0.3mm 0; }
+  .foot{ font-size:2.6mm; font-weight:bold; margin-top:2mm; }
 </style></head><body>
   <div class="no">No.${receiptNo}</div>
   ${isInvoice ? '<div class="inv-title">領\u3000収\u3000書</div>' : ''}
@@ -918,8 +918,8 @@ export default function Register() {
       {previewHtml && (
         <div onClick={() => setPreviewHtml(null)} style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 16 }}>
           <div style={{ color: "#c9952a", fontFamily: "serif", marginBottom: 8, fontSize: 14 }}>レシートプレビュー（実寸48mm幅）</div>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 4, width: "48mm", maxHeight: "75vh", overflow: "auto", boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }}>
-            <iframe title="preview" srcDoc={previewHtml} style={{ width: "48mm", height: 600, border: "none", display: "block" }} />
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 4, width: "58mm", maxHeight: "75vh", overflow: "auto", boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }}>
+            <iframe title="preview" srcDoc={previewHtml} style={{ width: "58mm", height: 620, border: "none", display: "block" }} />
           </div>
           <button onClick={() => setPreviewHtml(null)} style={{ marginTop: 14, padding: "12px 28px", background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>閉じる</button>
         </div>
