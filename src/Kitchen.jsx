@@ -10,14 +10,24 @@ function speak(text) {
   try {
     const synth = window.speechSynthesis;
     if (!synth) return;
-    synth.cancel(); // 前の読み上げをキャンセル
+    synth.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = "ja-JP";
-    utter.rate = 0.9;
-    utter.pitch = 1.1;
+    utter.rate = 0.85;
+    utter.pitch = 1.6;   // 高めで可愛い声
     utter.volume = 1.0;
+    // iOS の Kyoko（日本語女性）を優先
+    const voices = synth.getVoices();
+    const kyoko = voices.find(v => v.name.includes("Kyoko") || v.name.includes("O-ren") || (v.lang === "ja-JP" && v.name.includes("Female")));
+    if (kyoko) utter.voice = kyoko;
     synth.speak(utter);
   } catch (e) {}
+}
+
+// 和語数詞（ひとつ、ふたつ...）
+function jpCount(n) {
+  const words = ["","ひとつ","ふたつ","みっつ","よっつ","いつつ","むっつ","ななつ","やっつ","ここのつ","とお"];
+  return n <= 10 ? words[n] : `${n}個`;
 }
 
 function timeAgo(iso) {
@@ -55,7 +65,13 @@ export default function Kitchen() {
         byTable[o.table_no].push(o.item_name);
       });
       Object.entries(byTable).forEach(([table, items], i) => {
-        const msg = `テーブル${table}、${items.join("、")}、ご注文が入りました`;
+        const itemText = Object.entries(
+          newItems.filter(o => o.table_no === table).reduce((acc, o) => {
+            acc[o.item_name] = (acc[o.item_name] || 0) + (o.qty || 1);
+            return acc;
+          }, {})
+        ).map(([name, qty]) => `${name} ${jpCount(qty)}`).join("、");
+        const msg = `テーブル${table}、${itemText}、ご注文が入りました`;
         setTimeout(() => speak(msg), i * 3000);
       });
     }
