@@ -54,8 +54,8 @@ function buildInvoiceHTML(info) {
   .kingaku{ display:flex; align-items:flex-end; justify-content:space-between; margin:22px 6px 2px; gap:18px; }
   .klabel{ font-size:34px; font-weight:900; white-space:nowrap; }
   .kval{ flex:1; border-bottom:2px solid #000; font-size:34px; font-weight:900; text-align:center; padding-bottom:2px; }
-  .ryos{ font-size:18px; margin:8px 0 4px; }
-  .tax{ font-size:18px; margin:4px 0 16px; }
+  .ryos{ font-size:24px; font-weight:700; margin:10px 0 4px; line-height:1.7; }
+  .tax{ font-size:24px; font-weight:700; margin:6px 0 16px; }
   .dt{ font-size:24px; font-weight:bold; margin:10px 0 6px; }
   .addr{ width:100%; height:auto; display:block; margin:6px 0 6px; }
   .inkan{ text-align:right; font-size:24px; margin:6px 30px 12px; }
@@ -65,7 +65,7 @@ function buildInvoiceHTML(info) {
     <img class="logo" src="${RECEIPT_LOGO}"/>
     <div class="atena"><div class="aspace"></div><div class="asama">様</div></div>
     <div class="kingaku"><div class="klabel">金額</div><div class="kval">&#165;${info.amount.toLocaleString()}</div></div>
-    <div class="ryos">但し　　　　として上記正に領収いたしました</div>
+    <div class="ryos">但し　　　　　　　　　　　　<br>として上記正に領収いたしました</div>
     <div class="tax">（うち、消費税　&#165;${taxAmount.toLocaleString()}）</div>
     <br>
     <div class="dt">${dateStr}</div>
@@ -115,10 +115,10 @@ function buildReceiptHTML(info) {
   .dline{ border:none; border-top:2px dotted #000; margin:8px 0 12px; }
   .sline{ border:none; border-top:4px solid #000; margin:12px 0; }
   table{ width:100%; border-collapse:collapse; }
-  .items td{ font-size:21px; padding:4px 0; }
+  .items td{ font-size:26px; font-weight:700; padding:5px 0; }
   .total td{ font-size:38px; font-weight:900; padding:4px 0; }
-  .tax{ font-size:16px; color:#000; margin:4px 0 8px; }
-  .pay td{ font-size:19px; padding:3px 0; }
+  .tax{ font-size:22px; font-weight:700; color:#000; margin:5px 0 8px; }
+  .pay td{ font-size:24px; font-weight:700; padding:5px 0; }
   .foot{ font-size:22px; font-weight:bold; margin-top:16px; }
 </style></head><body>
   <div class="no">No.${receiptNo}</div>
