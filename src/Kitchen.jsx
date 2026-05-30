@@ -13,13 +13,9 @@ function speak(text) {
     synth.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = "ja-JP";
-    utter.rate = 0.85;
+    utter.rate = 0.9;
     utter.pitch = 1.1;
     utter.volume = 1.0;
-    // iOS の Kyoko（日本語女性）を優先
-    const voices = synth.getVoices();
-    const kyoko = voices.find(v => v.name.includes("Kyoko") || v.name.includes("O-ren") || (v.lang === "ja-JP" && v.name.includes("Female")));
-    if (kyoko) utter.voice = kyoko;
     synth.speak(utter);
   } catch (e) {}
 }
@@ -40,7 +36,7 @@ function timeAgo(iso) {
 export default function Kitchen() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [soundOn, setSoundOn] = useState(true);
+  const [soundOn, setSoundOn] = useState(false);
   const [, setTick] = useState(0);
   const prevIds = useRef(new Set());
 
@@ -114,13 +110,16 @@ export default function Kitchen() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontSize: 16, color: "#888" }}>{tables.length}テーブル 調理中</span>
           {!soundOn ? (
-            <button onClick={() => { setSoundOn(true); speak("音声通知をオンにしました"); }}
-              style={{ padding: "10px 18px", background: "#c9952a", border: "none", borderRadius: 8, color: "#0d0905", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
-              🔔 音をON
-            </button>
+            <div style={{ textAlign: "center" }}>
+              <button onClick={() => { setSoundOn(true); speak("音声通知をオンにしました"); }}
+                style={{ padding: "14px 24px", background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontWeight: 900, fontSize: 18, cursor: "pointer", animation: "pulse 1.5s infinite" }}>
+                🔔 最初に必ずタップ！
+              </button>
+              <div style={{ color: "#c9952a", fontSize: 11, marginTop: 4 }}>タップで音声ONになります</div>
+            </div>
           ) : (
             <span style={{ padding: "10px 18px", background: "#1a2a1a", border: "1px solid #4aaa5a", borderRadius: 8, color: "#4aaa5a", fontSize: 15 }}>
-              🔔 音ON
+              🔔 音声ON
             </span>
           )}
         </div>
