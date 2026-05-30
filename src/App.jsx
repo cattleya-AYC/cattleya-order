@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -112,6 +112,10 @@ export default function App() {
   const [sent, setSent] = useState(false);
   const [changingPeople, setChangingPeople] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [showUnserved, setShowUnserved] = useState(false);
+  const [unservedOrders, setUnservedOrders] = useState([]);
+  const [unservedTable, setUnservedTable] = useState(null);
 
   const addItem = (item) => {
     setCart((prev) => {
@@ -127,26 +131,48 @@ export default function App() {
     );
   };
 
+  const fetchUnserved = async () => {
+    const { data } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("status", "pending")
+      .order("created_at", { ascending: true });
+    setUnservedOrders((data || []).filter(o => !o.item_name.startsWith("【人数")));
+  };
+
+  const markServed = async (id) => {
+    await supabase.from("orders").update({ status: "served" }).eq("id", id);
+    fetchUnserved();
+  };
+
   const sendOrder = async () => {
-    for (const item of cart) {
+    if (sending) return; // 二重送信防止
+    setSending(true);
+    try {
+      for (const item of cart) {
+        await supabase.from("orders").insert({
+          table_no: String(selectedTable),
+          item_name: item.name,
+          price: item.price,
+          qty: item.qty,
+          status: "pending",
+        });
+      }
       await supabase.from("orders").insert({
         table_no: String(selectedTable),
-        item_name: item.name,
-        price: item.price,
-        qty: item.qty,
-        status: "pending",
+        item_name: `【人数：${people}名】`,
+        price: 0,
+        qty: 1,
+        status: "info",
       });
+      setConfirming(false);
+      setSent(true);
+      setCart([]);
+    } catch (e) {
+      alert("送信エラーが発生しました。もう一度お試しください。");
+    } finally {
+      setSending(false);
     }
-    await supabase.from("orders").insert({
-      table_no: String(selectedTable),
-      item_name: `【人数：${people}名】`,
-      price: 0,
-      qty: 1,
-      status: "info",
-    });
-    setConfirming(false);
-    setSent(true);
-    setCart([]);
   };
 
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
@@ -164,6 +190,64 @@ export default function App() {
           </button>
         ))}
       </div>
+
+      {/* 未提供ボタン */}
+      <button onClick={() => { fetchUnserved(); setUnservedTable(null); setShowUnserved(true); }}
+        style={{ marginTop: 16, width: "100%", padding: "14px 0", background: "#10182a", border: "2px solid #2a3a6a", borderRadius: 10, color: "#5a8aca", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
+        📦 未提供の注文を確認
+      </button>
+
+      {/* 未提供パネル */}
+      {showUnserved && (() => {
+        const byTable = {};
+        unservedOrders.forEach(o => {
+          if (!byTable[o.table_no]) byTable[o.table_no] = [];
+          byTable[o.table_no].push(o);
+        });
+        const tables = Object.keys(byTable);
+        return (
+          <div onClick={() => { setShowUnserved(false); setUnservedTable(null); }}
+            style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            <div onClick={e => e.stopPropagation()}
+              style={{ background: "#0f0a05", border: "2px solid #2a3a6a", borderRadius: 14, width: "100%", maxWidth: 400, maxHeight: "80vh", overflow: "auto", padding: 16 }}>
+              <div style={{ color: "#5a8aca", fontWeight: 900, fontSize: 18, marginBottom: 14 }}>📦 未提供の注文</div>
+
+              {tables.length === 0 ? (
+                <div style={{ color: "#666", textAlign: "center", padding: 30 }}>未提供の注文はありません</div>
+              ) : unservedTable === null ? (
+                /* テーブル一覧 */
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {tables.map(t => (
+                    <button key={t} onClick={() => setUnservedTable(t)}
+                      style={{ padding: "14px 16px", background: "#1a1d22", border: "1px solid #2a3a6a", borderRadius: 10, color: "#fff", fontSize: 18, fontWeight: 700, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between" }}>
+                      <span>テーブル {t}</span>
+                      <span style={{ color: "#5a8aca", fontSize: 14 }}>{byTable[t].length}品 →</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                /* 品目一覧 */
+                <div>
+                  <button onClick={() => setUnservedTable(null)} style={{ background: "transparent", border: "none", color: "#5a8aca", fontSize: 14, cursor: "pointer", marginBottom: 10 }}>← 戻る</button>
+                  <div style={{ color: "#fff", fontWeight: 900, fontSize: 20, marginBottom: 12 }}>テーブル {unservedTable}</div>
+                  {byTable[unservedTable] ? byTable[unservedTable].map(o => (
+                    <div key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #2a2d33" }}>
+                      <span style={{ color: "#f0e6d0", fontSize: 16 }}>{o.item_name} ×{o.qty}</span>
+                      <button onClick={() => markServed(o.id)}
+                        style={{ padding: "8px 14px", background: "#4aaa5a", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                        出した ✓
+                      </button>
+                    </div>
+                  )) : null}
+                </div>
+              )}
+
+              <button onClick={() => { setShowUnserved(false); setUnservedTable(null); }}
+                style={{ marginTop: 16, width: "100%", padding: "12px 0", background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 14, cursor: "pointer" }}>閉じる</button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 
@@ -236,9 +320,9 @@ export default function App() {
             style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 14, cursor: "pointer" }}>
             ← 修正する
           </button>
-          <button onClick={sendOrder}
-            style={{ flex: 2, padding: 14, background: "#c9952a", border: "none", borderRadius: 10, color: "#0f0a05", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
-            🍽 送信する
+          <button onClick={sendOrder} disabled={sending}
+            style={{ flex: 2, padding: 14, background: sending ? "#8a7050" : "#c9952a", border: "none", borderRadius: 10, color: "#0f0a05", fontSize: 16, fontWeight: 700, cursor: sending ? "not-allowed" : "pointer" }}>
+            {sending ? "送信中…" : "🍽 送信する"}
           </button>
         </div>
       </div>
