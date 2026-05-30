@@ -35,48 +35,44 @@ function getNextReceiptNo() {
 // =========================================================
 // PassPRNT 用レシートHTML生成（mPOP 約48mm印字 / mm基準）
 // =========================================================
-const RECEIPT_LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYAAAACMAQAAAABdCUPdAAAFkElEQVR42u2YT4gk5RmHn6+rdroWxp3y5Eh0pzA55JCFhngQstgVDyaCB485hcXTHhJcRNSLO98moLsQdI+Cwi4iePAiKCSCODWLwT0EXMH8OWklO2RHMFCzO5rq3pr6eaiq7qrqmunps1MwTHfV9/T793vf9ysjFrt6HAFHwA8EuD4fMPUNpGPZYhKuDRaTIOc7byEJ+YkFjc6SZDFgRLwYcHvROGzl3oKBy9PFAC9dNDXcYEEgWVSCtwBwGQC/c03UBTy34zdUs+xMDPK7gFP+s0wCvWMMeAUw8vae6wK8/rlund1x72Sn0at9Ur/lpi3AWbdXZwGd/VW8FE6sW1GxS/Z84AxLHRLeADO96YMFWN0F/AuPzALjHIhhe/pg09v03SI4HW69NLJ1d0eMgmA9w3Hh2hJph0pLQEJQMptmEvN07ZddkX65cK2dhijwASysXuPGLHDcAquEV1tBOMuNpVaK9bqybqg4rAJqbJfRr1ggi1QuCyvv+kQ8Vri4CSQAvvJR9SyuPlgeVkfyhRjI/Zd+fXGasRHA3gAvD2aBgDgA0mg8ebAWZUD1N5t8a2/hXeld+apUZbO8vR1CGs4C/7f8InSyO8HJumMDuArNMOBWtjk36G2HppbgKWAFUcNLSJK2JN3KXrgofSpJyh1J8bpSI+VG9atQadnCvXAJftYQfLEH41YblCQlQynLn/mxdEeSlPUlRdqlLyVOh4SVGJxw5Rs4VnQKD4hwWQV/ucutZ4Eo9ytd0gHwR1zOMGoVqxI4XfmxSJwkBLmAxSXosEGJNpSfk5SuSNKmpGxNeV/Kmk4qbWA5BD4H+n8BeBzYOoN5EXrtTlmC/Q2d6EvSLUm5JH1VPllvSqgAO/zy0RVJuqmDrwpIhh8zNJJ25gBVGJfDPGLPg/4h+0MGLuZDcO0copQUn/Tuf03ZmvLhwSqVWcY7T2+Ob+O8jYkPJ2Elin9+QdqRrhzKaA3WTob3wT1hnhxKQnZ+mOrNDSnK+4eyITvvjIr8uzc6lFtH3/I1Ywvxzu8OBdz+BzG1ivHvcA6wdZ3Hyt32OGCCeRI8XwMdMJBp0mJK4Kn4P6fI7YgIO7vYmF67kD1ozYkvQ1xrGE+7rDH5dIJs9mnoQ5Rk82egXtVzRn//rRumjXZ9QKSzW+nqE5+cvnlzCBgJhpKEkaRCLacR6Wz7OG7wh72fTHrBnDiYweV3N06x6pUGHXCVlc659MyfvuZY4u67MG9I6GUDztjqt+18L+1ub6yOZbtmvH3c+g6+M2/314FbrzP44tlKl3g+kAd334saykf71aPi/wfR0ijpV0BS67uFf1byFujw6Z/tpIT52Pqw6kj/s604PAmQ2Y9rKuzS/OI2JAzwLGoYu1dLDvk5rQ3EP//m/ouuU+Pl1lmnN53s71iAySxQ5uGLAHw0A4SY31vjJDw60ckCKCvHCL8FJHz2/rlyuwW1UIzzViwnKuW7e2SNjRACpCoVDtrA3fMPRB3nmhuE4LE0+aEK+GkW9Uw6u9+iQhtj2yqNb4fFl9ZwZMt5PLTNuoRnyG1pXDjdR3ltOmtKOPZw+NeOkrRbDcE/agPmv+sP4RJBjAXOFwXqMgwamky9lOTf1CdqE5Um7Hvw6/EUV2uF73TNY2nnSfGlGB961V5zyuAau9/R8vWWSxuDWDALmOeL23uFVpYT0wVJR2OXpFfXhZNipKi4XR7RZFmfmWYm1bB9CPcPek1hwW2/rgla6VJ/eryZLZNdoTpSB76DpJ0eDjA+4P3Scnc72Af4DTjX4+aR6xFgqd74ei37Bh3He1NfNfPKK6g50pY/bd3uwBUNlaEUl6cEiuEp7qszcKVbppV+heIo7XsHSFAkKSlvXyilrs1OxtPr7uzYltfmb3P0GvsIOAJ+2MD33tWtme4GEN8AAAAASUVORK5CYII=";
+const RECEIPT_LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYAAAACMAQAAAABdCUPdAAAFk0lEQVR42u2YTYgkZx3Gf9VVO1WrY6YCghOI00UMuJeFBnNYMGQqK6gHDx486+BB9qC4rAEVYuZdAmYDYnIMJLCDCDkIIiioB3dqVmT3IMyKnye31CG7hxBrZvNRPft2PR7qq6u7Zmf7kJPzwkxXd9XzPv+v9/0/9TpisTHgBHAC+D8B3Dwe4EwvIJ2yizFcHy3GIPf9YCGG4pFsMadttmCUxqSLAQ4WzcNeESyYuCJfDBDki5aGFy0IWDSsBAsAXgUg7H0m6QM8tx92TDPsNw6FfYCz4SWaRO87DgQlYBxMnusDBP7Ffpu9Q9Z6nV71TR7OhGkPcDfPb80DdOEL6VLSeLeicpVMQmAjXpoHFK+DQ+NECAZg9QAIL5+bB9iifHoqETvBTugNgKAvrC+PzXS4E8ZRtGlxPbi+RN7j9BKQEVWYHaehyofP9mX6h+UX06YoCgEMrF7n1jzgtAFWA7ZmknCBW0szJTaYrrq4+nFdzeIOHNPn9EsGsIniBhgDISEJ58sQdwEZQKhiXN9L6wvDU+opvhgHivD5L15pKzYBmIwIimgeEJFGwDg5bG4MEwvUf/PFN/wJwdWDq7crU3aqn+/GkMfzgA8Mn41dq2htOrARbEE3DXi1b+4tBm/HzlSB54ARJJ0oIUnak3THfveKdEOSVLiS0k3ljlQ4mh6lScsGHoWX4fEO8ZUBHM60QUlSti7Z4tufku5JkqwvKdG7+FLm9jCspODGK2/DqXJ9BECCxyqEy31hvQAkRVjbko+AF/HYYDyzWVWAp+s4loWTxSAPMHhEPT4o07aKi5LyFUnakWSHKnzJdoNU+cByDPwJ8H8D8HlgbwPnezBYoo9B/rYe8SXpjqRCkm5XdzZ7Gfi+uT0KqErNqR3qGxUwW7/GuiNpXw8eNcMyRcIkAP8h+4ON8XB+C545BlExpWvBYyuyQxXrD2fSm1/Pn7iE+1OcFHbM8QwrSfqZy9K+dFVK/GMZNBquxZ+Aj8VFBhxS/zuKwb6wnn/wxrZ0o/ClxJFknF6GCpBbZXpjW/qPfi8ZVxJdQDrsmDR+j30ODTxGV8bFAGPHcaKsk4eDv5GyBbjNtmEAtBP2J27vJufL1baxBMZrJOFRmQ5CjdQKsokTzz2ZdwBfTv99lsKMq2nt0WKuAnzSRD+PYzxzZPhn+rTFhySzjQbKjmH4nMZ//aoX50zihyrv4puHq984o4/fS9zdJ6ddPApg7+Z40WDyJFTK0j4Y4Ixe/dn2WbMapFe/0mRa5uji27en//va5WsTGb5TChNXBlcSK5IyqgtJZU4HdsTG6d+JmB+1c03qi49qqoNLku6kuX/AM1a6r5YBv5k4W6NbrW8SumaqMdTqvZZZYdF1+s5rjP5yqe7gOZtV+cUA/ywTGXXyEN3/RULb8pv+3qhQ22X4VbI0zvyWoRPGTQN4tRApAS43fm06W1grmA5JwNyvZytt/RKANdf6k5tOW1nvSzc/Pc7XbLXeHbGiBBgKP8WXjP+vmZ3v73/0/jE/dwRsleaFs0I34F7rQ5m7TkV9pCsdiHG+9c7X2rlDwHrl/hdOPzhoBP3uLy/OrCo3iWvDTDCnvYt3J3V2mg3gXFcKdgH3X3i8EYPeW+Vn2Y0c0wc4Y5OB06TYVpVjqkcmrRyoAYcH8VGv78udBes1+pTCdHP74KZ46qn4D81mFEDc9ukR3G2/1QDnLT1R0z1NMi1ukw6j175Z/bkuUbf7Tj+jCuoOU9jh7itNX0JK3fLKl5SzOdt24QcbbeySqb5wDvCmTGwYHtXusGlobs2QsKmOsmwAekm7jQiwfg2wpUR8sQcg/biVRq+o3KLqcUPzPkDRXl6c2aLO9B9THC0xwl7A6UVPHd7/UM6Xpg9z0mhBwMmx3QngBHACOAH0jv8BaGjWDnzIexUAAAAASUVORK5CYII=";
 
 function buildInvoiceHTML(info) {
   const now = new Date();
-  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
   const receiptNo = info.receiptNo || "000000000";
   const taxAmount = Math.round(info.amount / 11);
   return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
   html,body{ margin:0; padding:0; }
   body{ font-family:'Hiragino Mincho ProN','Yu Mincho',serif; width:384px; margin:0; padding:0; box-sizing:border-box; color:#000; text-align:center; }
-  .no{ text-align:right; font-size:18px; margin:4px 4px 0; }
-  .ititle{ font-size:40px; font-weight:900; letter-spacing:14px; margin:6px 0 10px; }
-  .logo{ width:100%; height:auto; display:block; margin:6px 0 14px; }
-  .atena{ display:flex; align-items:flex-end; justify-content:center; gap:6px; margin:10px 6px 2px; }
-  .aline{ flex:1; border-bottom:2px solid #000; height:30px; }
-  .asama{ font-size:30px; }
-  .kingaku{ font-size:30px; font-weight:900; margin:14px 0 2px; }
-  .kline{ border-bottom:2px solid #000; margin:0 6px 6px; height:14px; }
-  .ryos{ font-size:18px; margin:6px 0; }
+  .no{ text-align:right; font-size:22px; margin:6px 4px 0; }
+  .ititle{ font-size:40px; font-weight:900; letter-spacing:14px; margin:8px 0 14px; }
+  .logo{ width:100%; height:auto; display:block; margin:6px 0 34px; }
+  .atena{ display:flex; align-items:baseline; justify-content:space-between; margin:14px 6px 2px; gap:6px; border-bottom:2px solid #000; padding-bottom:2px; }
+  .aspace{ flex:1; }
+  .asama{ font-size:32px; white-space:nowrap; }
+  .kingaku{ display:flex; align-items:flex-end; justify-content:space-between; margin:22px 6px 2px; gap:18px; }
+  .klabel{ font-size:34px; font-weight:900; white-space:nowrap; }
+  .kval{ flex:1; border-bottom:2px solid #000; font-size:34px; font-weight:900; text-align:center; padding-bottom:2px; }
+  .ryos{ font-size:18px; margin:8px 0 4px; }
   .tax{ font-size:18px; margin:4px 0 16px; }
-  .info{ text-align:left; font-size:19px; line-height:1.6; margin:14px 6px 4px; }
-  .inkan{ font-size:22px; margin:6px 0 10px; }
+  .dt{ font-size:30px; font-weight:bold; margin:10px 0 6px; }
+  .addr{ width:100%; height:auto; display:block; margin:6px 0 6px; }
+  .inkan{ text-align:right; font-size:24px; margin:6px 30px 12px; }
   </style></head><body>
     <div class="no">伝票番号 No.${receiptNo}</div>
     <div class="ititle">領\u3000収\u3000書</div>
     <img class="logo" src="${RECEIPT_LOGO}"/>
-    <div class="atena"><div class="aline"></div><div class="asama">様</div></div>
-    <div class="kingaku">金額　&#165;${info.amount.toLocaleString()}</div>
-    <div class="kline"></div>
+    <div class="atena"><div class="aspace"></div><div class="asama">様</div></div>
+    <div class="kingaku"><div class="klabel">金額</div><div class="kval">&#165;${info.amount.toLocaleString()}</div></div>
     <div class="ryos">但し　　　　として上記正に領収いたしました</div>
     <div class="tax">（うち、消費税　&#165;${taxAmount.toLocaleString()}）</div>
-    <div class="info">
-      ${dateStr}<br>
-      東京都港区新橋2丁目16-1-3階<br>
-      株式会社エー・ワイ・シー<br>
-      &#128222;\u200a03-3504-2200<br>
-      登録番号\u3000T1010401004300
-    </div>
+    <div class="dt">${dateStr}</div>
+    <img class="addr" src="${RECEIPT_ADDR}"/>
     <div class="inkan">印</div>
   </body></html>`;
 }
-const RECEIPT_ADDR = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXwAAACKAQAAAACBIMzXAAAF20lEQVR42u2YT2gc1xnAf29nrB2StXYSE1CorZ0eCuk/KkIOTqN6pyW3Bmpoj6WRXd8KRYQGVGqkJ8XBvhQpl1Aagxd6KT2FtpfgUI0s0zjUrdTEhPTgaITkeiluNGut49nVzPty2JV2V9pdRYH20Oqddt6b335/3/e9N0o40KhkOOA4BA6B/kAKVeoRUwmQsrxc0Z3vrS7rLhL+kS9RUxk4KW4AMN1a1h0SUludOZq5OKfOHvHhujqplubdaeUC3iric2GA9SYhIiKSSIjSX1iKeE5WHv5BbjL0jizJfJoUrhXjonn2nwt5ERGJ7G2RBaF+dfkbWwD6u89gHQfA0rcDYLE8ON5hg91SthQA1uV1t8041cWtqXIvLp84e8SPSvjq5jkNsLCjQGqSDmA0RgJ4pQTf591f2umpUtTunsT646W9bv35BsO1YNAH0BqgmMDjALXMQKdK1x2grvRHNo4e3bx89drYtjYbGnidl/eoBH/13MTS+NddkinCJmAC4Jucc3ZLUP73NH+pB1sh8KrynKbRX1zV4j63w+/YYG1GQKCo6pMRiF5uLjTfzIcdQHxK4O+aJ53gtyNckOdnKDWNpqBVRL0zlyifNszlNcCcl5TguHRmXbbidQDrgI/4pQTPjTQa47c5XPZE+sMfPGAIXF90QPm0Yj2ZARbs2rkv+ZUbPLPLhrT0xEvkKtMrkKqMW4bhmFoAwHEN6n22VWqkd5qYKUs23jAJWyLJ7JWbpihxQeZTaY67QbaR3jv7QbKysSVGbYkkKys3TVHiYjuwcbcBqMOG8n8HpPhsavHxS59RQh1UyYx1rodU+wHodKS1a5QNPqavDWP1GKgorzWV7QWsn7g+fdStfq2yvCMiIh1jYFcv2k54SR4WZVNmY1m6IhsiIkY2JZJdI2pTaRyQ1xx/4Uxr7n3w0L1tcMAK2ycCiCTorlI8XwweFREpXpEN0YxOylpyTGYXzXlUV5UWrjX+oSkiCbDXQyZGTC+VPL4ViVKTbX3qMSCX9HBr/KNhDPDAAZiSAMJBBGqWmG5A1bigajIztDP1ISh4r1ek0xgrypRzzUfbRwOXeKEDsNtdCrGd22kYWjxgXNweEtx6DpfqALD6mAM0C/h9r5dKtwbWnta1tly7owFeC3oBjl0KHA8qZwoSt9Z278lW8klxRfIFMzWC9B6Hxfi/ApT2BTrjkB6L/sNxSOKD2pB8Di+JvkENUuA+Xh2vV7aKiMRKJB5WEp5SUXFNgol8eD7fma32HoG1N39Hfuzbm2Ph8Rcfv7X29q1+KtnAgLqAa8gREA66Typ3Pxui7dbjNotrX8AGvATQ261upi+QSYC4hpSchqSIsG/Lahz736NOgvifJQ6moXec+RgD4tv7AVMAL6/mVx3QM4byfsCYBscO0ULuKIlexsv0d2sAUMQHmFTo/SS4YdA4nSve2eRf4jHZH3DunM4JhH9iCFg3/ojsE7gkNuY80VacACT6oR31y1YxWPGwknA0GxU3BVftydbdhRfM1JLU5ErSeK5JoT8Q9Cvdu/r05ytkI+qAQC5zQMC6cKDKd9iBDoEuQG1In3Cwa/ula2tv/Nq8kNXFGJFYbcUyP1uLZSq/aM4X84vdGkpSmHvD3bhrGYAbX3/eWj9beX1g6M/PPnjxqb+NdrvSvDKYNptH9iOycJojAaN5HvmYS91OlQPfCb8abYXpEQFO3vtx4Wo1k2Xu3cT2f/JBN6ON9Zsv5wbfaq9qZW0cXYdEut6yJschKWSl7cLUGMvd3fpvdXvp7U+eWmjcf8q+aX4Kqaal7sCQHHu6evkroxJ2ftEoE/aKdHrv1kuzSSNwXpBhDYDfL77ZC8iI89NfbF8OQDdFhL1ySfEIGqvVNdNf6UysJ8ewu30jQ43qwaH7l+wG4JZUvSWsuwSt7uQGJ5ovJegAfH52m3vXxn/YNfneSh69GlpSE5EVPTGRvZjGcT6/aCY6ko+2n3lTDC2Z7l/uD0vlIfA/DHwKrxTdcSd+9hAAAAAASUVORK5CYII=";
+const RECEIPT_ADDR = "data:image/png;base64,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";
 
 function buildReceiptHTML(info) {
   if (info.receipt === "領収書") return buildInvoiceHTML(info);
