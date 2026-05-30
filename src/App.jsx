@@ -279,19 +279,23 @@ export default function App() {
   );
 
   if (sent) return (
-    <div style={{ padding: 32, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", textAlign: "center" }}>
-      <div style={{ fontSize: 64 }}>✅</div>
-      <h2 style={{ color: "#c9952a", fontFamily: "serif" }}>送信しました</h2>
-      <p style={{ color: "#8a7050" }}>テーブル {selectedTable}・{people}名</p>
-      <p style={{ color: "#8a7050", fontSize: 13, marginTop: 4 }}>キッチンに送りました</p>
-      <button onClick={() => { setSent(false); setScreen("order"); setActiveCat("コーヒー"); }}
-        style={{ marginTop: 20, padding: "14px 32px", background: "#c9952a", border: "none", borderRadius: 10, color: "#0f0a05", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
-        追加注文
-      </button>
-      <br />
-      <button onClick={() => { setScreen("table"); setSelectedTable(null); setPeople(null); setSent(false); }}
-        style={{ marginTop: 10, padding: "12px 24px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
-        別テーブルへ
+    <div style={{ padding: 24, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ fontSize: 72, marginBottom: 8 }}>✅</div>
+      <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>キッチンに送りました</div>
+      <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 32 }}>テーブル {selectedTable}・{people}名</div>
+
+      <div style={{ background: "#1a120a", border: "1px solid #3d2c14", borderRadius: 14, padding: "20px 24px", marginBottom: 36, textAlign: "left", width: "100%", maxWidth: 360 }}>
+        <div style={{ color: "#c9952a", fontWeight: 700, fontSize: 15, marginBottom: 14 }}>📋 ウェイトレスへ</div>
+        <div style={{ color: "#f0e6d0", fontSize: 17, lineHeight: 2 }}>
+          <div>① テーブルカードを厨房カウンターに準備してください。</div>
+          <div>② 商品と一緒に、テーブルに持って行ってください。</div>
+          <div>③ テーブルにサーブしたら、未提供の注文確認から<strong style={{ color: "#c9952a" }}>「出した」</strong>ボタンを押してください。</div>
+        </div>
+      </div>
+
+      <button onClick={() => { setSent(false); setScreen("table"); setSelectedTable(null); setPeople(null); setActiveCat("コーヒー"); }}
+        style={{ width: "100%", maxWidth: 360, padding: "22px 0", background: "#c9952a", border: "none", borderRadius: 14, color: "#0f0a05", fontWeight: 900, fontSize: 24, cursor: "pointer" }}>
+        オーダー画面に戻る
       </button>
     </div>
   );
