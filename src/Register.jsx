@@ -67,7 +67,7 @@ function buildReceiptHTML(info) {
 <style>
   html,body{ margin:0; padding:0; }
   body{ font-family:'Hiragino Mincho ProN','Yu Mincho',serif; width:384px; margin:0; padding:0; box-sizing:border-box; color:#000; text-align:center; font-size:22px; }
-  .no{ text-align:right; font-size:15px; margin-bottom:4px; }
+  .no{ text-align:right; font-size:19px; margin-bottom:4px; }
   .inv-title{ font-size:38px; font-weight:900; letter-spacing:12px; margin-bottom:6px; }
   .logo{ width:100%; height:auto; display:block; margin:4px 0 8px; }
   .addr{ width:100%; height:auto; display:block; margin:4px 0 10px; }
