@@ -35,10 +35,51 @@ function getNextReceiptNo() {
 // =========================================================
 // PassPRNT 用レシートHTML生成（mPOP 約48mm印字 / mm基準）
 // =========================================================
-const RECEIPT_LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXwAAACKAQAAAACBIMzXAAAEs0lEQVR42u1YT2gcVRj/vTeTzBhDd4oeIghZbz2uF4kQ2EERPBSsN28G72IuQpGWPDSYggcRr9VEEC9eRDyKnTaB9paqBQXBTtJAIgh9odt0ts7Oz8PM7s5sJrvvHaKXfodlZnd/7/vzvu/3vu8JwkoOJSzlvwXQFpCFloCHp+7DL7aA85YAtmw1hLEJggNJuM6JoksaRNqyNClJ7AAJmrYbl9oCgtNIDXf46MvTTj5mlgAXmR1ArspT9kFE6Pl2GpKtrjIGUCDGG1lkDMigFFsiNgZ0sgg6xFfGgAfiAqTCDWVYotrjzS/2yMwzL9EmdgBxydCkR1cwAxfAu4aAYBkeAGA2NAOkgIsZAIjNk099B+DhshlgCxDaBXDmLbOweiQ/bZDkvlFYu0PWCMxMSgCE6AoRaiPW+MeDaPw23yBwYBilLjpptmBM95tcI/U+SW6Pd7oARClJTZJsGEVp3gEgAGCtZeSDBoD3AOADs1x6FgA3fACRmdOHJFMpJ/o88MHbQBx/9pLaY2jBSwo4kxmSgLsMrZt3cD/VZgB5qNDBWjT7tKEG0VoNAX9p1zXlpe3LePu81NcnHtWDFVfwE/hme9mcvdcjyKuxBd03M2gocwAXU3RfsTiBsotiNd2JLEzqPMomsli5were3730zPa6eYOV6C8/n25a+CCjT84eJNrCBxwBQWgO0OtnMWdzsLuZ2PzWzZ1YNdq4sIPni43uhQbJ56sH/hSSfulN1hCnV/70+xstAAAfjjfpYOaO3C390hNqfFinoY7GB2hHqBLgxl/e3T++L2YhWfNnIZpVDRfel68tFH1KSboiqDcpAMU5m41jcwZe83g3e+I+ZNeeOgp/8Pt2NGrTMKqsdfHHzU7cAg6D4pAcb1IPeP2xjQ+PgXemPo5qJoPkhPQWuLo3PNWzyemNyGR8GAJ8LEnJyZPvALCMc/jb3SifLpNq+sVvAoTlkHOEREZyCdOvjhbaXpXBIoTVZv2juGRIKCul2iBv1YwDzoiKrdIA1stH1fHzQ6+UO3tFJOoaluFENM8UHtMVMoMTYdjNVCQCowLgMYVH3SYJB6LaStdJno76NgCVQZ7gQ2Q9NIkRzEZnuNBJxShK61Hlb013bFhFyREqAJjzTwKMfJmUrZH9AtPFtqbhsUS9jTwpZTA8FBM0eJMk48V1wiMECRHBYYrp/F9K8NroPmwAATQHmhfg5tVa+BMOTXKoAbygMBvqYb15UcEH8nhHBuy8HLQA6YQlglv0jzGh7JOzLwgfekoBGIywTtQveEDJ4xF0gctKod/hS/RvOoISK+RR2mdjh42Md2OupGjE8Eg4JJkCQJtM89d+lOaKzQ2f6+WTlj+ajmnhiKxj86AmS5KRLGBAAL2mTGsIabrfzlc0zDNAGiKBA0RVJX7JSlkh31sKvwIaqnoR1KobLZuFcxEwO2pSWL7q6d93rTBp/+4w9UgSaJfCmscT7UpHligkoe/ia7+8aC6z+UdYMUkDUPDRDHLTVIkMg7riugf8jGAZWAKAlhgSfpy3mk7/vfBhvpjH7pEsbgYiZ/hM8npljhuVmkkon4K1ML5kTnzLS2b//7hkfgJ4AngCsJR/AWOrWladKr9+AAAAAElFTkSuQmCC";
+const RECEIPT_LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYAAAACMAQAAAABdCUPdAAAFkElEQVR42u2YT4gk5RmHn6+rdroWxp3y5Eh0pzA55JCFhngQstgVDyaCB485hcXTHhJcRNSLO98moLsQdI+Cwi4iePAiKCSCODWLwT0EXMH8OWklO2RHMFCzO5rq3pr6eaiq7qrqmunps1MwTHfV9/T793vf9ysjFrt6HAFHwA8EuD4fMPUNpGPZYhKuDRaTIOc7byEJ+YkFjc6SZDFgRLwYcHvROGzl3oKBy9PFAC9dNDXcYEEgWVSCtwBwGQC/c03UBTy34zdUs+xMDPK7gFP+s0wCvWMMeAUw8vae6wK8/rlund1x72Sn0at9Ur/lpi3AWbdXZwGd/VW8FE6sW1GxS/Z84AxLHRLeADO96YMFWN0F/AuPzALjHIhhe/pg09v03SI4HW69NLJ1d0eMgmA9w3Hh2hJph0pLQEJQMptmEvN07ZddkX65cK2dhijwASysXuPGLHDcAquEV1tBOMuNpVaK9bqybqg4rAJqbJfRr1ggi1QuCyvv+kQ8Vri4CSQAvvJR9SyuPlgeVkfyhRjI/Zd+fXGasRHA3gAvD2aBgDgA0mg8ebAWZUD1N5t8a2/hXeld+apUZbO8vR1CGs4C/7f8InSyO8HJumMDuArNMOBWtjk36G2HppbgKWAFUcNLSJK2JN3KXrgofSpJyh1J8bpSI+VG9atQadnCvXAJftYQfLEH41YblCQlQynLn/mxdEeSlPUlRdqlLyVOh4SVGJxw5Rs4VnQKD4hwWQV/ucutZ4Eo9ytd0gHwR1zOMGoVqxI4XfmxSJwkBLmAxSXosEGJNpSfk5SuSNKmpGxNeV/Kmk4qbWA5BD4H+n8BeBzYOoN5EXrtTlmC/Q2d6EvSLUm5JH1VPllvSqgAO/zy0RVJuqmDrwpIhh8zNJJ25gBVGJfDPGLPg/4h+0MGLuZDcO0copQUn/Tuf03ZmvLhwSqVWcY7T2+Ob+O8jYkPJ2Elin9+QdqRrhzKaA3WTob3wT1hnhxKQnZ+mOrNDSnK+4eyITvvjIr8uzc6lFtH3/I1Ywvxzu8OBdz+BzG1ivHvcA6wdZ3Hyt32OGCCeRI8XwMdMJBp0mJK4Kn4P6fI7YgIO7vYmF67kD1ozYkvQ1xrGE+7rDH5dIJs9mnoQ5Rk82egXtVzRn//rRumjXZ9QKSzW+nqE5+cvnlzCBgJhpKEkaRCLacR6Wz7OG7wh72fTHrBnDiYweV3N06x6pUGHXCVlc659MyfvuZY4u67MG9I6GUDztjqt+18L+1ub6yOZbtmvH3c+g6+M2/314FbrzP44tlKl3g+kAd334saykf71aPi/wfR0ijpV0BS67uFf1byFujw6Z/tpIT52Pqw6kj/s604PAmQ2Y9rKuzS/OI2JAzwLGoYu1dLDvk5rQ3EP//m/ouuU+Pl1lmnN53s71iAySxQ5uGLAHw0A4SY31vjJDw60ckCKCvHCL8FJHz2/rlyuwW1UIzzViwnKuW7e2SNjRACpCoVDtrA3fMPRB3nmhuE4LE0+aEK+GkW9Uw6u9+iQhtj2yqNb4fFl9ZwZMt5PLTNuoRnyG1pXDjdR3ltOmtKOPZw+NeOkrRbDcE/agPmv+sP4RJBjAXOFwXqMgwamky9lOTf1CdqE5Um7Hvw6/EUV2uF73TNY2nnSfGlGB961V5zyuAau9/R8vWWSxuDWDALmOeL23uFVpYT0wVJR2OXpFfXhZNipKi4XR7RZFmfmWYm1bB9CPcPek1hwW2/rgla6VJ/eryZLZNdoTpSB76DpJ0eDjA+4P3Scnc72Af4DTjX4+aR6xFgqd74ei37Bh3He1NfNfPKK6g50pY/bd3uwBUNlaEUl6cEiuEp7qszcKVbppV+heIo7XsHSFAkKSlvXyilrs1OxtPr7uzYltfmb3P0GvsIOAJ+2MD33tWtme4GEN8AAAAASUVORK5CYII=";
+
+function buildInvoiceHTML(info) {
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  const receiptNo = info.receiptNo || "000000000";
+  const taxAmount = Math.round(info.amount / 11);
+  return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
+  html,body{ margin:0; padding:0; }
+  body{ font-family:'Hiragino Mincho ProN','Yu Mincho',serif; width:384px; margin:0; padding:0; box-sizing:border-box; color:#000; text-align:center; }
+  .no{ text-align:right; font-size:18px; margin:4px 4px 0; }
+  .ititle{ font-size:40px; font-weight:900; letter-spacing:14px; margin:6px 0 10px; }
+  .logo{ width:100%; height:auto; display:block; margin:6px 0 14px; }
+  .atena{ display:flex; align-items:flex-end; justify-content:center; gap:6px; margin:10px 6px 2px; }
+  .aline{ flex:1; border-bottom:2px solid #000; height:30px; }
+  .asama{ font-size:30px; }
+  .kingaku{ font-size:30px; font-weight:900; margin:14px 0 2px; }
+  .kline{ border-bottom:2px solid #000; margin:0 6px 6px; height:14px; }
+  .ryos{ font-size:18px; margin:6px 0; }
+  .tax{ font-size:18px; margin:4px 0 16px; }
+  .info{ text-align:left; font-size:19px; line-height:1.6; margin:14px 6px 4px; }
+  .inkan{ font-size:22px; margin:6px 0 10px; }
+  </style></head><body>
+    <div class="no">伝票番号 No.${receiptNo}</div>
+    <div class="ititle">領\u3000収\u3000書</div>
+    <img class="logo" src="${RECEIPT_LOGO}"/>
+    <div class="atena"><div class="aline"></div><div class="asama">様</div></div>
+    <div class="kingaku">金額　&#165;${info.amount.toLocaleString()}</div>
+    <div class="kline"></div>
+    <div class="ryos">但し　　　　として上記正に領収いたしました</div>
+    <div class="tax">（うち、消費税　&#165;${taxAmount.toLocaleString()}）</div>
+    <div class="info">
+      ${dateStr}<br>
+      東京都港区新橋2丁目16-1-3階<br>
+      株式会社エー・ワイ・シー<br>
+      &#128222;\u200a03-3504-2200<br>
+      登録番号\u3000T1010401004300
+    </div>
+    <div class="inkan">印</div>
+  </body></html>`;
+}
 const RECEIPT_ADDR = "data:image/png;base64,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";
 
 function buildReceiptHTML(info) {
+  if (info.receipt === "領収書") return buildInvoiceHTML(info);
   const isInvoice = info.receipt === "領収書";
   const now = new Date();
   const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日\u3000${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
