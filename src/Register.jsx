@@ -91,9 +91,8 @@ function buildReceiptHTML(info) {
       ? `&#8722;${Math.abs(o.price * o.qty).toLocaleString()}`
       : (o.price * o.qty).toLocaleString();
     return `<tr>
-      <td style="text-align:left;padding:0.6mm 0">${o.item_name}</td>
-      <td style="text-align:center;padding:0.6mm 0;width:6mm">${o.qty}</td>
-      <td style="text-align:right;padding:0.6mm 0;width:14mm">${subtotal}</td>
+      <td style="text-align:left;padding:0.6mm 0;width:70%">${o.item_name}&nbsp;&nbsp;&#215;${o.qty}</td>
+      <td style="text-align:right;padding:0.6mm 0;width:30%">${subtotal}</td>
     </tr>`;
   }).join("");
 
@@ -763,6 +762,7 @@ export default function Register() {
   const [lastCheckout, setLastCheckout] = useState(null);
   const [cashCheckLogs, setCashCheckLogs] = useState([]);
   const [cashChecking, setCashChecking] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
   const [cashCheckResult, setCashCheckResult] = useState(null); // "same" | "short" | "over"
   const [cashCheckDiff, setCashCheckDiff] = useState("");
   const [previewHtml, setPreviewHtml] = useState(null);
@@ -862,6 +862,8 @@ export default function Register() {
   const canTobaccoCheckout = tobaccoReceiptType && tobaccoReceived && tobaccoChange !== null && tobaccoChange >= 0;
 
   const checkout = async () => {
+    if (checkingOut) return; // 二重送信防止
+    setCheckingOut(true);
     const t = selected;
     const amount = tableTotal(t);
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
@@ -890,7 +892,7 @@ export default function Register() {
     setHistory((prev) => [record, ...prev]);
     setLastCheckout(record);
     setCheckoutInfo({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null, items: tableOrderItems });
-    setSelected(null); setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); setCheckoutDone(true);
+    setSelected(null); setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); setCheckoutDone(true); setCheckingOut(false);
 
     // PassPRNT 自動印刷（レシート or 領収書 のときだけ）
     if (receiptType !== "なし") {
@@ -924,8 +926,8 @@ export default function Register() {
     const existing = JSON.parse(localStorage.getItem(key) || "[]");
     existing.push(timeStr);
     localStorage.setItem(key, JSON.stringify(existing));
-    // mPOP ドロアオープン
-    const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;width:1px;height:1px;"></body></html>`;
+    // mPOP ドロアオープン（最小レシートでPassPRNTを動かす）
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:2px;width:384px;font-size:1px;color:white;">.</body></html>`;
     const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
     window.location.href = url;
   };
@@ -1297,9 +1299,9 @@ export default function Register() {
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); }}
                 style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>戻る</button>
-              <button onClick={checkout} disabled={!canCheckout}
+              <button onClick={checkout} disabled={!canCheckout || checkingOut}
                 style={{ flex: 2, padding: 14, background: canCheckout ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: canCheckout ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: canCheckout ? "pointer" : "not-allowed" }}>
-                ✅ 会計完了
+                {checkingOut ? "処理中…" : "✅ 会計完了"}
               </button>
             </div>
           </div>
