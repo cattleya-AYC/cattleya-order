@@ -604,6 +604,7 @@ export default function Register() {
   const [cashCheckLogs, setCashCheckLogs] = useState([]);
   const [cashChecking, setCashChecking] = useState(false);
   const [previewHtml, setPreviewHtml] = useState(null);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [cashCheckStaff, setCashCheckStaff] = useState(null);
   const [cashCheckOther, setCashCheckOther] = useState("");
   const [showOtherInput, setShowOtherInput] = useState(false);
@@ -954,6 +955,22 @@ export default function Register() {
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#0d0905", color: "#f0e6d0", fontFamily: "'Noto Sans JP', sans-serif" }}>
       <div style={{ background: "#333", color: "#fff", padding: "4px 12px", fontSize: 11 }}>{debugMsg}</div>
 
+      {showAdmin && (
+        <div onClick={() => setShowAdmin(false)} style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 280, padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#1a120a", border: "1px solid #3d2c14", borderRadius: 14, padding: 20, width: 300, maxWidth: "90%" }}>
+            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, textAlign: "center", marginBottom: 16 }}>⚙️ 管理メニュー</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button onClick={() => { setShowAdmin(false); setMode("daily"); }} style={{ padding: "14px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 15, cursor: "pointer" }}>📊 日計</button>
+              <button onClick={() => { setShowAdmin(false); setMode("monthly"); }} style={{ padding: "14px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 15, cursor: "pointer" }}>📅 月次</button>
+              <button onClick={() => { setShowAdmin(false); setMode("plu"); }} style={{ padding: "14px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 15, cursor: "pointer" }}>📋 PLU集計</button>
+              <button onClick={() => { setShowAdmin(false); showPreview("レシート"); }} style={{ padding: "14px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 15, cursor: "pointer" }}>🧾 レシート見本</button>
+              <button onClick={() => { setShowAdmin(false); showPreview("領収書"); }} style={{ padding: "14px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 15, cursor: "pointer" }}>🧾 領収書見本</button>
+            </div>
+            <button onClick={() => setShowAdmin(false)} style={{ marginTop: 16, width: "100%", padding: "12px 0", background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 14, cursor: "pointer" }}>閉じる</button>
+          </div>
+        </div>
+      )}
+
       {previewHtml && (
         <div onClick={() => setPreviewHtml(null)} style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 16 }}>
           <div style={{ color: "#c9952a", fontFamily: "serif", marginBottom: 8, fontSize: 14 }}>レシートプレビュー（実寸48mm幅）</div>
@@ -1097,12 +1114,8 @@ export default function Register() {
           </div>
           <div style={{ padding: "6px 8px", borderBottom: "1px solid #3d2c14", display: "flex", flexDirection: "column", gap: 4 }}>
             <button onClick={() => setMode("tobacco")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>🚬 タバコ販売</button>
-            <button onClick={() => setMode("daily")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>📊 日計</button>
-            <button onClick={() => setMode("monthly")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>📅 月次</button>
-            <button onClick={() => setMode("plu")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>📋 PLU</button>
             <button onClick={() => setCashChecking(true)} style={{ padding: "6px 0", background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 6, color: "#4aaa5a", fontSize: 10, cursor: "pointer" }}>💰 レジ確認</button>
-            <button onClick={() => showPreview("レシート")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>🧾 レシート見本</button>
-            <button onClick={() => showPreview("領収書")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>🧾 領収書見本</button>
+            <button onClick={() => setShowAdmin(true)} style={{ padding: "6px 0", background: "#10182a", border: "1px solid #2a3a6a", borderRadius: 6, color: "#5a8aca", fontSize: 10, cursor: "pointer" }}>⚙️ 管理メニュー</button>
           </div>
           <div style={{ flex: 1, overflow: "auto", padding: "6px 8px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 4 }}>
