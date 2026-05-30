@@ -14,7 +14,7 @@ function speak(text) {
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = "ja-JP";
     utter.rate = 0.85;
-    utter.pitch = 1.6;   // 高めで可愛い声
+    utter.pitch = 1.1;
     utter.volume = 1.0;
     // iOS の Kyoko（日本語女性）を優先
     const voices = synth.getVoices();
@@ -40,7 +40,7 @@ function timeAgo(iso) {
 export default function Kitchen() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [soundOn, setSoundOn] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
   const [, setTick] = useState(0);
   const prevIds = useRef(new Set());
 
