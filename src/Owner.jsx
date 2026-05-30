@@ -88,6 +88,8 @@ export default function Owner() {
   const [items, setItems] = useState([]);
   const [prevTotal, setPrevTotal] = useState(0);
   const [yoyTotal, setYoyTotal] = useState(0);
+  const [view, setView] = useState("report"); // report | history
+  const [historyDay, setHistoryDay] = useState("all");
 
   // 手入力コスト（端末に月ごと保存）
   const [foodCost, setFoodCost] = useState("");
@@ -259,6 +261,10 @@ export default function Owner() {
         <span className="mincho" style={{ color: C.gold, fontSize: 16, fontWeight: 700 }}>経営レポート</span>
         <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}
           style={{ padding: "8px 10px", background: C.ink, border: `1px solid ${C.line}`, borderRadius: 8, color: C.cream, fontSize: 14 }} />
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={() => setView("report")} style={{ padding: "8px 14px", background: view === "report" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "report" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>月次レポート</button>
+          <button onClick={() => setView("history")} style={{ padding: "8px 14px", background: view === "history" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "history" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>取引履歴</button>
+        </div>
         <button onClick={() => window.print()} disabled={loading}
           style={{ marginLeft: "auto", padding: "8px 16px", background: C.gold, border: "none", borderRadius: 8, color: C.ink, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
           🖨 印刷 / PDF保存
@@ -270,13 +276,15 @@ export default function Owner() {
         <div style={{ textAlign: "center", marginBottom: 8 }}>
           <div className="mincho gold" style={{ color: C.gold, letterSpacing: 6, fontSize: 12 }}>LOUNGE CATTLEYA</div>
           <div className="mincho val" style={{ fontSize: 28, fontWeight: 700, color: C.cream, letterSpacing: 2 }}>
-            {yy}年 {Number(mm)}月　経営月次レポート
+            {yy}年 {Number(mm)}月　{view === "history" ? "取引履歴" : "経営月次レポート"}
           </div>
           <div className="lbl" style={{ color: C.sub, fontSize: 11, marginTop: 4 }}>― 経営者専用 / Confidential ―</div>
         </div>
 
         {loading ? (
           <div style={{ textAlign: "center", color: C.sub, padding: 60 }}>読み込み中…</div>
+        ) : view === "history" ? (
+          <HistoryView sales={sales} items={items} historyDay={historyDay} setHistoryDay={setHistoryDay} C={C} yen={yen} />
         ) : (
           <>
             {/* サマリー大枠 */}
@@ -462,4 +470,94 @@ function Stat({ label, value, note, highlight, valueColor }) {
 
 function Empty() {
   return <div className="lbl" style={{ color: C.sub, fontSize: 13, textAlign: "center", padding: 12 }}>この月のデータはありません</div>;
+}
+
+function HistoryView({ sales, items, historyDay, setHistoryDay, C, yen }) {
+  // 売上を新しい順に並べる
+  const sorted = [...sales].sort((a, b) => {
+    const ta = a.sale_time || a.sale_date || "";
+    const tb = b.sale_time || b.sale_date || "";
+    return tb.localeCompare(ta);
+  });
+
+  // 日付リスト（フィルタ用）
+  const days = Array.from(new Set(sales.map(s => (s.sale_date || (s.sale_time || "").slice(0, 10))).filter(Boolean))).sort().reverse();
+
+  const filtered = historyDay === "all"
+    ? sorted
+    : sorted.filter(s => (s.sale_date || (s.sale_time || "").slice(0, 10)) === historyDay);
+
+  // 各伝票の明細をテーブル/時刻で対応づけ（order_items に sale_time があれば近いものを表示）
+  const itemsForSale = (s) => {
+    const sDate = s.sale_date || (s.sale_time || "").slice(0, 10);
+    return items.filter(it => {
+      const itDate = it.sale_date || (it.sale_time || "").slice(0, 10);
+      return itDate === sDate && String(it.table_no) === String(s.table_no);
+    });
+  };
+
+  const fmtTime = (s) => {
+    const t = s.sale_time || "";
+    if (t.length >= 16) {
+      const d = new Date(t);
+      if (!isNaN(d)) return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    }
+    return s.sale_date || "—";
+  };
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      {/* 日付フィルタ */}
+      <div className="no-print" style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+        <button onClick={() => setHistoryDay("all")} style={{ padding: "6px 12px", background: historyDay === "all" ? C.gold : "transparent", border: `1px solid ${C.line}`, borderRadius: 8, color: historyDay === "all" ? C.ink : C.cream, fontSize: 12, cursor: "pointer" }}>全て</button>
+        {days.map(d => (
+          <button key={d} onClick={() => setHistoryDay(d)} style={{ padding: "6px 12px", background: historyDay === d ? C.gold : "transparent", border: `1px solid ${C.line}`, borderRadius: 8, color: historyDay === d ? C.ink : C.cream, fontSize: 12, cursor: "pointer" }}>{Number(d.split("-")[1])}/{Number(d.split("-")[2])}</button>
+        ))}
+      </div>
+
+      <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 8 }}>
+        {filtered.length} 件の取引{historyDay !== "all" ? `（${Number(historyDay.split("-")[1])}月${Number(historyDay.split("-")[2])}日）` : ""}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="lbl" style={{ color: C.sub, fontSize: 13, textAlign: "center", padding: 30 }}>取引データがありません</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {filtered.map((s, i) => {
+            const its = itemsForSale(s);
+            return (
+              <div key={s.id || i} className="card" style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: "12px 14px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                  <div>
+                    <span className="val" style={{ color: C.cream, fontWeight: 700, fontSize: 14 }}>テーブル {s.table_no}</span>
+                    <span className="lbl" style={{ color: C.sub, fontSize: 11, marginLeft: 10 }}>{fmtTime(s)}</span>
+                  </div>
+                  <span className="gold" style={{ color: C.gold, fontWeight: 700, fontSize: 18 }}>{yen(s.amount)}</span>
+                </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: its.length ? 8 : 0 }}>
+                  <span className="lbl" style={{ color: C.sub, fontSize: 11 }}>支払: {s.pay_method || "—"}</span>
+                  <span className="lbl" style={{ color: C.sub, fontSize: 11 }}>{s.receipt_type ? `${s.receipt_type}` : ""}</span>
+                  {s.people_count ? <span className="lbl" style={{ color: C.sub, fontSize: 11 }}>{s.people_count}名</span> : null}
+                </div>
+                {its.length > 0 && (
+                  <div style={{ borderTop: `1px solid ${C.line}55`, paddingTop: 6 }}>
+                    {its.map((it, j) => (
+                      <div key={j} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "1px 0" }}>
+                        <span className="lbl" style={{ color: C.sub }}>{it.item_name} ×{it.qty}</span>
+                        <span className="lbl" style={{ color: C.sub }}>{yen((it.price || 0) * (it.qty || 1))}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="lbl" style={{ color: C.sub, fontSize: 10, textAlign: "center", marginTop: 24 }}>
+        Lounge Cattleya ／ 取引履歴 ／ 出力日 {new Date().toLocaleString("ja-JP")}
+      </div>
+    </div>
+  );
 }
