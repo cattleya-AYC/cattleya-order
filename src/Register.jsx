@@ -19,6 +19,25 @@ const TOBACCO = [
 const STAFF = ["佐々木店長", "宮川", "末永", "井淵"];
 
 // =========================================================
+// 音声読み上げ
+// =========================================================
+function speakAmount(amount) {
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    synth.cancel();
+    const utter = new SpeechSynthesisUtterance(
+      `ありがとうございます。${amount.toLocaleString()}円になります。`
+    );
+    utter.lang = "ja-JP";
+    utter.rate = 0.9;
+    utter.pitch = 1.1;
+    utter.volume = 1.0;
+    synth.speak(utter);
+  } catch (e) {}
+}
+
+// =========================================================
 // 通し番号
 // =========================================================
 function getNextReceiptNo() {
@@ -893,6 +912,7 @@ export default function Register() {
     setLastCheckout(record);
     setCheckoutInfo({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null, items: tableOrderItems });
     setSelected(null); setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); setCheckoutDone(true); setCheckingOut(false);
+    speakAmount(amount);
 
     // PassPRNT 自動印刷（レシート or 領収書 のときだけ）
     if (receiptType !== "なし") {
