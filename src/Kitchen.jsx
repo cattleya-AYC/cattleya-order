@@ -67,7 +67,7 @@ export default function Kitchen() {
             return acc;
           }, {})
         ).map(([name, qty]) => `${name} ${jpCount(qty)}`).join("、");
-        const msg = `テーブル${table}、${itemText}、ご注文が入りました`;
+        const msg = `ご注文が入りました。${itemText}、テーブル${table}番です`;
         setTimeout(() => speak(msg), i * 3000);
       });
     }
