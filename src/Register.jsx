@@ -969,18 +969,19 @@ export default function Register() {
     if (receiptType !== "なし") {
       const receiptNo = getNextReceiptNo();
       const html = buildReceiptHTML({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null, items: tableOrderItems, receiptNo });
-      const passprntUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
-      // 1000円以上はAクーポンを連続印刷（6月以降発行）
+      // 1000円以上は レシート＋クーポンを1つのHTMLにまとめて1回で印刷
       const now2 = new Date();
       const issuePeriod = now2 >= new Date(`${now2.getFullYear()}-06-01`);
+      let printHtml = html;
       if (amount >= 1000 && issuePeriod) {
-        const couponHtml = buildCouponHTML();
-        const couponUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(couponHtml);
-        setTimeout(() => { window.location.href = passprntUrl; }, 1200);
-        setTimeout(() => { window.location.href = couponUrl; }, 4000);
-      } else {
-        setTimeout(() => { window.location.href = passprntUrl; }, 1200);
+        // クーポンを区切り線のあとに結合（1回のPassPRNTで連続印刷）
+        const couponBody = buildCouponHTML().replace(/^[\s\S]*?<body[^>]*>/, "").replace(/<\/body>[\s\S]*$/, "");
+        printHtml = html.replace("</body></html>", `<div style="margin-top:8px;border-top:1px dashed #000;padding-top:6px">${couponBody}</div></body></html>`);
       }
+      // ペイキャスはドロアを開けない（cashdrawer=false）
+      const drawerParam = payMethod === "ペイキャス" ? "&cashdrawer=false" : "";
+      const passprntUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + drawerParam + "&html=" + encodeURIComponent(printHtml);
+      setTimeout(() => { window.location.href = passprntUrl; }, 1200);
     }
   };
 
@@ -1251,7 +1252,7 @@ export default function Register() {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#0d0905", color: "#f0e6d0", fontFamily: "'Noto Sans JP', sans-serif" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#0d0905", color: "#f0e6d0", fontFamily: "'Noto Sans JP', sans-serif" }}>
       <div style={{ background: "#333", color: "#fff", padding: "4px 12px", fontSize: 11 }}>{debugMsg}</div>
 
       {showAdmin && (
@@ -1471,7 +1472,7 @@ export default function Register() {
         </div>
       )}
 
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      <div style={{ display: "flex", flex: 1, overflow: "auto", minHeight: 0 }}>
         <div style={{ width: 180, background: "#181008", borderRight: "1px solid #3d2c14", display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "12px 10px", borderBottom: "1px solid #3d2c14" }}>
             <div style={{ fontFamily: "serif", fontSize: 12, color: "#c9952a", fontWeight: 700 }}>Lounge Cattleya</div>
