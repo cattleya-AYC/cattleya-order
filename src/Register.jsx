@@ -918,7 +918,8 @@ export default function Register() {
     setCheckingOut(true);
     const t = selected;
     const couponDisc = couponApplied ? couponDiscount : 0;
-    const amount = tableTotal(t) - couponDisc;
+    const setDisc = setCount * 150;
+    const amount = tableTotal(t) - couponDisc - setDisc;
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
     const nowMs = Date.now();
     if (lastCheckout && lastCheckout.table === t && lastCheckout.amount === amount && (nowMs - lastCheckout.timestamp) < 120000) {
@@ -927,6 +928,15 @@ export default function Register() {
     const chg = payMethod === "現金" ? change : null;
     const people = tablePeople(t);
 
+    // setCount 分の値引きをSupabaseに反映してから会計
+    const existingDiscounts = tableOrders(t).filter(o => o.price < 0);
+    for (const d of existingDiscounts) {
+      await supabase.from("orders").delete().eq("id", d.id);
+    }
+    for (let i = 0; i < setCount; i++) {
+      await supabase.from("orders").insert({ table_no: String(t), item_name: "セット値引き", price: -150, qty: 1, status: "pending" });
+    }
+    await fetchOrders();
     const tableOrderItems = tableOrders(t).filter(o => (o.status === "pending" || o.status === "served") && !o.item_name.startsWith("【人数"));
     for (const item of tableOrderItems) {
       await supabase.from("order_items").insert({
@@ -973,9 +983,7 @@ export default function Register() {
         const couponBody = buildCouponHTML().replace(/^[\s\S]*?<body[^>]*>/, "").replace(/<\/body>[\s\S]*$/, "");
         printHtml = html.replace("</body></html>", `<div style="margin-top:8px;border-top:3px dashed #000;padding-top:8px;margin-top:10px">${couponBody}</div></body></html>`);
       }
-      // ペイキャスはドロアを開けない（cashdrawer=false）
-      const drawerParam = payMethod === "ペイキャス" ? "&cashdrawer=false" : "";
-      const passprntUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + drawerParam + "&html=" + encodeURIComponent(printHtml);
+      const passprntUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(printHtml);
       setTimeout(() => { window.location.href = passprntUrl; }, 1200);
     }
   };
@@ -1044,6 +1052,33 @@ export default function Register() {
     setCouponType(null);
     setCouponNo("");
   };
+
+  // フード・スイーツ品目リスト
+  const FOOD_SWEET_ITEMS = [
+    "トースト", "ピザトースト", "ミックスサンド", "ハムサンド", "野菜サンド",
+    "玉子サンド", "トーストサンド",
+    "ミルクレープ", "ガトーショコラ", "フォンダンショコラ", "チーズケーキ",
+    "紅茶のシフォン", "栗のモンブラン", "バニラアイスクリーム", "コーヒーゼリー"
+  ];
+  const isFood = (name) => FOOD_SWEET_ITEMS.some(f => name.includes(f));
+
+  // セット数state（会計モーダル用）
+  const [setCount, setSetCount] = useState(0);
+
+  // 会計モーダルを開いたとき、人数 or 0 を初期値にセット
+  useEffect(() => {
+    if (!confirming || !selected) return;
+    const orders = tableOrders(selected).filter(o => !o.item_name.startsWith("【人数"));
+    const hasFood = orders.some(o => isFood(o.item_name));
+    // フード・スイーツがあれば人数をデフォルトに、なければ0
+    const initCount = hasFood ? (selectedPeople || 0) : 0;
+    setSetCount(initCount);
+    // 既存の値引き行を一旦削除してsetCountで管理
+    const discountIds = orders.filter(o => o.price < 0).map(o => o.id);
+    if (discountIds.length > 0) {
+      supabase.from("orders").delete().in("id", discountIds).then(() => fetchOrders());
+    }
+  }, [confirming]);
 
   const addDiscount = () => {
     supabase.from("orders").insert({ table_no: String(selected), item_name: "セット値引き", price: -150, qty: 1, status: "pending" }).then(() => fetchOrders());
@@ -1413,10 +1448,21 @@ export default function Register() {
               <span style={{ color: "#8a7050" }}>お会計合計</span>
               <span style={{ fontFamily: "serif", fontSize: 28, fontWeight: 800, color: "#c9952a" }}>¥{selectedTotal.toLocaleString()}</span>
             </div>
-            <button onClick={addDiscount}
-              style={{ width: "100%", padding: 10, background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 8, color: "#4aaa5a", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 8 }}>
-              セット値引き -150円 を追加
-            </button>
+            <div style={{ background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 10, padding: "10px 14px", marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#4aaa5a", fontWeight: 700, fontSize: 14 }}>🍽 セット割引</span>
+                <span style={{ color: setCount > 0 ? "#4aaa5a" : "#8a7050", fontWeight: 700, fontSize: 14 }}>
+                  {setCount > 0 ? `-¥${(setCount * 150).toLocaleString()}` : "なし"}
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8 }}>
+                <button onClick={() => setSetCount(Math.max(0, setCount - 1))}
+                  style={{ width: 44, height: 44, background: "#0d1a0a", border: "1px solid #2a6a3a", borderRadius: 8, color: "#4aaa5a", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>－</button>
+                <span style={{ flex: 1, textAlign: "center", color: "#f0e6d0", fontSize: 22, fontWeight: 900 }}>{setCount}セット</span>
+                <button onClick={() => setSetCount(setCount + 1)}
+                  style={{ width: 44, height: 44, background: "#0d1a0a", border: "1px solid #2a6a3a", borderRadius: 8, color: "#4aaa5a", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>＋</button>
+              </div>
+            </div>
             {!couponApplied ? (
               isCouponPeriod() && selectedTotal >= 1000 ? (
                 <button onClick={() => setShowCoupon(true)}
