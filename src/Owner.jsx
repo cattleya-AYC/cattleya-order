@@ -88,8 +88,9 @@ export default function Owner() {
   const [items, setItems] = useState([]);
   const [prevTotal, setPrevTotal] = useState(0);
   const [yoyTotal, setYoyTotal] = useState(0);
-  const [view, setView] = useState("report"); // report | history
+  const [view, setView] = useState("report"); // report | history | coupon
   const [historyDay, setHistoryDay] = useState("all");
+  const [coupons, setCoupons] = useState([]);
 
   // 手入力コスト（端末に月ごと保存）
   const [foodCost, setFoodCost] = useState("");
@@ -124,10 +125,11 @@ export default function Owner() {
       setLoading(true);
       const { start, end } = monthRange(selectedMonth);
       try {
-        const [{ data: s }, { data: t }, { data: it }, pt, yt] = await Promise.all([
+        const [{ data: s }, { data: t }, { data: it }, { data: cp }, pt, yt] = await Promise.all([
           supabase.from("sales").select("*").gte("sale_date", start).lte("sale_date", end).order("sale_date", { ascending: true }),
           supabase.from("tobacco_sales").select("*").gte("sale_date", start).lte("sale_date", end),
           supabase.from("order_items").select("*").gte("sale_date", start).lte("sale_date", end),
+          supabase.from("coupons").select("*").gte("used_at", start).lte("used_at", end + "T23:59:59").order("used_at", { ascending: false }),
           fetchSalesTotal(prevMonth(selectedMonth)),
           fetchSalesTotal(lastYear(selectedMonth)),
         ]);
@@ -135,6 +137,7 @@ export default function Owner() {
         setSales(s || []);
         setTobacco(t || []);
         setItems(it || []);
+        setCoupons(cp || []);
         setPrevTotal(pt || 0);
         setYoyTotal(yt || 0);
       } catch (e) {
@@ -264,6 +267,7 @@ export default function Owner() {
         <div style={{ display: "flex", gap: 6 }}>
           <button onClick={() => setView("report")} style={{ padding: "8px 14px", background: view === "report" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "report" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>月次レポート</button>
           <button onClick={() => setView("history")} style={{ padding: "8px 14px", background: view === "history" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "history" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>取引履歴</button>
+          <button onClick={() => setView("coupon")} style={{ padding: "8px 14px", background: view === "coupon" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "coupon" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>🎟 クーポン</button>
         </div>
         <button onClick={() => window.print()} disabled={loading}
           style={{ marginLeft: "auto", padding: "8px 16px", background: C.gold, border: "none", borderRadius: 8, color: C.ink, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
@@ -276,13 +280,15 @@ export default function Owner() {
         <div style={{ textAlign: "center", marginBottom: 8 }}>
           <div className="mincho gold" style={{ color: C.gold, letterSpacing: 6, fontSize: 12 }}>LOUNGE CATTLEYA</div>
           <div className="mincho val" style={{ fontSize: 28, fontWeight: 700, color: C.cream, letterSpacing: 2 }}>
-            {yy}年 {Number(mm)}月　{view === "history" ? "取引履歴" : "経営月次レポート"}
+            {yy}年 {Number(mm)}月　{view === "history" ? "取引履歴" : view === "coupon" ? "クーポン利用履歴" : "経営月次レポート"}
           </div>
           <div className="lbl" style={{ color: C.sub, fontSize: 11, marginTop: 4 }}>― 経営者専用 / Confidential ―</div>
         </div>
 
         {loading ? (
           <div style={{ textAlign: "center", color: C.sub, padding: 60 }}>読み込み中…</div>
+        ) : view === "coupon" ? (
+          <CouponView coupons={coupons} selectedMonth={selectedMonth} C={C} yen={yen} />
         ) : view === "history" ? (
           <HistoryView sales={sales} items={items} historyDay={historyDay} setHistoryDay={setHistoryDay} C={C} yen={yen} />
         ) : (
@@ -557,6 +563,76 @@ function HistoryView({ sales, items, historyDay, setHistoryDay, C, yen }) {
 
       <div className="lbl" style={{ color: C.sub, fontSize: 10, textAlign: "center", marginTop: 24 }}>
         Lounge Cattleya ／ 取引履歴 ／ 出力日 {new Date().toLocaleString("ja-JP")}
+      </div>
+    </div>
+  );
+}
+
+function CouponView({ coupons, selectedMonth, C, yen }) {
+  const [yy, mm] = selectedMonth.split("-");
+  const isJuly = Number(mm) === 7;
+  const totalDiscount = coupons.reduce((a, c) => a + (c.discount_amount || 0), 0);
+  const totalBefore = coupons.reduce((a, c) => a + (c.amount_before || 0), 0);
+
+  const fmtDate = (iso) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  };
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      {/* 集計サマリー */}
+      <div className="card" style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
+        <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 10 }}>{yy}年{Number(mm)}月　クーポン利用集計</div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <span className="lbl" style={{ color: C.sub }}>利用件数</span>
+          <span className="val" style={{ color: C.cream, fontWeight: 700 }}>{coupons.length}件</span>
+        </div>
+        {isJuly && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <span className="lbl" style={{ color: C.sub }}>割引前売上合計</span>
+              <span className="val" style={{ color: C.cream }}>{yen(totalBefore)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, borderTop: `1px solid ${C.line}`, paddingTop: 8 }}>
+              <span className="lbl" style={{ color: C.sub }}>クーポン値引き合計</span>
+              <span className="val" style={{ color: "#5a8aca", fontWeight: 700, fontSize: 18 }}>-{yen(totalDiscount)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span className="lbl" style={{ color: C.sub }}>値引き後売上合計</span>
+              <span className="val" style={{ color: C.gold, fontWeight: 700, fontSize: 20 }}>{yen(totalBefore - totalDiscount)}</span>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* 一覧 */}
+      {coupons.length === 0 ? (
+        <div className="lbl" style={{ color: C.sub, textAlign: "center", padding: 40 }}>この月のクーポン利用はありません</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {coupons.map((c, i) => (
+            <div key={i} className="card" style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div className="val" style={{ color: C.cream, fontWeight: 700, fontSize: 15 }}>No. {c.coupon_no}</div>
+                <div className="lbl" style={{ color: C.sub, fontSize: 12, marginTop: 2 }}>{fmtDate(c.used_at)}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                {isJuly && c.discount_amount ? (
+                  <>
+                    <div className="lbl" style={{ color: C.sub, fontSize: 11 }}>割引前 {yen(c.amount_before)}</div>
+                    <div style={{ color: "#5a8aca", fontWeight: 700 }}>-{yen(c.discount_amount)}</div>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="lbl" style={{ color: C.sub, fontSize: 10, textAlign: "center", marginTop: 24 }}>
+        {!isJuly && "※ 7月はクーポン値引き集計が表示されます"}
       </div>
     </div>
   );
