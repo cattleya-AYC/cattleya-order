@@ -1105,7 +1105,14 @@ export default function Register() {
     const systemCash = todayCashFromDB + 50000;
     const diff = cashCheckResult === "same" ? 0 : parseInt(cashCheckDiff || "0");
     const diffSigned = cashCheckResult === "short" ? -diff : cashCheckResult === "over" ? diff : 0;
-    setCashCheckLogs((prev) => [{ time: now, staff: staffName, systemCash, salesCash: todayCashFromDB, result: cashCheckResult, diff: diffSigned }, ...prev]);
+    const newLog = { time: now, staff: staffName, systemCash, salesCash: todayCashFromDB, result: cashCheckResult, diff: diffSigned };
+    setCashCheckLogs((prev) => [newLog, ...prev]);
+    // 月別でlocalStorageにも保存（経営レポート用）
+    const nowDate = new Date();
+    const mKey = `cattleya_cashcheck_${nowDate.getFullYear()}-${String(nowDate.getMonth()+1).padStart(2,"0")}`;
+    const existing = JSON.parse(localStorage.getItem(mKey) || "[]");
+    existing.unshift(newLog);
+    localStorage.setItem(mKey, JSON.stringify(existing));
     setCashChecking(false); setCashCheckStaff(null); setCashCheckOther(""); setShowOtherInput(false);
     setCashCheckResult(null); setCashCheckDiff("");
   };
