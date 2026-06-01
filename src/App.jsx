@@ -64,7 +64,6 @@ const MENU = {
     { id: 57, name: "トーストサンド（ミックス）", price: 970 },
     { id: 58, name: "トーストサンド（ハム）", price: 970 },
     { id: 59, name: "トーストサンド（たまご）", price: 970 },
-    { id: 60, name: "セット割（-150円）", price: -150 },
   ],
   スイーツ: [
     { id: 61, name: "ミルクレープ", price: 550 },
@@ -75,7 +74,6 @@ const MENU = {
     { id: 66, name: "栗のモンブラン", price: 630 },
     { id: 67, name: "バニラアイスクリーム", price: 770 },
     { id: 68, name: "コーヒーゼリー", price: 770 },
-    { id: 69, name: "セット割（-150円）", price: -150 },
   ],
     モーニング: [
     { id: 71, name: "モーニング（コーヒーHOT）", price: 890 },
@@ -192,15 +190,10 @@ export default function App() {
       </div>
 
       {/* 未提供ボタン */}
-      {(() => {
-        const hasUnserved = unservedOrders.length > 0;
-        return (
-          <button onClick={() => { fetchUnserved(); setUnservedTable(null); setShowUnserved(true); }}
-            style={{ marginTop: 16, width: "100%", padding: "28px 0", background: hasUnserved ? "#2a0a0a" : "#0a1a10", border: `2px solid ${hasUnserved ? "#c95a5a" : "#2a6a3a"}`, borderRadius: 10, color: hasUnserved ? "#ff6b6b" : "#4aaa5a", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
-            {hasUnserved ? `🔴 未提供あり（${unservedOrders.length}品）` : "📋 未提供商品を確認"}
-          </button>
-        );
-      })()}
+      <button onClick={() => { fetchUnserved(); setUnservedTable(null); setShowUnserved(true); }}
+        style={{ marginTop: 16, width: "100%", padding: "14px 0", background: "#10182a", border: "2px solid #2a3a6a", borderRadius: 10, color: "#5a8aca", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
+        📦 未提供の注文を確認
+      </button>
 
       {/* 未提供パネル */}
       {showUnserved && (() => {
@@ -305,27 +298,45 @@ export default function App() {
     </div>
   );
 
-  const ConfirmModal = () => (
+  const FOOD_SWEET_ITEMS = [
+    "トースト", "ピザトースト", "ミックスサンド", "ハムサンド", "野菜サンド",
+    "玉子サンド", "トーストサンド",
+    "ミルクレープ", "ガトーショコラ", "フォンダンショコラ", "チーズケーキ",
+    "紅茶のシフォン", "栗のモンブラン", "バニラアイスクリーム", "コーヒーゼリー"
+  ];
+
+  const ConfirmModal = () => {
+    const hasFood = cart.some(item => FOOD_SWEET_ITEMS.some(f => item.name.includes(f)));
+    const hasDrink = cart.some(item => !FOOD_SWEET_ITEMS.some(f => item.name.includes(f)) && !item.name.includes("モーニング") && !item.name.includes("おかわり") && item.price > 0);
+    const autoSetCount = hasFood && hasDrink ? (people || 0) : 0;
+    const autoDiscount = autoSetCount * 150;
+    const displayTotal = total - autoDiscount;
+
+    return (
     <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
       <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "80vh", overflow: "auto" }}>
-        <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 8 }}>注文確認</div>
-        <div style={{ background: "#c9952a", borderRadius: 10, padding: "14px 16px", marginBottom: 14, textAlign: "center" }}>
+        <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>注文確認</div>
+        <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 16 }}>テーブル {selectedTable}・{people}名</div>
+        <div style={{ background: "#2a1a0a", border: "2px solid #c9952a", borderRadius: 10, padding: "12px 14px", marginBottom: 14, textAlign: "center" }}>
           <div style={{ color: "#fff", fontWeight: 900, fontSize: 18 }}>⚠️ 必ずお客様に復唱して確認してください</div>
         </div>
-        <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 16 }}>テーブル {selectedTable}・{people}名</div>
         <div style={{ borderTop: "1px solid #3d2c14", paddingTop: 12, marginBottom: 12 }}>
           {cart.map((item, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #3d2c1433", fontSize: 14 }}>
-              <span style={{ color: item.price < 0 ? "#4aaa5a" : "#f0e6d0" }}>{item.name} ×{item.qty}</span>
-              <span style={{ color: item.price < 0 ? "#4aaa5a" : "#c9952a", fontFamily: "serif" }}>
-                {item.price < 0 ? `-¥${Math.abs(item.price * item.qty).toLocaleString()}` : `¥${(item.price * item.qty).toLocaleString()}`}
-              </span>
+              <span style={{ color: "#f0e6d0" }}>{item.name} ×{item.qty}</span>
+              <span style={{ color: "#c9952a", fontFamily: "serif" }}>¥{(item.price * item.qty).toLocaleString()}</span>
             </div>
           ))}
+          {autoDiscount > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #3d2c1433", fontSize: 14 }}>
+              <span style={{ color: "#4aaa5a" }}>🍽 セット割引（自動・{autoSetCount}セット）</span>
+              <span style={{ color: "#4aaa5a", fontFamily: "serif" }}>-¥{autoDiscount.toLocaleString()}</span>
+            </div>
+          )}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, paddingTop: 8 }}>
           <span style={{ color: "#8a7050", fontSize: 14 }}>合計</span>
-          <span style={{ fontFamily: "serif", fontSize: 26, fontWeight: 700, color: "#c9952a" }}>¥{total.toLocaleString()}</span>
+          <span style={{ fontFamily: "serif", fontSize: 26, fontWeight: 700, color: "#c9952a" }}>¥{displayTotal.toLocaleString()}</span>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={() => setConfirming(false)}
@@ -339,7 +350,8 @@ export default function App() {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div style={{ background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column" }}>
