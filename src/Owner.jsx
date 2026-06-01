@@ -246,7 +246,7 @@ export default function Owner() {
         .no-print { }
         @media print {
           @page { size: A4; margin: 10mm; }
-          body { background: #fff; }
+          body, * { background: #fff !important; color: #111 !important; }
           .no-print { display: none !important; }
           .sheet { background: #fff !important; color: #111 !important; box-shadow: none !important; }
           .card { background: #fff !important; border: 1px solid #ccc !important; break-inside: avoid; }
@@ -256,23 +256,31 @@ export default function Owner() {
           .bar { background: #ddd !important; }
           .barfill { background: #9a7016 !important; }
           .pagebreak { break-before: page; }
+          div, span, td, th, table, input { background: #fff !important; color: #111 !important; border-color: #ccc !important; }
         }
       `}</style>
 
       {/* ツールバー（印刷では消える） */}
-      <div className="no-print" style={{ position: "sticky", top: 0, zIndex: 10, background: C.panel, borderBottom: `1px solid ${C.line}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+      <div className="no-print" style={{ position: "sticky", top: 0, zIndex: 10, background: C.panel, borderBottom: `1px solid ${C.line}`, padding: "12px 16px", display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
         <span className="mincho" style={{ color: C.gold, fontSize: 16, fontWeight: 700 }}>経営レポート</span>
         <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}
           style={{ padding: "8px 10px", background: C.ink, border: `1px solid ${C.line}`, borderRadius: 8, color: C.cream, fontSize: 14 }} />
-        <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={() => setView("report")} style={{ padding: "8px 14px", background: view === "report" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "report" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>月次レポート</button>
-          <button onClick={() => setView("history")} style={{ padding: "8px 14px", background: view === "history" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "history" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>取引履歴</button>
-          <button onClick={() => setView("coupon")} style={{ padding: "8px 14px", background: view === "coupon" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "coupon" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>🎟 クーポン</button>
-          <button onClick={() => setView("daily")} style={{ padding: "8px 14px", background: view === "daily" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "daily" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📊 日計</button>
-          <button onClick={() => setView("monthly")} style={{ padding: "8px 14px", background: view === "monthly" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "monthly" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📅 月次</button>
-          <button onClick={() => setView("plu")} style={{ padding: "8px 14px", background: view === "plu" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "plu" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📋 PLU</button>
-          <button onClick={() => setView("drawer")} style={{ padding: "8px 14px", background: view === "drawer" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "drawer" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>🔓 ドロア</button>
-          <button onClick={() => setView("cashcheck")} style={{ padding: "8px 14px", background: view === "cashcheck" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "cashcheck" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>💰 レジ確認</button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 100 }}>
+          {[
+            ["report","月次レポート"],
+            ["history","取引履歴"],
+            ["coupon","🎟 クーポン"],
+            ["daily","📊 日計"],
+            ["monthly","📅 月次"],
+            ["plu","📋 PLU"],
+            ["drawer","🔓 ドロア"],
+            ["cashcheck","💰 レジ確認"],
+          ].map(([v, label]) => (
+            <button key={v} onClick={() => setView(v)}
+              style={{ padding: "7px 12px", background: view === v ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 6, color: view === v ? C.ink : C.gold, fontWeight: 700, fontSize: 12, cursor: "pointer", textAlign: "left", whiteSpace: "nowrap" }}>
+              {label}
+            </button>
+          ))}
         </div>
         <button onClick={() => window.print()} disabled={loading}
           style={{ marginLeft: "auto", padding: "8px 16px", background: C.gold, border: "none", borderRadius: 8, color: C.ink, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
