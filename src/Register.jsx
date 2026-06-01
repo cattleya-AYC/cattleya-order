@@ -1049,6 +1049,10 @@ export default function Register() {
     supabase.from("orders").insert({ table_no: String(selected), item_name: "セット値引き", price: -150, qty: 1, status: "pending" }).then(() => fetchOrders());
   };
 
+  const removeDiscount = (orderId) => {
+    supabase.from("orders").delete().eq("id", orderId).then(() => fetchOrders());
+  };
+
   const openTobaccoConfirm = (item) => { setTobaccoConfirming(item); setTobaccoReceiptType(null); setTobaccoReceived(""); };
 
   const completeTobaccoSale = async () => {
@@ -1391,11 +1395,17 @@ export default function Register() {
             <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 12 }}>{selectedPeople}名</div>
             <div style={{ borderTop: "1px solid #3d2c14", paddingTop: 12, marginBottom: 12 }}>
               {selectedOrders.map((o, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 13, borderBottom: "1px solid #3d2c1433" }}>
-                  <span style={{ color: o.price < 0 ? "#4aaa5a" : "#f0e6d0" }}>{o.item_name} ×{o.qty}</span>
-                  <span style={{ color: o.price < 0 ? "#4aaa5a" : "#c9952a" }}>
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", fontSize: 13, borderBottom: "1px solid #3d2c1433" }}>
+                  <span style={{ color: o.price < 0 ? "#4aaa5a" : "#f0e6d0", flex: 1 }}>{o.item_name} ×{o.qty}</span>
+                  <span style={{ color: o.price < 0 ? "#4aaa5a" : "#c9952a", marginRight: o.price < 0 ? 8 : 0 }}>
                     {o.price < 0 ? `-¥${Math.abs(o.price * o.qty).toLocaleString()}` : `¥${(o.price * o.qty).toLocaleString()}`}
                   </span>
+                  {o.price < 0 && (
+                    <button onClick={() => removeDiscount(o.id)}
+                      style={{ padding: "3px 8px", background: "transparent", border: "1px solid #c95a5a", borderRadius: 6, color: "#c95a5a", fontSize: 11, cursor: "pointer" }}>
+                      ✕ 取消
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
