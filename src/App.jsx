@@ -287,10 +287,7 @@ export default function App() {
     <div style={{ padding: 24, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
       <div style={{ fontSize: 72, marginBottom: 8 }}>✅</div>
       <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>キッチンに送りました</div>
-      <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 16 }}>テーブル {selectedTable}・{people}名</div>
-      <div style={{ background: "#2a1a0a", border: "2px solid #c9952a", borderRadius: 12, padding: "14px 18px", marginBottom: 28, textAlign: "center" }}>
-        <div style={{ color: "#c9952a", fontWeight: 900, fontSize: 18 }}>⚠️ 必ずお客様に復唱して確認してください</div>
-      </div>
+      <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 32 }}>テーブル {selectedTable}・{people}名</div>
 
       <div style={{ background: "#1a120a", border: "1px solid #3d2c14", borderRadius: 14, padding: "20px 24px", marginBottom: 36, textAlign: "left", width: "100%", maxWidth: 360 }}>
         <div style={{ color: "#c9952a", fontWeight: 700, fontSize: 15, marginBottom: 14 }}>📋 ウェイトレスへ</div>
@@ -311,7 +308,10 @@ export default function App() {
   const ConfirmModal = () => (
     <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
       <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "80vh", overflow: "auto" }}>
-        <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>注文確認</div>
+        <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 8 }}>注文確認</div>
+        <div style={{ background: "#2a1a0a", border: "2px solid #c9952a", borderRadius: 10, padding: "12px 14px", marginBottom: 12, textAlign: "center" }}>
+          <div style={{ color: "#c9952a", fontWeight: 900, fontSize: 15 }}>⚠️ 必ずお客様に復唱して確認してください</div>
+        </div>
         <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 16 }}>テーブル {selectedTable}・{people}名</div>
         <div style={{ borderTop: "1px solid #3d2c14", paddingTop: 12, marginBottom: 12 }}>
           {cart.map((item, i) => (
