@@ -197,7 +197,7 @@ export default function App() {
         return (
           <button onClick={() => { fetchUnserved(); setUnservedTable(null); setShowUnserved(true); }}
             style={{ marginTop: 16, width: "100%", padding: "28px 0", background: hasUnserved ? "#2a0a0a" : "#0a1a10", border: `2px solid ${hasUnserved ? "#c95a5a" : "#2a6a3a"}`, borderRadius: 10, color: hasUnserved ? "#ff6b6b" : "#4aaa5a", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
-            {hasUnserved ? `🔴 未提供あり（${unservedOrders.length}品）` : "🔵 未提供なし"}
+            {hasUnserved ? `🔴 未提供あり（${unservedOrders.length}品）` : "📋 未提供商品を確認"}
           </button>
         );
       })()}
@@ -309,8 +309,8 @@ export default function App() {
     <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
       <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "80vh", overflow: "auto" }}>
         <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 8 }}>注文確認</div>
-        <div style={{ background: "#2a1a0a", border: "2px solid #c9952a", borderRadius: 10, padding: "12px 14px", marginBottom: 12, textAlign: "center" }}>
-          <div style={{ color: "#c9952a", fontWeight: 900, fontSize: 15 }}>⚠️ 必ずお客様に復唱して確認してください</div>
+        <div style={{ background: "#c9952a", borderRadius: 10, padding: "14px 16px", marginBottom: 14, textAlign: "center" }}>
+          <div style={{ color: "#fff", fontWeight: 900, fontSize: 18 }}>⚠️ 必ずお客様に復唱して確認してください</div>
         </div>
         <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 16 }}>テーブル {selectedTable}・{people}名</div>
         <div style={{ borderTop: "1px solid #3d2c14", paddingTop: 12, marginBottom: 12 }}>
