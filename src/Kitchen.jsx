@@ -46,7 +46,7 @@ export default function Kitchen() {
       .select("*")
       .eq("status", "pending")
       .order("created_at", { ascending: true });
-    const list = (data || []).filter(o => o.item_name && !o.item_name.startsWith("【人数"));
+    const list = (data || []).filter(o => o.item_name && !o.item_name.startsWith("【人数") && !o.item_name.includes("値引き") && (o.price === null || o.price >= 0));
 
     // 新規注文があれば音
     const curIds = new Set(list.map(o => o.id));
