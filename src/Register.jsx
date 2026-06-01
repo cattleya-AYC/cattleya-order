@@ -872,7 +872,7 @@ export default function Register() {
   };
 
   const tableOrders = (tableNo) =>
-    orders.filter((o) => String(o.table_no) === String(tableNo) && o.status === "pending");
+    orders.filter((o) => String(o.table_no) === String(tableNo) && (o.status === "pending" || o.status === "served"));
 
   const tableTotal = (tableNo) =>
     tableOrders(tableNo).reduce((s, o) => s + o.price * o.qty, 0);
@@ -903,7 +903,7 @@ export default function Register() {
   const monthlyTobaccoTotal = monthlyTobaccoFromDB.reduce((a, s) => a + s.price, 0);
 
   const selectedOrders = selected
-    ? tableOrders(selected).filter(o => o.status === "pending" && !o.item_name.startsWith("【人数"))
+    ? tableOrders(selected).filter(o => (o.status === "pending" || o.status === "served") && !o.item_name.startsWith("【人数"))
     : [];
   const selectedTotal = selected ? tableTotal(selected) : 0;
   const selectedPeople = selected ? tablePeopleStr(selected) : "-";
@@ -932,7 +932,7 @@ export default function Register() {
     const chg = payMethod === "現金" ? change : null;
     const people = tablePeople(t);
 
-    const tableOrderItems = tableOrders(t).filter(o => o.status === "pending" && !o.item_name.startsWith("【人数"));
+    const tableOrderItems = tableOrders(t).filter(o => (o.status === "pending" || o.status === "served") && !o.item_name.startsWith("【人数"));
     for (const item of tableOrderItems) {
       await supabase.from("order_items").insert({
         table_no: String(t),
