@@ -55,21 +55,13 @@ function buildCouponHTML() {
   const no = getNextCouponNo();
   const now = new Date();
   const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
-  return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
-  html,body{margin:0;padding:0;}
-  body{font-family:'Hiragino Mincho ProN',serif;width:384px;padding:6px 8px;box-sizing:border-box;color:#000;text-align:center;}
-  .date{font-size:20px;font-weight:700;text-align:right;margin-bottom:4px;}
-  .img{width:100%;height:auto;display:block;margin:0 auto 4px;}
-  .hr{border:none;border-top:3px dashed #000;margin:6px 0;}
-  .no-label{font-size:20px;font-weight:700;margin:8px 0 2px;}
-  .no{font-size:54px;font-weight:900;margin:4px 0 8px;letter-spacing:6px;}
-  </style></head><body>
-    <div class="date">発行日：${dateStr}</div>
-    <img class="img" src="${COUPON_IMG}"/>
-    <hr class="hr"/>
-    <div class="no-label">クーポン番号</div>
-    <div class="no">A${no}</div>
-    <hr class="hr"/>
+  return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"></head><body style="font-family:'Hiragino Mincho ProN',serif;width:384px;margin:0;padding:6px 8px;box-sizing:border-box;color:#000;text-align:center;">
+    <div style="font-size:22px;font-weight:700;text-align:right;margin-bottom:4px;">発行日：${dateStr}</div>
+    <img style="width:100%;height:auto;display:block;margin:0 auto 4px;" src="${COUPON_IMG}"/>
+    <hr style="border:none;border-top:3px dashed #000;margin:8px 0;"/>
+    <div style="font-size:22px;font-weight:700;margin:8px 0 4px;">クーポン番号</div>
+    <div style="font-size:58px;font-weight:900;margin:4px 0 8px;text-align:center;">A${no}</div>
+    <hr style="border:none;border-top:3px dashed #000;margin:8px 0;"/>
   </body></html>`;
 }
 
