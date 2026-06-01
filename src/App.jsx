@@ -192,10 +192,15 @@ export default function App() {
       </div>
 
       {/* 未提供ボタン */}
-      <button onClick={() => { fetchUnserved(); setUnservedTable(null); setShowUnserved(true); }}
-        style={{ marginTop: 16, width: "100%", padding: "14px 0", background: "#10182a", border: "2px solid #2a3a6a", borderRadius: 10, color: "#5a8aca", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
-        📦 未提供の注文を確認
-      </button>
+      {(() => {
+        const hasUnserved = unservedOrders.length > 0;
+        return (
+          <button onClick={() => { fetchUnserved(); setUnservedTable(null); setShowUnserved(true); }}
+            style={{ marginTop: 16, width: "100%", padding: "28px 0", background: hasUnserved ? "#2a0a0a" : "#0a1a10", border: `2px solid ${hasUnserved ? "#c95a5a" : "#2a6a3a"}`, borderRadius: 10, color: hasUnserved ? "#ff6b6b" : "#4aaa5a", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
+            {hasUnserved ? `🔴 未提供あり（${unservedOrders.length}品）` : "🔵 未提供なし"}
+          </button>
+        );
+      })()}
 
       {/* 未提供パネル */}
       {showUnserved && (() => {
