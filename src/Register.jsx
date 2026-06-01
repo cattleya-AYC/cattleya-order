@@ -1472,107 +1472,126 @@ export default function Register() {
         </div>
       )}
 
-      <div style={{ display: "flex", flex: 1, overflow: "auto", minHeight: 0 }}>
-        <div style={{ width: 180, background: "#181008", borderRight: "1px solid #3d2c14", display: "flex", flexDirection: "column" }}>
-          <div style={{ padding: "12px 10px", borderBottom: "1px solid #3d2c14" }}>
-            <div style={{ fontFamily: "serif", fontSize: 12, color: "#c9952a", fontWeight: 700 }}>Lounge Cattleya</div>
-            <div style={{ fontSize: 9, color: "#8a7050", marginTop: 2 }}>レジ・会計</div>
-          </div>
+      <div style={{ display: "flex", flex: 1, overflow: "auto" }}>
+
+        {/* ===== 左サイドバー（コンパクト） ===== */}
+        <div style={{ width: 130, minWidth: 130, background: "#181008", borderRight: "1px solid #3d2c14", display: "flex", flexDirection: "column" }}>
+
+          {/* ヘッダー＋使用中テーブル数 */}
           <div style={{ padding: "8px 10px", borderBottom: "1px solid #3d2c14" }}>
-            <div style={{ fontSize: 9, color: "#8a7050" }}>使用中</div>
-            <div style={{ fontFamily: "serif", fontSize: 20, color: "#c9952a", fontWeight: 700 }}>{occupiedTables.length}<span style={{ fontSize: 10, color: "#8a7050" }}> / 30</span></div>
+            <div style={{ fontFamily: "serif", fontSize: 11, color: "#c9952a", fontWeight: 700 }}>Lounge Cattleya</div>
+            <div style={{ fontSize: 9, color: "#8a7050", marginTop: 1 }}>使用中 {occupiedTables.length} / 30</div>
           </div>
-          <div style={{ padding: "8px 10px", borderBottom: "1px solid #3d2c14" }}>
-            <div style={{ fontSize: 9, color: "#8a7050" }}>本日売上</div>
-            <div style={{ fontFamily: "serif", fontSize: 14, color: "#c9952a", fontWeight: 700 }}>¥{todaySales.toLocaleString()}</div>
+
+          {/* 操作ボタン（大きめ） */}
+          <div style={{ padding: "8px 8px", display: "flex", flexDirection: "column", gap: 6 }}>
+            <button onClick={() => setMode("tobacco")}
+              style={{ padding: "12px 4px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#c9952a", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              🚬 タバコ
+            </button>
+            <button onClick={() => setCashChecking(true)}
+              style={{ padding: "12px 4px", background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 8, color: "#4aaa5a", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              💰 レジ確認
+            </button>
+            <button onClick={openDrawer}
+              style={{ padding: "12px 4px", background: "#0a1a18", border: "1px solid #1a4a3a", borderRadius: 8, color: "#3a9a8a", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              🔓 ドロア
+            </button>
+            <button onClick={() => setShowAdmin(true)}
+              style={{ padding: "12px 4px", background: "#10182a", border: "1px solid #2a3a6a", borderRadius: 8, color: "#5a8aca", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              ⚙️ 管理
+            </button>
           </div>
-          <div style={{ padding: "6px 8px", borderBottom: "1px solid #3d2c14", display: "flex", flexDirection: "column", gap: 4 }}>
-            <button onClick={() => setMode("tobacco")} style={{ padding: "6px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 6, color: "#c9952a", fontSize: 10, cursor: "pointer" }}>🚬 タバコ販売</button>
-            <button onClick={() => setCashChecking(true)} style={{ padding: "6px 0", background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 6, color: "#4aaa5a", fontSize: 10, cursor: "pointer" }}>💰 レジ確認</button>
-            <button onClick={openDrawer} style={{ padding: "6px 0", background: "#0a1a18", border: "1px solid #1a4a3a", borderRadius: 6, color: "#3a9a8a", fontSize: 10, cursor: "pointer" }}>🔓 ドロアを開ける</button>
-            <button onClick={() => setShowAdmin(true)} style={{ padding: "6px 0", background: "#10182a", border: "1px solid #2a3a6a", borderRadius: 6, color: "#5a8aca", fontSize: 10, cursor: "pointer" }}>⚙️ 管理メニュー</button>
-          </div>
-          <div style={{ flex: 1, overflow: "auto", padding: "6px 8px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 4 }}>
-              {TABLES.map((t) => {
-                const occ = tableOrders(t).length > 0;
-                return (
-                  <div key={t} onClick={() => occ && setSelected(t)}
-                    style={{ padding: "6px 0", borderRadius: 5, border: `1px solid ${selected === t ? "#c9952a" : occ ? "#6a4d15" : "#3d2c14"}`, background: selected === t ? "#2a1c0a" : occ ? "#1a1008" : "#0d0905", color: selected === t ? "#c9952a" : occ ? "#8a6030" : "#3d2c14", textAlign: "center", fontSize: 11, fontWeight: 700, cursor: occ ? "pointer" : "default" }}>
-                    {t}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+
+          {/* 会計済み履歴 */}
           {history.length > 0 && (
-            <div style={{ padding: "6px 10px", borderTop: "1px solid #3d2c14", maxHeight: 120, overflow: "auto" }}>
+            <div style={{ padding: "6px 8px", borderTop: "1px solid #3d2c14", flex: 1, overflow: "auto" }}>
               <div style={{ fontSize: 9, color: "#8a7050", marginBottom: 4 }}>会計済み</div>
               {history.map((h, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#8a7050", padding: "2px 0" }}>
-                  <span>T{h.table} {h.time}</span>
-                  <span style={{ color: "#c9952a" }}>¥{h.amount.toLocaleString()}</span>
+                <div key={i} style={{ fontSize: 10, color: "#8a7050", padding: "2px 0" }}>
+                  <div>T{h.table} {h.time}</div>
+                  <div style={{ color: "#c9952a" }}>¥{h.amount.toLocaleString()}</div>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <div style={{ padding: "14px 20px", background: "#181008", borderBottom: "1px solid #3d2c14" }}>
-            {selected ? (
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <span style={{ fontFamily: "serif", fontSize: 22, color: "#c9952a", fontWeight: 700 }}>テーブル {selected}</span>
-                  <span style={{ color: "#8a7050", marginLeft: 12, fontSize: 14 }}>{selectedPeople}名</span>
-                </div>
-                <span style={{ background: "#2a1c0a", border: "1px solid #6a4d15", borderRadius: 6, padding: "4px 12px", color: "#c9952a", fontSize: 12 }}>使用中</span>
+        {/* ===== 右メインエリア ===== */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "auto", minWidth: 0 }}>
+
+          {/* テーブル未選択：テーブル一覧を大きく表示 */}
+          {!selected ? (
+            <div style={{ padding: 14, overflow: "auto" }}>
+              <div style={{ fontSize: 12, color: "#8a7050", marginBottom: 10 }}>🧾 テーブルを選択してください</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(58px, 1fr))", gap: 8 }}>
+                {TABLES.map((t) => {
+                  const occ = tableOrders(t).length > 0;
+                  return (
+                    <div key={t} onClick={() => occ && setSelected(t)}
+                      style={{ padding: "14px 4px", borderRadius: 8, border: `2px solid ${occ ? "#c9952a" : "#3d2c14"}`, background: occ ? "#2a1c0a" : "#0d0905", color: occ ? "#c9952a" : "#3d2c14", textAlign: "center", fontSize: 16, fontWeight: 900, cursor: occ ? "pointer" : "default" }}>
+                      {t}
+                    </div>
+                  );
+                })}
               </div>
-            ) : (
-              <span style={{ color: "#8a7050" }}>左のテーブルを選択してください</span>
-            )}
-          </div>
-          <div style={{ flex: 1, overflow: "auto", padding: 20 }}>
-            {!selected ? (
-              <div style={{ textAlign: "center", color: "#3d2c14", paddingTop: 60, fontSize: 14 }}>🧾 テーブルを選択してください</div>
-            ) : selectedOrders.length === 0 ? (
-              <div style={{ textAlign: "center", color: "#3d2c14", paddingTop: 60, fontSize: 14 }}>注文がありません</div>
-            ) : (
-              <>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 11, color: "#8a7050", borderBottom: "1px solid #3d2c14" }}>商品名</th>
-                      <th style={{ textAlign: "center", padding: "8px 12px", fontSize: 11, color: "#8a7050", borderBottom: "1px solid #3d2c14" }}>数量</th>
-                      <th style={{ textAlign: "right", padding: "8px 12px", fontSize: 11, color: "#8a7050", borderBottom: "1px solid #3d2c14" }}>金額</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedOrders.map((o, i) => (
-                      <tr key={i}>
-                        <td style={{ padding: "11px 12px", fontSize: 14, color: o.price < 0 ? "#4aaa5a" : "#f0e6d0", borderBottom: "1px solid #3d2c1433" }}>{o.item_name}</td>
-                        <td style={{ padding: "11px 12px", textAlign: "center", color: "#8a7050", borderBottom: "1px solid #3d2c1433" }}>×{o.qty}</td>
-                        <td style={{ padding: "11px 12px", textAlign: "right", fontFamily: "serif", fontSize: 15, color: o.price < 0 ? "#4aaa5a" : "#c9952a", borderBottom: "1px solid #3d2c1433" }}>
-                          {o.price < 0 ? `-¥${Math.abs(o.price * o.qty).toLocaleString()}` : `¥${(o.price * o.qty).toLocaleString()}`}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, padding: "14px 12px", background: "#1a1008", borderRadius: 8 }}>
-                  <span style={{ color: "#8a7050" }}>お会計合計</span>
-                  <span style={{ fontFamily: "serif", fontSize: 28, fontWeight: 800, color: "#c9952a" }}>¥{selectedTotal.toLocaleString()}</span>
-                </div>
-              </>
-            )}
-          </div>
-          {selected && selectedOrders.length > 0 && (
-            <div style={{ padding: "14px 20px", background: "#181008", borderTop: "1px solid #3d2c14" }}>
-              <button onClick={() => setConfirming(true)}
-                style={{ width: "100%", padding: 16, background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
-                💴 会計する
-              </button>
             </div>
+          ) : (
+            <>
+              {/* テーブル選択済み：注文詳細 */}
+              <div style={{ padding: "12px 16px", background: "#181008", borderBottom: "1px solid #3d2c14", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <span style={{ fontFamily: "serif", fontSize: 20, color: "#c9952a", fontWeight: 700 }}>テーブル {selected}</span>
+                  <span style={{ color: "#8a7050", marginLeft: 10, fontSize: 13 }}>{selectedPeople}名</span>
+                </div>
+                <button onClick={() => setSelected(null)}
+                  style={{ padding: "6px 12px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 6, color: "#8a7050", fontSize: 12, cursor: "pointer" }}>
+                  ← 一覧へ
+                </button>
+              </div>
+
+              <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
+                {selectedOrders.length === 0 ? (
+                  <div style={{ textAlign: "center", color: "#3d2c14", paddingTop: 40, fontSize: 14 }}>注文がありません</div>
+                ) : (
+                  <>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 11, color: "#8a7050", borderBottom: "1px solid #3d2c14" }}>商品名</th>
+                          <th style={{ textAlign: "center", padding: "8px 12px", fontSize: 11, color: "#8a7050", borderBottom: "1px solid #3d2c14" }}>数量</th>
+                          <th style={{ textAlign: "right", padding: "8px 12px", fontSize: 11, color: "#8a7050", borderBottom: "1px solid #3d2c14" }}>金額</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedOrders.map((o, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: "11px 12px", fontSize: 14, color: o.price < 0 ? "#4aaa5a" : "#f0e6d0", borderBottom: "1px solid #3d2c1433" }}>{o.item_name}</td>
+                            <td style={{ padding: "11px 12px", textAlign: "center", color: "#8a7050", borderBottom: "1px solid #3d2c1433" }}>×{o.qty}</td>
+                            <td style={{ padding: "11px 12px", textAlign: "right", fontFamily: "serif", fontSize: 15, color: o.price < 0 ? "#4aaa5a" : "#c9952a", borderBottom: "1px solid #3d2c1433" }}>
+                              {o.price < 0 ? `-¥${Math.abs(o.price * o.qty).toLocaleString()}` : `¥${(o.price * o.qty).toLocaleString()}`}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, padding: "14px 12px", background: "#1a1008", borderRadius: 8 }}>
+                      <span style={{ color: "#8a7050" }}>お会計合計</span>
+                      <span style={{ fontFamily: "serif", fontSize: 28, fontWeight: 800, color: "#c9952a" }}>¥{selectedTotal.toLocaleString()}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {selected && selectedOrders.length > 0 && (
+                <div style={{ padding: "14px 16px", background: "#181008", borderTop: "1px solid #3d2c14" }}>
+                  <button onClick={() => setConfirming(true)}
+                    style={{ width: "100%", padding: 16, background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
+                    💴 会計する
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
