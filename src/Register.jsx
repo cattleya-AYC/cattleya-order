@@ -60,13 +60,15 @@ function buildCouponHTML() {
   body{font-family:'Hiragino Mincho ProN',serif;width:384px;padding:6px 8px;box-sizing:border-box;color:#000;text-align:center;}
   .date{font-size:20px;font-weight:700;text-align:right;margin-bottom:4px;}
   .img{width:100%;height:auto;display:block;margin:0 auto 4px;}
-  .hr{border:none;border-top:1px dashed #000;margin:6px 0;}
-  .no{font-size:28px;font-weight:900;margin:6px 0;letter-spacing:6px;}
+  .hr{border:none;border-top:3px dashed #000;margin:6px 0;}
+  .no-label{font-size:20px;font-weight:700;margin:8px 0 2px;}
+  .no{font-size:54px;font-weight:900;margin:4px 0 8px;letter-spacing:6px;}
   </style></head><body>
     <div class="date">発行日：${dateStr}</div>
     <img class="img" src="${COUPON_IMG}"/>
     <hr class="hr"/>
-    <div class="no">No. A${no}</div>
+    <div class="no-label">クーポン番号</div>
+    <div class="no">A${no}</div>
     <hr class="hr"/>
   </body></html>`;
 }
@@ -184,6 +186,7 @@ function buildReceiptHTML(info) {
   <div class="tax">\uff08内消費税10%対象\u3000${taxAmount.toLocaleString()}\uff09</div>
   <table class="pay">${payRow}</table>
   <div class="foot">ありがとうございました</div>
+  <br/><br/>
 </body></html>`;
 }
 
@@ -976,7 +979,7 @@ export default function Register() {
       if (amount >= 1000 && issuePeriod) {
         // クーポンを区切り線のあとに結合（1回のPassPRNTで連続印刷）
         const couponBody = buildCouponHTML().replace(/^[\s\S]*?<body[^>]*>/, "").replace(/<\/body>[\s\S]*$/, "");
-        printHtml = html.replace("</body></html>", `<div style="margin-top:8px;border-top:1px dashed #000;padding-top:6px">${couponBody}</div></body></html>`);
+        printHtml = html.replace("</body></html>", `<div style="margin-top:8px;border-top:3px dashed #000;padding-top:8px;margin-top:10px">${couponBody}</div></body></html>`);
       }
       // ペイキャスはドロアを開けない（cashdrawer=false）
       const drawerParam = payMethod === "ペイキャス" ? "&cashdrawer=false" : "";
@@ -1485,6 +1488,10 @@ export default function Register() {
 
           {/* 操作ボタン（大きめ） */}
           <div style={{ padding: "8px 8px", display: "flex", flexDirection: "column", gap: 6 }}>
+            <button onClick={() => { setShowCoupon(true); setCouponError(""); }}
+              style={{ padding: "12px 4px", background: "#1a1a30", border: "1px solid #5a5ac9", borderRadius: 8, color: "#9a9af0", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              🎟 クーポン
+            </button>
             <button onClick={() => setMode("tobacco")}
               style={{ padding: "12px 4px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#c9952a", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
               🚬 タバコ
