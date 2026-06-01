@@ -40,6 +40,41 @@ function speakAmount(amount) {
 // =========================================================
 // 通し番号
 // =========================================================
+function getNextCouponNo() {
+  try {
+    const key = "cattleya_coupon_no";
+    const n = parseInt(localStorage.getItem(key) || "10000") + 1;
+    localStorage.setItem(key, String(n));
+    return String(n);
+  } catch (e) {
+    return "10001";
+  }
+}
+
+function buildCouponHTML() {
+  const no = getNextCouponNo();
+  const year = new Date().getFullYear();
+  return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
+  html,body{margin:0;padding:0;}
+  body{font-family:'Hiragino Mincho ProN',serif;width:384px;padding:8px 10px;box-sizing:border-box;color:#000;text-align:center;}
+  .title{font-size:22px;font-weight:900;margin:6px 0 2px;letter-spacing:4px;}
+  .period{font-size:18px;margin:4px 0 8px;}
+  .cond{font-size:17px;margin:4px 0;}
+  .no{font-size:16px;color:#555;margin-top:8px;}
+  .hr{border:none;border-top:1px dashed #000;margin:8px 0;}
+  .pct{font-size:42px;font-weight:900;}
+  </style></head><body>
+    <hr class="hr"/>
+    <div class="title">割 引 ク ー ポ ン</div>
+    <div class="pct">5%OFF</div>
+    <div class="period">利用期間：${year}年7月1日〜31日</div>
+    <div class="cond">1,000円以上のお会計に使えます</div>
+    <div class="cond">ラウンジ カトレア</div>
+    <div class="no">No. A${no}</div>
+    <hr class="hr"/>
+  </body></html>`;
+}
+
 function getNextReceiptNo() {
   try {
     const key = "cattleya_receipt_no";
@@ -782,6 +817,12 @@ export default function Register() {
   const [cashCheckLogs, setCashCheckLogs] = useState([]);
   const [cashChecking, setCashChecking] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [showCoupon, setShowCoupon] = useState(false);
+  const [couponType, setCouponType] = useState(null);   // 'A' | 'B'
+  const [couponNo, setCouponNo] = useState("");
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponError, setCouponError] = useState("");
   const [cashCheckResult, setCashCheckResult] = useState(null); // "same" | "short" | "over"
   const [cashCheckDiff, setCashCheckDiff] = useState("");
   const [previewHtml, setPreviewHtml] = useState(null);
@@ -884,7 +925,8 @@ export default function Register() {
     if (checkingOut) return; // 二重送信防止
     setCheckingOut(true);
     const t = selected;
-    const amount = tableTotal(t);
+    const couponDisc = couponApplied ? couponDiscount : 0;
+    const amount = tableTotal(t) - couponDisc;
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
     const nowMs = Date.now();
     if (lastCheckout && lastCheckout.table === t && lastCheckout.amount === amount && (nowMs - lastCheckout.timestamp) < 120000) {
@@ -913,13 +955,35 @@ export default function Register() {
     setCheckoutInfo({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null, items: tableOrderItems });
     setSelected(null); setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); setCheckoutDone(true); setCheckingOut(false);
     speakAmount(amount);
+    // クーポン使用記録
+    if (couponApplied && couponType && couponNo) {
+      await supabase.from("coupons").insert({
+        coupon_no: `${couponType}${couponNo}`,
+        coupon_type: couponType,
+        used_at: new Date().toISOString(),
+        is_used: true,
+        amount_before: tableTotal(t) + couponDiscount,
+        discount_amount: couponDiscount,
+      });
+      setCouponApplied(false); setCouponDiscount(0); setCouponType(null); setCouponNo("");
+    }
 
     // PassPRNT 自動印刷（レシート or 領収書 のときだけ）
     if (receiptType !== "なし") {
       const receiptNo = getNextReceiptNo();
       const html = buildReceiptHTML({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null, items: tableOrderItems, receiptNo });
       const passprntUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
-      setTimeout(() => { window.location.href = passprntUrl; }, 1200);
+      // 1000円以上かつクーポン期間中はAクーポンを連続印刷
+      const now2 = new Date(); const y2 = now2.getFullYear();
+      const inPeriod = now2 >= new Date(`${y2}-07-01`) && now2 <= new Date(`${y2}-07-31T23:59:59`);
+      if (amount >= 1000 && inPeriod) {
+        const couponHtml = buildCouponHTML();
+        const couponUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(couponHtml);
+        setTimeout(() => { window.location.href = passprntUrl; }, 1200);
+        setTimeout(() => { window.location.href = couponUrl; }, 4000);
+      } else {
+        setTimeout(() => { window.location.href = passprntUrl; }, 1200);
+      }
     }
   };
 
@@ -950,6 +1014,42 @@ export default function Register() {
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:2px;width:384px;font-size:1px;color:white;">.</body></html>`;
     const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
     window.location.href = url;
+  };
+
+  // クーポン有効期間チェック（7月1日〜7月31日）
+  const isCouponPeriod = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const start = new Date(`${y}-07-01`);
+    const end   = new Date(`${y}-07-31T23:59:59`);
+    return now >= start && now <= end;
+  };
+
+  const applyCoupon = async () => {
+    setCouponError("");
+    if (!couponType) { setCouponError("AまたはBを選んでください"); return; }
+    const no = couponNo.trim();
+    if (!no || !/^\d{5}$/.test(no)) { setCouponError("5桁の数字を入力してください"); return; }
+    if (!isCouponPeriod()) { setCouponError("クーポンの利用期間外です（7月1日〜31日）"); return; }
+    const fullNo = `${couponType}${no}`;
+    // Supabaseで重複チェック
+    const { data } = await supabase.from("coupons").select("*").eq("coupon_no", fullNo).eq("is_used", true);
+    if (data && data.length > 0) { setCouponError("このクーポンはすでに使用済みです"); return; }
+    // 割引計算（5%、1の位切り捨て）
+    const base = selectedTotal;
+    if (base < 1000) { setCouponError("1,000円未満はクーポンをご利用いただけません"); return; }
+    const disc = Math.floor(base * 0.05 / 10) * 10;
+    setCouponDiscount(disc);
+    setCouponApplied(true);
+    setShowCoupon(false);
+    setCouponError("");
+  };
+
+  const removeCoupon = () => {
+    setCouponApplied(false);
+    setCouponDiscount(0);
+    setCouponType(null);
+    setCouponNo("");
   };
 
   const addDiscount = () => {
@@ -1183,6 +1283,39 @@ export default function Register() {
         </div>
       )}
 
+      {showCoupon && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 250, padding: 20 }}>
+          <div style={{ background: "#1a1a2a", border: "1px solid #5a5ac9", borderRadius: 14, padding: 22, width: "100%", maxWidth: 380 }}>
+            <div style={{ color: "#9a9af0", fontSize: 18, fontWeight: 900, marginBottom: 16 }}>🎟 クーポン割引</div>
+            <div style={{ color: "#8a8ab0", fontSize: 13, marginBottom: 12 }}>クーポンの種類を選んでください</div>
+            <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+              {["A", "B"].map(t => (
+                <button key={t} onClick={() => setCouponType(t)}
+                  style={{ flex: 1, padding: "14px 0", background: couponType === t ? "#5a5ac9" : "transparent", border: `2px solid ${couponType === t ? "#9a9af0" : "#3a3a6a"}`, borderRadius: 10, color: couponType === t ? "#fff" : "#8a8ab0", fontWeight: 900, fontSize: 20, cursor: "pointer" }}>
+                  {t}クーポン
+                </button>
+              ))}
+            </div>
+            <div style={{ color: "#8a8ab0", fontSize: 13, marginBottom: 8 }}>5桁の番号を入力</div>
+            <input type="number" value={couponNo} onChange={e => { if (e.target.value.length <= 5) setCouponNo(e.target.value); }}
+              placeholder="例：10001"
+              style={{ width: "100%", padding: "14px", background: "#0d0d1a", border: "1px solid #5a5ac9", borderRadius: 8, color: "#f0f0ff", fontSize: 22, fontWeight: 700, boxSizing: "border-box", marginBottom: 8, textAlign: "center" }} />
+            {couponError && <div style={{ color: "#c95a5a", fontSize: 13, marginBottom: 8 }}>{couponError}</div>}
+            <div style={{ color: "#6a6a9a", fontSize: 12, marginBottom: 14 }}>
+              5%割引（1の位切り捨て）・1,000円以上のみ・7/1〜7/31
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => { setShowCoupon(false); setCouponError(""); }}
+                style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3a3a6a", borderRadius: 10, color: "#8a8ab0", cursor: "pointer" }}>キャンセル</button>
+              <button onClick={applyCoupon}
+                style={{ flex: 2, padding: 14, background: "#5a5ac9", border: "none", borderRadius: 10, color: "#fff", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
+                ✅ 適用する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {cashChecking && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 16, overflowY: "auto" }}>
           <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 20, width: "100%", maxWidth: 400 }}>
@@ -1278,9 +1411,22 @@ export default function Register() {
               <span style={{ fontFamily: "serif", fontSize: 28, fontWeight: 800, color: "#c9952a" }}>¥{selectedTotal.toLocaleString()}</span>
             </div>
             <button onClick={addDiscount}
-              style={{ width: "100%", padding: 10, background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 8, color: "#4aaa5a", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 14 }}>
+              style={{ width: "100%", padding: 10, background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 8, color: "#4aaa5a", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 8 }}>
               セット値引き -150円 を追加
             </button>
+            {!couponApplied ? (
+              isCouponPeriod() && selectedTotal >= 1000 ? (
+                <button onClick={() => setShowCoupon(true)}
+                  style={{ width: "100%", padding: 10, background: "#1a1a30", border: "1px solid #5a5ac9", borderRadius: 8, color: "#9a9af0", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 14 }}>
+                  🎟 クーポン割引を適用する
+                </button>
+              ) : null
+            ) : (
+              <div style={{ background: "#1a1a30", border: "1px solid #5a5ac9", borderRadius: 8, padding: "10px 14px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#9a9af0", fontSize: 14 }}>🎟 クーポン割引 -{couponDiscount.toLocaleString()}円 ({couponType}{couponNo})</span>
+                <button onClick={removeCoupon} style={{ padding: "4px 10px", background: "transparent", border: "1px solid #c95a5a", borderRadius: 6, color: "#c95a5a", fontSize: 11, cursor: "pointer" }}>取消</button>
+              </div>
+            )}
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>支払い方法</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
               {["現金", "ペイキャス"].map((p) => (
