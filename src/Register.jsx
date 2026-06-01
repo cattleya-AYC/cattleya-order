@@ -53,23 +53,19 @@ function getNextCouponNo() {
 
 function buildCouponHTML() {
   const no = getNextCouponNo();
-  const year = new Date().getFullYear();
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
   return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
   html,body{margin:0;padding:0;}
-  body{font-family:'Hiragino Mincho ProN',serif;width:384px;padding:8px 10px;box-sizing:border-box;color:#000;text-align:center;}
-  .title{font-size:22px;font-weight:900;margin:6px 0 2px;letter-spacing:4px;}
-  .period{font-size:18px;margin:4px 0 8px;}
-  .cond{font-size:17px;margin:4px 0;}
-  .no{font-size:16px;color:#555;margin-top:8px;}
-  .hr{border:none;border-top:1px dashed #000;margin:8px 0;}
-  .pct{font-size:42px;font-weight:900;}
+  body{font-family:'Hiragino Mincho ProN',serif;width:384px;padding:6px 8px;box-sizing:border-box;color:#000;text-align:center;}
+  .date{font-size:20px;font-weight:700;text-align:right;margin-bottom:4px;}
+  .img{width:100%;height:auto;display:block;margin:0 auto 4px;}
+  .hr{border:none;border-top:1px dashed #000;margin:6px 0;}
+  .no{font-size:28px;font-weight:900;margin:6px 0;letter-spacing:6px;}
   </style></head><body>
+    <div class="date">発行日：${dateStr}</div>
+    <img class="img" src="${COUPON_IMG}"/>
     <hr class="hr"/>
-    <div class="title">割 引 ク ー ポ ン</div>
-    <div class="pct">5%OFF</div>
-    <div class="period">利用期間：${year}年7月1日〜31日</div>
-    <div class="cond">1,000円以上のお会計に使えます</div>
-    <div class="cond">ラウンジ カトレア</div>
     <div class="no">No. A${no}</div>
     <hr class="hr"/>
   </body></html>`;
@@ -90,6 +86,7 @@ function getNextReceiptNo() {
 // PassPRNT 用レシートHTML生成（mPOP 約48mm印字 / mm基準）
 // =========================================================
 const RECEIPT_LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYAAAACMAQAAAABdCUPdAAAFk0lEQVR42u2YTYgkZx3Gf9VVO1WrY6YCghOI00UMuJeFBnNYMGQqK6gHDx486+BB9qC4rAEVYuZdAmYDYnIMJLCDCDkIIiioB3dqVmT3IMyKnye31CG7hxBrZvNRPft2PR7qq6u7Zmf7kJPzwkxXd9XzPv+v9/0/9TpisTHgBHAC+D8B3Dwe4EwvIJ2yizFcHy3GIPf9YCGG4pFsMadttmCUxqSLAQ4WzcNeESyYuCJfDBDki5aGFy0IWDSsBAsAXgUg7H0m6QM8tx92TDPsNw6FfYCz4SWaRO87DgQlYBxMnusDBP7Ffpu9Q9Z6nV71TR7OhGkPcDfPb80DdOEL6VLSeLeicpVMQmAjXpoHFK+DQ+NECAZg9QAIL5+bB9iifHoqETvBTugNgKAvrC+PzXS4E8ZRtGlxPbi+RN7j9BKQEVWYHaehyofP9mX6h+UX06YoCgEMrF7n1jzgtAFWA7ZmknCBW0szJTaYrrq4+nFdzeIOHNPn9EsGsIniBhgDISEJ58sQdwEZQKhiXN9L6wvDU+opvhgHivD5L15pKzYBmIwIimgeEJFGwDg5bG4MEwvUf/PFN/wJwdWDq7crU3aqn+/GkMfzgA8Mn41dq2htOrARbEE3DXi1b+4tBm/HzlSB54ARJJ0oIUnak3THfveKdEOSVLiS0k3ljlQ4mh6lScsGHoWX4fEO8ZUBHM60QUlSti7Z4tufku5JkqwvKdG7+FLm9jCspODGK2/DqXJ9BECCxyqEy31hvQAkRVjbko+AF/HYYDyzWVWAp+s4loWTxSAPMHhEPT4o07aKi5LyFUnakWSHKnzJdoNU+cByDPwJ8H8D8HlgbwPnezBYoo9B/rYe8SXpjqRCkm5XdzZ7Gfi+uT0KqErNqR3qGxUwW7/GuiNpXw8eNcMyRcIkAP8h+4ON8XB+C545BlExpWvBYyuyQxXrD2fSm1/Pn7iE+1OcFHbM8QwrSfqZy9K+dFVK/GMZNBquxZ+Aj8VFBhxS/zuKwb6wnn/wxrZ0o/ClxJFknF6GCpBbZXpjW/qPfi8ZVxJdQDrsmDR+j30ODTxGV8bFAGPHcaKsk4eDv5GyBbjNtmEAtBP2J27vJufL1baxBMZrJOFRmQ5CjdQKsokTzz2ZdwBfTv99lsKMq2nt0WKuAnzSRD+PYzxzZPhn+rTFhySzjQbKjmH4nMZ//aoX50zihyrv4puHq984o4/fS9zdJ6ddPApg7+Z40WDyJFTK0j4Y4Ixe/dn2WbMapFe/0mRa5uji27en//va5WsTGb5TChNXBlcSK5IyqgtJZU4HdsTG6d+JmB+1c03qi49qqoNLku6kuX/AM1a6r5YBv5k4W6NbrW8SumaqMdTqvZZZYdF1+s5rjP5yqe7gOZtV+cUA/ywTGXXyEN3/RULb8pv+3qhQ22X4VbI0zvyWoRPGTQN4tRApAS43fm06W1grmA5JwNyvZytt/RKANdf6k5tOW1nvSzc/Pc7XbLXeHbGiBBgKP8WXjP+vmZ3v73/0/jE/dwRsleaFs0I34F7rQ5m7TkV9pCsdiHG+9c7X2rlDwHrl/hdOPzhoBP3uLy/OrCo3iWvDTDCnvYt3J3V2mg3gXFcKdgH3X3i8EYPeW+Vn2Y0c0wc4Y5OB06TYVpVjqkcmrRyoAYcH8VGv78udBes1+pTCdHP74KZ46qn4D81mFEDc9ukR3G2/1QDnLT1R0z1NMi1ukw6j175Z/bkuUbf7Tj+jCuoOU9jh7itNX0JK3fLKl5SzOdt24QcbbeySqb5wDvCmTGwYHtXusGlobs2QsKmOsmwAekm7jQiwfg2wpUR8sQcg/biVRq+o3KLqcUPzPkDRXl6c2aLO9B9THC0xwl7A6UVPHd7/UM6Xpg9z0mhBwMmx3QngBHACOAH0jv8BaGjWDnzIexUAAAAASUVORK5CYII=";
+const COUPON_IMG = "data:image/png;base64,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";
 
 function buildInvoiceHTML(info) {
   const now = new Date();
@@ -973,10 +970,10 @@ export default function Register() {
       const receiptNo = getNextReceiptNo();
       const html = buildReceiptHTML({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null, items: tableOrderItems, receiptNo });
       const passprntUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
-      // 1000円以上かつクーポン期間中はAクーポンを連続印刷
-      const now2 = new Date(); const y2 = now2.getFullYear();
-      const inPeriod = now2 >= new Date(`${y2}-07-01`) && now2 <= new Date(`${y2}-07-31T23:59:59`);
-      if (amount >= 1000 && inPeriod) {
+      // 1000円以上はAクーポンを連続印刷（6月以降発行）
+      const now2 = new Date();
+      const issuePeriod = now2 >= new Date(`${now2.getFullYear()}-06-01`);
+      if (amount >= 1000 && issuePeriod) {
         const couponHtml = buildCouponHTML();
         const couponUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(couponHtml);
         setTimeout(() => { window.location.href = passprntUrl; }, 1200);
