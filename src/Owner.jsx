@@ -88,7 +88,7 @@ export default function Owner() {
   const [items, setItems] = useState([]);
   const [prevTotal, setPrevTotal] = useState(0);
   const [yoyTotal, setYoyTotal] = useState(0);
-  const [view, setView] = useState("report"); // report | history | coupon
+  const [view, setView] = useState("report"); // report | history | coupon | daily | monthly | plu | drawer | cashcheck
   const [historyDay, setHistoryDay] = useState("all");
   const [coupons, setCoupons] = useState([]);
 
@@ -268,6 +268,11 @@ export default function Owner() {
           <button onClick={() => setView("report")} style={{ padding: "8px 14px", background: view === "report" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "report" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>月次レポート</button>
           <button onClick={() => setView("history")} style={{ padding: "8px 14px", background: view === "history" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "history" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>取引履歴</button>
           <button onClick={() => setView("coupon")} style={{ padding: "8px 14px", background: view === "coupon" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "coupon" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>🎟 クーポン</button>
+          <button onClick={() => setView("daily")} style={{ padding: "8px 14px", background: view === "daily" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "daily" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📊 日計</button>
+          <button onClick={() => setView("monthly")} style={{ padding: "8px 14px", background: view === "monthly" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "monthly" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📅 月次</button>
+          <button onClick={() => setView("plu")} style={{ padding: "8px 14px", background: view === "plu" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "plu" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>📋 PLU</button>
+          <button onClick={() => setView("drawer")} style={{ padding: "8px 14px", background: view === "drawer" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "drawer" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>🔓 ドロア</button>
+          <button onClick={() => setView("cashcheck")} style={{ padding: "8px 14px", background: view === "cashcheck" ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 8, color: view === "cashcheck" ? C.ink : C.gold, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>💰 レジ確認</button>
         </div>
         <button onClick={() => window.print()} disabled={loading}
           style={{ marginLeft: "auto", padding: "8px 16px", background: C.gold, border: "none", borderRadius: 8, color: C.ink, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
@@ -280,7 +285,7 @@ export default function Owner() {
         <div style={{ textAlign: "center", marginBottom: 8 }}>
           <div className="mincho gold" style={{ color: C.gold, letterSpacing: 6, fontSize: 12 }}>LOUNGE CATTLEYA</div>
           <div className="mincho val" style={{ fontSize: 28, fontWeight: 700, color: C.cream, letterSpacing: 2 }}>
-            {yy}年 {Number(mm)}月　{view === "history" ? "取引履歴" : view === "coupon" ? "クーポン利用履歴" : "経営月次レポート"}
+            {yy}年 {Number(mm)}月　{view === "history" ? "取引履歴" : view === "coupon" ? "クーポン利用履歴" : view === "daily" ? "日計" : view === "monthly" ? "月次集計" : view === "plu" ? "PLU集計" : view === "drawer" ? "ドロア開閉ログ" : view === "cashcheck" ? "レジ確認ログ" : "経営月次レポート"}
           </div>
           <div className="lbl" style={{ color: C.sub, fontSize: 11, marginTop: 4 }}>― 経営者専用 / Confidential ―</div>
         </div>
@@ -289,6 +294,16 @@ export default function Owner() {
           <div style={{ textAlign: "center", color: C.sub, padding: 60 }}>読み込み中…</div>
         ) : view === "coupon" ? (
           <CouponView coupons={coupons} selectedMonth={selectedMonth} C={C} yen={yen} />
+        ) : view === "daily" ? (
+          <OwnerDailyView sales={sales} tobacco={tobacco} selectedMonth={selectedMonth} C={C} yen={yen} />
+        ) : view === "monthly" ? (
+          <OwnerMonthlyView sales={sales} tobacco={tobacco} selectedMonth={selectedMonth} C={C} yen={yen} />
+        ) : view === "plu" ? (
+          <OwnerPluView items={items} C={C} yen={yen} />
+        ) : view === "drawer" ? (
+          <DrawerLogView selectedMonth={selectedMonth} C={C} />
+        ) : view === "cashcheck" ? (
+          <CashCheckLogView selectedMonth={selectedMonth} C={C} yen={yen} />
         ) : view === "history" ? (
           <HistoryView sales={sales} items={items} historyDay={historyDay} setHistoryDay={setHistoryDay} C={C} yen={yen} />
         ) : (
@@ -634,6 +649,192 @@ function CouponView({ coupons, selectedMonth, C, yen }) {
       <div className="lbl" style={{ color: C.sub, fontSize: 10, textAlign: "center", marginTop: 24 }}>
         {!isJuly && "※ 7月はクーポン値引き集計が表示されます"}
       </div>
+    </div>
+  );
+}
+
+// ===== 日計ビュー =====
+function OwnerDailyView({ sales, tobacco, selectedMonth, C, yen }) {
+  const [yy, mm] = selectedMonth.split("-");
+  // 日付ごとに集計
+  const byDate = {};
+  sales.forEach(s => {
+    const d = s.sale_date || (s.sale_time || "").slice(0, 10);
+    if (!d) return;
+    if (!byDate[d]) byDate[d] = { cash: 0, pay: 0, count: 0, people: 0 };
+    if (s.pay_method === "現金") byDate[d].cash += s.amount;
+    else byDate[d].pay += s.amount;
+    byDate[d].count++;
+    byDate[d].people += s.people_count || 0;
+  });
+  const dates = Object.keys(byDate).sort();
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 12 }}>{yy}年{Number(mm)}月　日別集計</div>
+      {dates.length === 0 ? <div className="lbl" style={{ color: C.sub, textAlign: "center", padding: 40 }}>データなし</div> : (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>{["日付","組数","人数","現金","ペイキャス","合計"].map(h => (
+              <th key={h} className="lbl" style={{ color: C.sub, fontSize: 11, padding: "6px 8px", borderBottom: `1px solid ${C.line}`, textAlign: h === "日付" ? "left" : "right" }}>{h}</th>
+            ))}</tr>
+          </thead>
+          <tbody>
+            {dates.map(d => {
+              const r = byDate[d];
+              const dow = ["日","月","火","水","木","金","土"][new Date(d).getDay()];
+              return (
+                <tr key={d}>
+                  <td className="lbl" style={{ color: C.cream, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, fontSize: 13 }}>{Number(d.split("-")[2])}日({dow})</td>
+                  <td className="lbl" style={{ color: C.sub, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontSize: 13 }}>{r.count}</td>
+                  <td className="lbl" style={{ color: C.sub, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontSize: 13 }}>{r.people}</td>
+                  <td className="val" style={{ color: C.cream, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontSize: 13 }}>{yen(r.cash)}</td>
+                  <td className="val" style={{ color: C.cream, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontSize: 13 }}>{yen(r.pay)}</td>
+                  <td className="gold" style={{ color: C.gold, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontWeight: 700, fontSize: 13 }}>{yen(r.cash + r.pay)}</td>
+                </tr>
+              );
+            })}
+            <tr>
+              <td colSpan={2} className="lbl" style={{ color: C.gold, padding: "10px 8px", fontWeight: 700 }}>合計</td>
+              <td className="val" style={{ color: C.gold, padding: "10px 8px", textAlign: "right", fontWeight: 700 }}>{sales.reduce((a,s) => a + (s.people_count||0), 0)}</td>
+              <td className="gold" style={{ color: C.gold, padding: "10px 8px", textAlign: "right", fontWeight: 700 }}>{yen(sales.filter(s=>s.pay_method==="現金").reduce((a,s)=>a+s.amount,0))}</td>
+              <td className="gold" style={{ color: C.gold, padding: "10px 8px", textAlign: "right", fontWeight: 700 }}>{yen(sales.filter(s=>s.pay_method==="ペイキャス").reduce((a,s)=>a+s.amount,0))}</td>
+              <td className="gold" style={{ color: C.gold, padding: "10px 8px", textAlign: "right", fontWeight: 900, fontSize: 16 }}>{yen(sales.reduce((a,s)=>a+s.amount,0))}</td>
+            </tr>
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+// ===== 月次ビュー =====
+function OwnerMonthlyView({ sales, tobacco, selectedMonth, C, yen }) {
+  const total = sales.reduce((a, s) => a + s.amount, 0);
+  const cash = sales.filter(s => s.pay_method === "現金").reduce((a, s) => a + s.amount, 0);
+  const pay = sales.filter(s => s.pay_method === "ペイキャス").reduce((a, s) => a + s.amount, 0);
+  const people = sales.reduce((a, s) => a + (s.people_count || 0), 0);
+  const tobTotal = tobacco.reduce((a, t) => a + t.price, 0);
+  const tax = Math.round(total / 11);
+  const rows = [
+    ["総売上（タバコ除く）", yen(total)],
+    ["　うち現金", yen(cash)],
+    ["　うちペイキャス", yen(pay)],
+    ["内消費税10%", yen(tax)],
+    ["来客組数", `${sales.length}組`],
+    ["来客人数", `${people}名`],
+    ["客単価（組）", yen(sales.length ? Math.round(total / sales.length) : 0)],
+    ["タバコ売上", yen(tobTotal)],
+  ];
+  return (
+    <div style={{ marginTop: 16 }}>
+      {rows.map(([label, val]) => (
+        <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${C.line}44` }}>
+          <span className="lbl" style={{ color: C.sub }}>{label}</span>
+          <span className="val" style={{ color: C.gold, fontWeight: 700 }}>{val}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ===== PLUビュー =====
+function OwnerPluView({ items, C, yen }) {
+  const plu = {};
+  items.forEach(o => {
+    if (!o.item_name || o.item_name.startsWith("【") || o.price <= 0) return;
+    if (!plu[o.item_name]) plu[o.item_name] = { qty: 0, amount: 0 };
+    plu[o.item_name].qty += o.qty || 1;
+    plu[o.item_name].amount += (o.price || 0) * (o.qty || 1);
+  });
+  const sorted = Object.entries(plu).sort((a, b) => b[1].amount - a[1].amount);
+  return (
+    <div style={{ marginTop: 16 }}>
+      {sorted.length === 0 ? <div className="lbl" style={{ color: C.sub, textAlign: "center", padding: 40 }}>データなし</div> : (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>{["商品名","数量","売上"].map(h => (
+              <th key={h} className="lbl" style={{ color: C.sub, fontSize: 11, padding: "6px 8px", borderBottom: `1px solid ${C.line}`, textAlign: h === "商品名" ? "left" : "right" }}>{h}</th>
+            ))}</tr>
+          </thead>
+          <tbody>
+            {sorted.map(([name, v]) => (
+              <tr key={name}>
+                <td className="lbl" style={{ color: C.cream, padding: "7px 8px", borderBottom: `1px solid ${C.line}33`, fontSize: 13 }}>{name}</td>
+                <td className="lbl" style={{ color: C.sub, padding: "7px 8px", borderBottom: `1px solid ${C.line}33`, textAlign: "right", fontSize: 13 }}>{v.qty}</td>
+                <td className="gold" style={{ color: C.gold, padding: "7px 8px", borderBottom: `1px solid ${C.line}33`, textAlign: "right", fontSize: 13 }}>{yen(v.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+// ===== ドロア開閉ログビュー =====
+function DrawerLogView({ selectedMonth, C }) {
+  const [yy, mm] = selectedMonth.split("-");
+  const key = `cattleya_drawer_${yy}-${String(mm).padStart(2,"0")}`;
+  // 月内の全日付分を収集
+  const daysInMonth = new Date(Number(yy), Number(mm), 0).getDate();
+  const allLogs = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateKey = `cattleya_drawer_${yy}-${String(mm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const times = JSON.parse(localStorage.getItem(dateKey) || "[]");
+    times.forEach(t => allLogs.push({ date: `${Number(mm)}/${d}`, time: t }));
+  }
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 12 }}>{yy}年{Number(mm)}月　ドロア開閉ログ（このiPadのみ）</div>
+      <div className="lbl" style={{ color: C.sub, fontSize: 11, marginBottom: 16 }}>計 {allLogs.length}回</div>
+      {allLogs.length === 0 ? <div className="lbl" style={{ color: C.sub, textAlign: "center", padding: 40 }}>ログなし</div> : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {allLogs.map((log, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background: C.panel, border: `1px solid ${C.line}`, borderRadius: 8 }}>
+              <span className="lbl" style={{ color: C.cream }}>{log.date}</span>
+              <span className="lbl" style={{ color: C.sub }}>{log.time}　ドロアを開けました</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== レジ確認ログビュー =====
+function CashCheckLogView({ selectedMonth, C, yen }) {
+  const [yy, mm] = selectedMonth.split("-");
+  const key = `cattleya_cashcheck_${yy}-${String(mm).padStart(2,"0")}`;
+  const logs = JSON.parse(localStorage.getItem(key) || "[]");
+  const resultLabel = (r) => r === "same" ? { text: "✅ 同じ", color: "#4aaa5a" } : r === "short" ? { text: "⚠️ 不足", color: "#c95a5a" } : { text: "💡 多い", color: "#5a8aca" };
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 16 }}>{yy}年{Number(mm)}月　レジ確認ログ（このiPadのみ）</div>
+      {logs.length === 0 ? <div className="lbl" style={{ color: C.sub, textAlign: "center", padding: 40 }}>ログなし</div> : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {logs.map((log, i) => {
+            const rl = resultLabel(log.result);
+            return (
+              <div key={i} style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: "12px 14px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span className="val" style={{ color: C.cream, fontWeight: 700 }}>{log.time}　{log.staff}</span>
+                  <span style={{ color: rl.color, fontWeight: 700 }}>{rl.text}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                  <span className="lbl" style={{ color: C.sub }}>あるべき金額</span>
+                  <span className="val" style={{ color: C.gold }}>{yen(log.systemCash)}</span>
+                </div>
+                {log.diff !== 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginTop: 2 }}>
+                    <span className="lbl" style={{ color: C.sub }}>差額</span>
+                    <span style={{ color: log.diff < 0 ? "#c95a5a" : "#5a8aca", fontWeight: 700 }}>{log.diff > 0 ? "+" : ""}¥{(log.diff||0).toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
