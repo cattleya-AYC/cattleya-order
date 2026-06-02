@@ -306,9 +306,9 @@ export default function App() {
   ];
 
   const ConfirmModal = () => {
-    const hasFood = cart.some(item => FOOD_SWEET_ITEMS.some(f => item.name.includes(f)));
-    const hasDrink = cart.some(item => !FOOD_SWEET_ITEMS.some(f => item.name.includes(f)) && !item.name.includes("モーニング") && !item.name.includes("おかわり") && item.price > 0);
-    const autoSetCount = hasFood && hasDrink ? (people || 0) : 0;
+    const foodCount = cart.filter(item => FOOD_SWEET_ITEMS.some(f => item.name.includes(f))).reduce((a, i) => a + i.qty, 0);
+    const drinkCount = cart.filter(item => !FOOD_SWEET_ITEMS.some(f => item.name.includes(f)) && !item.name.includes("モーニング") && !item.name.includes("おかわり") && item.price > 0).reduce((a, i) => a + i.qty, 0);
+    const autoSetCount = foodCount > 0 && drinkCount > 0 ? Math.min(foodCount, drinkCount) : 0;
     const autoDiscount = autoSetCount * 150;
     const displayTotal = total - autoDiscount;
 
