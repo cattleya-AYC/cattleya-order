@@ -11,12 +11,15 @@ function speak(text) {
     const synth = window.speechSynthesis;
     if (!synth) return;
     synth.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = "ja-JP";
-    utter.rate = 0.9;
-    utter.pitch = 1.1;
-    utter.volume = 1.0;
-    synth.speak(utter);
+    // iOSはcancel直後にspeakするとフリーズしやすいため少し待つ
+    setTimeout(() => {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "ja-JP";
+      utter.rate = 0.9;
+      utter.pitch = 1.1;
+      utter.volume = 1.0;
+      synth.speak(utter);
+    }, 100);
   } catch (e) {}
 }
 
@@ -48,12 +51,11 @@ export default function Kitchen() {
       .order("created_at", { ascending: true });
     const list = (data || []).filter(o => o.item_name && !o.item_name.startsWith("【人数") && !o.item_name.includes("値引き") && (o.price === null || o.price >= 0));
 
-    // 新規注文があれば音
+    // 新規注文があれば音声
     const curIds = new Set(list.map(o => o.id));
     let isNew = false;
     curIds.forEach(id => { if (!prevIds.current.has(id)) isNew = true; });
     if (isNew && prevIds.current.size > 0 && soundOn) {
-      // 新しく追加されたテーブルごとに読み上げ
       const newItems = list.filter(o => !prevIds.current.has(o.id));
       const byTable = {};
       newItems.forEach(o => {
@@ -88,6 +90,37 @@ export default function Kitchen() {
     const iv = setInterval(() => setTick(t => t + 1), 30000);
     return () => clearInterval(iv);
   }, []);
+
+  // ★ 音声フリーズ防止（iOS Safari対策）★
+  useEffect(() => {
+    if (!soundOn) return;
+    const synth = window.speechSynthesis;
+
+    // 5秒ごとにspeechSynthesisの状態をチェック・リセット
+    const keepAlive = setInterval(() => {
+      try {
+        if (synth.paused) {
+          synth.resume(); // 止まっていたら再開
+        }
+        if (!synth.speaking) {
+          synth.cancel(); // キューが詰まっていたらリセット
+        }
+      } catch (e) {}
+    }, 5000);
+
+    // スリープ復帰・タブが前面に戻った時にリセット
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        try { synth.cancel(); } catch (e) {}
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(keepAlive);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [soundOn]);
 
   // テーブルごとにまとめる（古い順）
   const byTable = {};
