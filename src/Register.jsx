@@ -810,6 +810,10 @@ export default function Register() {
   const [cashCheckLogs, setCashCheckLogs] = useState([]);
   const [cashChecking, setCashChecking] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState(false);
+  const PIN_CODE = "1234"; // 変更する場合はここを書き換え
   const [showCoupon, setShowCoupon] = useState(false);
   const [couponType, setCouponType] = useState(null);   // 'A' | 'B'
   const [couponNo, setCouponNo] = useState("");
@@ -918,6 +922,11 @@ export default function Register() {
     if (checkingOut) return; // 二重送信防止
     setCheckingOut(true);
     const t = selected;
+    // 最初の注文時刻を取得（滞在時間計算用）
+    const { data: firstOrder } = await supabase.from("orders")
+      .select("created_at").eq("table_no", String(t))
+      .order("created_at", { ascending: true }).limit(1);
+    const checkinTime = firstOrder && firstOrder[0] ? firstOrder[0].created_at : null;
     const couponDisc = couponApplied ? couponDiscount : 0;
     const setDisc = setCount * 150;
     const amount = tableTotal(t) - couponDisc - setDisc;
@@ -950,7 +959,7 @@ export default function Register() {
     }
 
     await supabase.from("orders").delete().eq("table_no", String(t));
-    await supabase.from("sales").insert({ table_no: String(t), amount, pay_method: payMethod, receipt_type: receiptType, people_count: people, sale_time: now });
+    await supabase.from("sales").insert({ table_no: String(t), amount, pay_method: payMethod, receipt_type: receiptType, people_count: people, sale_time: now, checkin_time: checkinTime });
     await fetchTodaySales();
     const record = { table: t, amount, time: now, pay: payMethod, receipt: receiptType, timestamp: Date.now() };
     setHistory((prev) => [record, ...prev]);
@@ -1357,6 +1366,41 @@ export default function Register() {
         </div>
       )}
 
+      {showPinModal && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }}>
+          <div style={{ background: "#1a120a", border: "2px solid #c9952a", borderRadius: 16, padding: 28, width: 300, textAlign: "center" }}>
+            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 20, fontWeight: 900, marginBottom: 20 }}>🔒 管理メニュー</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 12 }}>
+              {["1","2","3","4","5","6","7","8","9","","0","⌫"].map((k) => (
+                <button key={k} onClick={() => {
+                  if (k === "⌫") { setPinInput(p => p.slice(0,-1)); setPinError(false); }
+                  else if (k === "") return;
+                  else if (pinInput.length < 4) setPinInput(p => p + k);
+                }}
+                  style={{ padding: "16px 0", background: k === "" ? "transparent" : "#251a0a", border: k === "" ? "none" : "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 22, fontWeight: 700, cursor: k === "" ? "default" : "pointer" }}>
+                  {k}
+                </button>
+              ))}
+            </div>
+            <div style={{ letterSpacing: 16, fontSize: 28, color: "#c9952a", marginBottom: 12 }}>
+              {"●".repeat(pinInput.length)}{"○".repeat(4 - pinInput.length)}
+            </div>
+            {pinError && <div style={{ color: "#c95a5a", fontSize: 14, marginBottom: 8 }}>暗証番号が違います</div>}
+            <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+              <button onClick={() => { setShowPinModal(false); setPinInput(""); setPinError(false); }}
+                style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>キャンセル</button>
+              <button onClick={() => {
+                if (pinInput === PIN_CODE) { setShowPinModal(false); setShowAdmin(true); setPinInput(""); setPinError(false); }
+                else { setPinError(true); setPinInput(""); }
+              }}
+                style={{ flex: 2, padding: 14, background: "#2a3a6a", border: "none", borderRadius: 10, color: "#fff", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
+                🔓 開く
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {cashChecking && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 16, overflowY: "auto" }}>
           <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 20, width: "100%", maxWidth: 400 }}>
@@ -1561,7 +1605,7 @@ export default function Register() {
               style={{ padding: "16px 4px", background: "#0a1a18", border: "1px solid #1a4a3a", borderRadius: 10, color: "#3a9a8a", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
               🔓 ドロア
             </button>
-            <button onClick={() => setShowAdmin(true)}
+            <button onClick={() => { setShowPinModal(true); setPinInput(""); setPinError(false); }}
               style={{ padding: "16px 4px", background: "#10182a", border: "1px solid #2a3a6a", borderRadius: 10, color: "#5a8aca", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
               ⚙️ 管理
             </button>
