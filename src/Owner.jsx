@@ -787,12 +787,12 @@ function OwnerPluView({ items, C, yen }) {
 
 // ===== ドロア開閉ログビュー（Supabase版）=====
 function DrawerLogView({ selectedMonth, C }) {
-  const [logs, setLogs] = React.useState([]);
+  const [logs, setLogs] = useState([]);
   const [yy, mm] = selectedMonth.split("-");
   const start = `${yy}-${String(mm).padStart(2,"0")}-01`;
   const end = `${yy}-${String(mm).padStart(2,"0")}-31`;
 
-  React.useEffect(() => {
+  useEffect(() => {
     supabase.from("drawer_logs").select("*")
       .gte("log_date", start).lte("log_date", end)
       .order("opened_at", { ascending: false })
@@ -824,12 +824,12 @@ function DrawerLogView({ selectedMonth, C }) {
 
 // ===== レジ確認ログビュー（Supabase版）=====
 function CashCheckLogView({ selectedMonth, C, yen }) {
-  const [logs, setLogs] = React.useState([]);
+  const [logs, setLogs] = useState([]);
   const [yy, mm] = selectedMonth.split("-");
   const start = `${yy}-${String(mm).padStart(2,"0")}-01`;
   const end = `${yy}-${String(mm).padStart(2,"0")}-31`;
 
-  React.useEffect(() => {
+  useEffect(() => {
     supabase.from("cashcheck_logs").select("*")
       .gte("log_date", start).lte("log_date", end)
       .order("checked_at", { ascending: false })
@@ -941,10 +941,10 @@ function StayTimeView({ sales, C }) {
 
 // ===== テーブルクリア（未収記録）ビュー =====
 function TableClearView({ supabase, C, yen }) {
-  const [orders, setOrders] = React.useState([]);
-  const [logs, setLogs] = React.useState([]);
-  const [confirming, setConfirming] = React.useState(null); // クリア確認中のテーブルNo
-  const [loading, setLoading] = React.useState(false);
+  const [orders, setOrders] = useState([]);
+  const [logs, setLogs] = useState([]);
+  const [confirming, setConfirming] = useState(null); // クリア確認中のテーブルNo
+  const [loading, setLoading] = useState(false);
 
   const fetchData = async () => {
     const [{ data: o }, { data: l }] = await Promise.all([
@@ -955,7 +955,7 @@ function TableClearView({ supabase, C, yen }) {
     setLogs(l || []);
   };
 
-  React.useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, []);
 
   // テーブルごとに注文を集計
   const byTable = {};
