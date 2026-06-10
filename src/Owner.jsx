@@ -88,7 +88,7 @@ export default function Owner() {
   const [items, setItems] = useState([]);
   const [prevTotal, setPrevTotal] = useState(0);
   const [yoyTotal, setYoyTotal] = useState(0);
-  const [view, setView] = useState("report"); // report | history | coupon | daily | monthly | plu | drawer | cashcheck | staytime
+  const [view, setView] = useState("report"); // report | history | coupon | daily | monthly | plu | drawer | cashcheck | staytime | clear
   const [historyDay, setHistoryDay] = useState("all");
   const [coupons, setCoupons] = useState([]);
 
@@ -276,6 +276,7 @@ export default function Owner() {
             ["drawer","🔓 ドロア"],
             ["cashcheck","💰 レジ確認"],
             ["staytime","⏱ 滞在時間"],
+            ["clear","🗑 テーブルクリア"],
           ].map(([v, label]) => (
             <button key={v} onClick={() => setView(v)}
               style={{ padding: "7px 12px", background: view === v ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 6, color: view === v ? C.ink : C.gold, fontWeight: 700, fontSize: 12, cursor: "pointer", textAlign: "left", whiteSpace: "nowrap" }}>
@@ -294,7 +295,7 @@ export default function Owner() {
         <div style={{ textAlign: "center", marginBottom: 8 }}>
           <div className="mincho gold" style={{ color: C.gold, letterSpacing: 6, fontSize: 12 }}>LOUNGE CATTLEYA</div>
           <div className="mincho val" style={{ fontSize: 28, fontWeight: 700, color: C.cream, letterSpacing: 2 }}>
-            {yy}年 {Number(mm)}月　{view === "history" ? "取引履歴" : view === "coupon" ? "クーポン利用履歴" : view === "daily" ? "日計" : view === "monthly" ? "月次集計" : view === "plu" ? "PLU集計" : view === "drawer" ? "ドロア開閉ログ" : view === "cashcheck" ? "レジ確認ログ" : view === "staytime" ? "滞在時間" : "経営月次レポート"}
+            {yy}年 {Number(mm)}月　{view === "history" ? "取引履歴" : view === "coupon" ? "クーポン利用履歴" : view === "daily" ? "日計" : view === "monthly" ? "月次集計" : view === "plu" ? "PLU集計" : view === "drawer" ? "ドロア開閉ログ" : view === "cashcheck" ? "レジ確認ログ" : view === "staytime" ? "滞在時間" : view === "clear" ? "テーブルクリア（未収記録）" : "経営月次レポート"}
           </div>
           <div className="lbl" style={{ color: C.sub, fontSize: 11, marginTop: 4 }}>― 経営者専用 / Confidential ―</div>
         </div>
@@ -315,6 +316,8 @@ export default function Owner() {
           <CashCheckLogView selectedMonth={selectedMonth} C={C} yen={yen} />
         ) : view === "staytime" ? (
           <StayTimeView sales={sales} C={C} />
+        ) : view === "clear" ? (
+          <TableClearView supabase={supabase} C={C} yen={yen} />
         ) : view === "history" ? (
           <HistoryView sales={sales} items={items} historyDay={historyDay} setHistoryDay={setHistoryDay} C={C} yen={yen} />
         ) : (
@@ -931,6 +934,123 @@ function StayTimeView({ sales, C }) {
             ))}
           </tbody>
         </table>
+      )}
+    </div>
+  );
+}
+
+// ===== テーブルクリア（未収記録）ビュー =====
+function TableClearView({ supabase, C, yen }) {
+  const [orders, setOrders] = React.useState([]);
+  const [logs, setLogs] = React.useState([]);
+  const [confirming, setConfirming] = React.useState(null); // クリア確認中のテーブルNo
+  const [loading, setLoading] = React.useState(false);
+
+  const fetchData = async () => {
+    const [{ data: o }, { data: l }] = await Promise.all([
+      supabase.from("orders").select("*").in("status", ["pending","served"]).order("table_no"),
+      supabase.from("uncollected_logs").select("*").order("cleared_at", { ascending: false }).limit(20),
+    ]);
+    setOrders(o || []);
+    setLogs(l || []);
+  };
+
+  React.useEffect(() => { fetchData(); }, []);
+
+  // テーブルごとに注文を集計
+  const byTable = {};
+  orders.forEach(o => {
+    if (o.item_name.startsWith("【人数")) return;
+    if (!byTable[o.table_no]) byTable[o.table_no] = { items: [], total: 0 };
+    byTable[o.table_no].items.push(o);
+    byTable[o.table_no].total += o.price * o.qty;
+  });
+  const occupiedTables = Object.keys(byTable).sort();
+
+  const clearTable = async (tableNo) => {
+    setLoading(true);
+    const tableData = byTable[tableNo];
+    // 未収記録をSupabaseに保存
+    await supabase.from("uncollected_logs").insert({
+      cleared_at: new Date().toISOString(),
+      log_date: new Date().toISOString().slice(0,10),
+      table_no: tableNo,
+      amount: tableData.total,
+      items: tableData.items.map(o => ({ name: o.item_name, qty: o.qty, price: o.price })),
+    });
+    // 該当テーブルの注文を全削除
+    await supabase.from("orders").delete().eq("table_no", String(tableNo));
+    setConfirming(null);
+    await fetchData();
+    setLoading(false);
+  };
+
+  const fmtDate = (iso) => {
+    const d = new Date(iso);
+    return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  };
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      {/* 使用中テーブル一覧 */}
+      <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 10 }}>現在使用中のテーブル</div>
+      {occupiedTables.length === 0 ? (
+        <div style={{ color: C.sub, textAlign: "center", padding: 30, background: C.panel, borderRadius: 10, marginBottom: 20 }}>使用中テーブルなし</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
+          {occupiedTables.map(t => (
+            <div key={t} style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 12, padding: "14px 16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ color: C.gold, fontWeight: 900, fontSize: 18 }}>テーブル {t}</span>
+                <span style={{ color: C.gold, fontWeight: 700, fontSize: 16 }}>{yen(byTable[t].total)}</span>
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                {byTable[t].items.filter(o => o.price >= 0).map((o, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.sub, padding: "2px 0" }}>
+                    <span>{o.item_name} ×{o.qty}</span>
+                    <span>{yen(o.price * o.qty)}</span>
+                  </div>
+                ))}
+              </div>
+              {confirming === t ? (
+                <div style={{ background: "#2a0a0a", border: "2px solid #c95a5a", borderRadius: 10, padding: 12, textAlign: "center" }}>
+                  <div style={{ color: "#ff6b6b", fontWeight: 700, marginBottom: 10 }}>⚠️ テーブル{t}の注文を未収として記録し削除します</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => setConfirming(null)}
+                      style={{ flex: 1, padding: 10, background: "transparent", border: `1px solid ${C.line}`, borderRadius: 8, color: C.sub, cursor: "pointer" }}>キャンセル</button>
+                    <button onClick={() => clearTable(t)} disabled={loading}
+                      style={{ flex: 2, padding: 10, background: "#c95a5a", border: "none", borderRadius: 8, color: "#fff", fontWeight: 900, cursor: "pointer" }}>
+                      {loading ? "処理中…" : "🗑 未収記録してクリア"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setConfirming(t)}
+                  style={{ width: "100%", padding: "10px 0", background: "transparent", border: "2px solid #c95a5a", borderRadius: 8, color: "#c95a5a", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                  🗑 このテーブルをクリア
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 未収記録履歴 */}
+      <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 10 }}>未収記録履歴</div>
+      {logs.length === 0 ? (
+        <div style={{ color: C.sub, textAlign: "center", padding: 20 }}>記録なし</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {logs.map((log, i) => (
+            <div key={i} style={{ background: C.panel, border: `1px solid #c95a5a44`, borderRadius: 8, padding: "10px 14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ color: C.cream, fontWeight: 700 }}>テーブル {log.table_no}</span>
+                <span style={{ color: "#c95a5a", fontWeight: 700 }}>{yen(log.amount)}</span>
+              </div>
+              <div style={{ color: C.sub, fontSize: 12 }}>{fmtDate(log.cleared_at)}</div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
