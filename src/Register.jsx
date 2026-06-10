@@ -51,8 +51,8 @@ function getNextCouponNo() {
   }
 }
 
-function buildCouponHTML() {
-  const no = getNextCouponNo();
+function buildCouponHTML(no) {
+  if (!no) no = getNextCouponNo();
   const now = new Date();
   const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
   return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"></head><body style="font-family:'Hiragino Mincho ProN',serif;width:384px;margin:0;padding:6px 8px;box-sizing:border-box;color:#000;text-align:center;">
@@ -993,8 +993,16 @@ export default function Register() {
       const issuePeriod = now2 >= new Date(`${now2.getFullYear()}-06-01`);
       let printHtml = html;
       if (amount >= 1000 && issuePeriod) {
+        const couponNo = getNextCouponNo();
+        // 発行記録をSupabaseに保存
+        supabase.from("coupons").insert({
+          coupon_no: `A${couponNo}`,
+          coupon_type: "A",
+          issued_at: new Date().toISOString(),
+          is_used: false,
+        });
         // クーポンを区切り線のあとに結合（1回のPassPRNTで連続印刷）
-        const couponBody = buildCouponHTML().replace(/^[\s\S]*?<body[^>]*>/, "").replace(/<\/body>[\s\S]*$/, "");
+        const couponBody = buildCouponHTML(couponNo).replace(/^[\s\S]*?<body[^>]*>/, "").replace(/<\/body>[\s\S]*$/, "");
         printHtml = html.replace("</body></html>", `<div style="margin-top:8px;border-top:3px dashed #000;padding-top:8px;margin-top:10px">${couponBody}</div></body></html>`);
       }
       const passprntUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(printHtml);
