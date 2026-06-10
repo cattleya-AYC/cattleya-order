@@ -88,7 +88,7 @@ export default function Owner() {
   const [items, setItems] = useState([]);
   const [prevTotal, setPrevTotal] = useState(0);
   const [yoyTotal, setYoyTotal] = useState(0);
-  const [view, setView] = useState("report"); // report | history | coupon | daily | monthly | plu | drawer | cashcheck
+  const [view, setView] = useState("report"); // report | history | coupon | daily | monthly | plu | drawer | cashcheck | staytime
   const [historyDay, setHistoryDay] = useState("all");
   const [coupons, setCoupons] = useState([]);
 
@@ -275,6 +275,7 @@ export default function Owner() {
             ["plu","📋 PLU"],
             ["drawer","🔓 ドロア"],
             ["cashcheck","💰 レジ確認"],
+            ["staytime","⏱ 滞在時間"],
           ].map(([v, label]) => (
             <button key={v} onClick={() => setView(v)}
               style={{ padding: "7px 12px", background: view === v ? C.gold : "transparent", border: `1px solid ${C.gold}`, borderRadius: 6, color: view === v ? C.ink : C.gold, fontWeight: 700, fontSize: 12, cursor: "pointer", textAlign: "left", whiteSpace: "nowrap" }}>
@@ -293,7 +294,7 @@ export default function Owner() {
         <div style={{ textAlign: "center", marginBottom: 8 }}>
           <div className="mincho gold" style={{ color: C.gold, letterSpacing: 6, fontSize: 12 }}>LOUNGE CATTLEYA</div>
           <div className="mincho val" style={{ fontSize: 28, fontWeight: 700, color: C.cream, letterSpacing: 2 }}>
-            {yy}年 {Number(mm)}月　{view === "history" ? "取引履歴" : view === "coupon" ? "クーポン利用履歴" : view === "daily" ? "日計" : view === "monthly" ? "月次集計" : view === "plu" ? "PLU集計" : view === "drawer" ? "ドロア開閉ログ" : view === "cashcheck" ? "レジ確認ログ" : "経営月次レポート"}
+            {yy}年 {Number(mm)}月　{view === "history" ? "取引履歴" : view === "coupon" ? "クーポン利用履歴" : view === "daily" ? "日計" : view === "monthly" ? "月次集計" : view === "plu" ? "PLU集計" : view === "drawer" ? "ドロア開閉ログ" : view === "cashcheck" ? "レジ確認ログ" : view === "staytime" ? "滞在時間" : "経営月次レポート"}
           </div>
           <div className="lbl" style={{ color: C.sub, fontSize: 11, marginTop: 4 }}>― 経営者専用 / Confidential ―</div>
         </div>
@@ -312,6 +313,8 @@ export default function Owner() {
           <DrawerLogView selectedMonth={selectedMonth} C={C} />
         ) : view === "cashcheck" ? (
           <CashCheckLogView selectedMonth={selectedMonth} C={C} yen={yen} />
+        ) : view === "staytime" ? (
+          <StayTimeView sales={sales} C={C} />
         ) : view === "history" ? (
           <HistoryView sales={sales} items={items} historyDay={historyDay} setHistoryDay={setHistoryDay} C={C} yen={yen} />
         ) : (
@@ -842,6 +845,71 @@ function CashCheckLogView({ selectedMonth, C, yen }) {
             );
           })}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ===== 滞在時間ビュー =====
+function StayTimeView({ sales, C }) {
+  const fmtTime = (iso) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  };
+  const fmtDuration = (ms) => {
+    if (!ms || ms < 0) return "—";
+    const m = Math.round(ms / 60000);
+    if (m < 60) return `${m}分`;
+    return `${Math.floor(m/60)}時間${m%60}分`;
+  };
+
+  const rows = sales.filter(s => s.checkin_time && s.sale_time).map(s => {
+    const checkin = new Date(s.checkin_time);
+    const checkout = new Date(s.sale_time);
+    const duration = checkout - checkin;
+    return { ...s, checkin, checkout, duration };
+  }).sort((a, b) => b.checkout - a.checkout);
+
+  const avgMs = rows.length ? rows.reduce((a, r) => a + r.duration, 0) / rows.length : 0;
+  const maxMs = rows.length ? Math.max(...rows.map(r => r.duration)) : 0;
+  const minMs = rows.length ? Math.min(...rows.map(r => r.duration)) : 0;
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      {rows.length > 0 && (
+        <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
+          <div style={{ color: C.sub, fontSize: 12, marginBottom: 10 }}>滞在時間サマリー</div>
+          {[["平均滞在時間", fmtDuration(avgMs)], ["最長", fmtDuration(maxMs)], ["最短", fmtDuration(minMs)]].map(([l, v]) => (
+            <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.line}44` }}>
+              <span style={{ color: C.sub }}>{l}</span>
+              <span style={{ color: C.gold, fontWeight: 700 }}>{v}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {rows.length === 0 ? (
+        <div style={{ color: C.sub, textAlign: "center", padding: 40 }}>データなし（会計後から記録されます）</div>
+      ) : (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>{["日付","T","来店","会計","滞在時間","人数"].map(h => (
+              <th key={h} style={{ color: C.sub, fontSize: 11, padding: "6px 8px", borderBottom: `1px solid ${C.line}`, textAlign: h === "日付" ? "left" : "right" }}>{h}</th>
+            ))}</tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i}>
+                <td style={{ color: C.cream, padding: "8px 8px", borderBottom: `1px solid ${C.line}33`, fontSize: 12 }}>{r.sale_date ? r.sale_date.slice(5) : "—"}</td>
+                <td style={{ color: C.sub, padding: "8px 8px", borderBottom: `1px solid ${C.line}33`, textAlign: "right", fontSize: 12 }}>{r.table_no}</td>
+                <td style={{ color: C.sub, padding: "8px 8px", borderBottom: `1px solid ${C.line}33`, textAlign: "right", fontSize: 12 }}>{fmtTime(r.checkin_time)}</td>
+                <td style={{ color: C.sub, padding: "8px 8px", borderBottom: `1px solid ${C.line}33`, textAlign: "right", fontSize: 12 }}>{fmtTime(r.sale_time)}</td>
+                <td style={{ color: C.gold, padding: "8px 8px", borderBottom: `1px solid ${C.line}33`, textAlign: "right", fontWeight: 700, fontSize: 13 }}>{fmtDuration(r.duration)}</td>
+                <td style={{ color: C.sub, padding: "8px 8px", borderBottom: `1px solid ${C.line}33`, textAlign: "right", fontSize: 12 }}>{r.people_count}名</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );
