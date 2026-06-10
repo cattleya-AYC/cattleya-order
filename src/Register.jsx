@@ -1021,6 +1021,8 @@ export default function Register() {
     const existing = JSON.parse(localStorage.getItem(key) || "[]");
     existing.push(timeStr);
     localStorage.setItem(key, JSON.stringify(existing));
+    // Supabaseにも保存（どのデバイスからも参照可能）
+    supabase.from("drawer_logs").insert({ opened_at: now.toISOString(), log_date: today });
     // mPOP ドロアオープン（最小レシートでPassPRNTを動かす）
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:2px;width:384px;font-size:1px;color:white;">.</body></html>`;
     const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
@@ -1118,7 +1120,16 @@ export default function Register() {
     const diffSigned = cashCheckResult === "short" ? -diff : cashCheckResult === "over" ? diff : 0;
     const newLog = { time: now, staff: staffName, systemCash, salesCash: todayCashFromDB, result: cashCheckResult, diff: diffSigned };
     setCashCheckLogs((prev) => [newLog, ...prev]);
-    // 月別でlocalStorageにも保存（経営レポート用）
+    // Supabaseに保存（どのデバイスからも参照可能）
+    supabase.from("cashcheck_logs").insert({
+      checked_at: new Date().toISOString(),
+      log_date: new Date().toISOString().slice(0,10),
+      staff: staffName,
+      system_cash: systemCash,
+      result: cashCheckResult,
+      diff: diffSigned,
+    });
+    // localStorageにも保存（後方互換）
     const nowDate = new Date();
     const mKey = `cattleya_cashcheck_${nowDate.getFullYear()}-${String(nowDate.getMonth()+1).padStart(2,"0")}`;
     const existing = JSON.parse(localStorage.getItem(mKey) || "[]");
