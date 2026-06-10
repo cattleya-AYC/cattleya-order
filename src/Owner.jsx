@@ -924,7 +924,10 @@ function CashCheckLogView({ selectedMonth, C, yen }) {
 function StayTimeView({ sales, C }) {
   const fmtTime = (iso) => {
     if (!iso) return "—";
+    // "HH:MM" 形式ならそのまま返す
+    if (/^\d{1,2}:\d{2}$/.test(iso)) return iso;
     const d = new Date(iso);
+    if (isNaN(d.getTime())) return "—";
     return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
   };
   const fmtDuration = (ms) => {
@@ -936,8 +939,14 @@ function StayTimeView({ sales, C }) {
 
   const rows = sales.filter(s => s.checkin_time && s.sale_time).map(s => {
     const checkin = new Date(s.checkin_time);
-    const checkout = new Date(s.sale_time);
-    const duration = checkout - checkin;
+    // sale_timeが "HH:MM" 形式の場合、sale_dateと合わせてDateに変換
+    let checkout;
+    if (/^\d{1,2}:\d{2}$/.test(s.sale_time)) {
+      checkout = new Date(`${s.sale_date}T${s.sale_time.padStart(5,"0")}:00`);
+    } else {
+      checkout = new Date(s.sale_time);
+    }
+    const duration = (checkout - checkin > 0) ? checkout - checkin : null;
     return { ...s, checkin, checkout, duration };
   }).sort((a, b) => b.checkout - a.checkout);
 
