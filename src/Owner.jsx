@@ -782,28 +782,35 @@ function OwnerPluView({ items, C, yen }) {
   );
 }
 
-// ===== ドロア開閉ログビュー =====
+// ===== ドロア開閉ログビュー（Supabase版）=====
 function DrawerLogView({ selectedMonth, C }) {
+  const [logs, setLogs] = React.useState([]);
   const [yy, mm] = selectedMonth.split("-");
-  const key = `cattleya_drawer_${yy}-${String(mm).padStart(2,"0")}`;
-  // 月内の全日付分を収集
-  const daysInMonth = new Date(Number(yy), Number(mm), 0).getDate();
-  const allLogs = [];
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateKey = `cattleya_drawer_${yy}-${String(mm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-    const times = JSON.parse(localStorage.getItem(dateKey) || "[]");
-    times.forEach(t => allLogs.push({ date: `${Number(mm)}/${d}`, time: t }));
-  }
+  const start = `${yy}-${String(mm).padStart(2,"0")}-01`;
+  const end = `${yy}-${String(mm).padStart(2,"0")}-31`;
+
+  React.useEffect(() => {
+    supabase.from("drawer_logs").select("*")
+      .gte("log_date", start).lte("log_date", end)
+      .order("opened_at", { ascending: false })
+      .then(({ data }) => setLogs(data || []));
+  }, [selectedMonth]);
+
+  const fmt = (iso) => {
+    const d = new Date(iso);
+    return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  };
+
   return (
     <div style={{ marginTop: 16 }}>
-      <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 12 }}>{yy}年{Number(mm)}月　ドロア開閉ログ（このiPadのみ）</div>
-      <div className="lbl" style={{ color: C.sub, fontSize: 11, marginBottom: 16 }}>計 {allLogs.length}回</div>
-      {allLogs.length === 0 ? <div className="lbl" style={{ color: C.sub, textAlign: "center", padding: 40 }}>ログなし</div> : (
+      <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 12 }}>{yy}年{Number(mm)}月　ドロア開閉ログ</div>
+      <div className="lbl" style={{ color: C.sub, fontSize: 11, marginBottom: 16 }}>計 {logs.length}回</div>
+      {logs.length === 0 ? <div className="lbl" style={{ color: C.sub, textAlign: "center", padding: 40 }}>ログなし</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {allLogs.map((log, i) => (
+          {logs.map((log, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background: C.panel, border: `1px solid ${C.line}`, borderRadius: 8 }}>
-              <span className="lbl" style={{ color: C.cream }}>{log.date}</span>
-              <span className="lbl" style={{ color: C.sub }}>{log.time}　ドロアを開けました</span>
+              <span className="lbl" style={{ color: C.cream }}>{fmt(log.opened_at)}</span>
+              <span className="lbl" style={{ color: C.sub }}>ドロアを開けました</span>
             </div>
           ))}
         </div>
@@ -812,15 +819,29 @@ function DrawerLogView({ selectedMonth, C }) {
   );
 }
 
-// ===== レジ確認ログビュー =====
+// ===== レジ確認ログビュー（Supabase版）=====
 function CashCheckLogView({ selectedMonth, C, yen }) {
+  const [logs, setLogs] = React.useState([]);
   const [yy, mm] = selectedMonth.split("-");
-  const key = `cattleya_cashcheck_${yy}-${String(mm).padStart(2,"0")}`;
-  const logs = JSON.parse(localStorage.getItem(key) || "[]");
+  const start = `${yy}-${String(mm).padStart(2,"0")}-01`;
+  const end = `${yy}-${String(mm).padStart(2,"0")}-31`;
+
+  React.useEffect(() => {
+    supabase.from("cashcheck_logs").select("*")
+      .gte("log_date", start).lte("log_date", end)
+      .order("checked_at", { ascending: false })
+      .then(({ data }) => setLogs(data || []));
+  }, [selectedMonth]);
+
+  const fmt = (iso) => {
+    const d = new Date(iso);
+    return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  };
   const resultLabel = (r) => r === "same" ? { text: "✅ 同じ", color: "#4aaa5a" } : r === "short" ? { text: "⚠️ 不足", color: "#c95a5a" } : { text: "💡 多い", color: "#5a8aca" };
+
   return (
     <div style={{ marginTop: 16 }}>
-      <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 16 }}>{yy}年{Number(mm)}月　レジ確認ログ（このiPadのみ）</div>
+      <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 16 }}>{yy}年{Number(mm)}月　レジ確認ログ</div>
       {logs.length === 0 ? <div className="lbl" style={{ color: C.sub, textAlign: "center", padding: 40 }}>ログなし</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {logs.map((log, i) => {
@@ -828,12 +849,12 @@ function CashCheckLogView({ selectedMonth, C, yen }) {
             return (
               <div key={i} style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: "12px 14px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span className="val" style={{ color: C.cream, fontWeight: 700 }}>{log.time}　{log.staff}</span>
+                  <span className="val" style={{ color: C.cream, fontWeight: 700 }}>{fmt(log.checked_at)}　{log.staff}</span>
                   <span style={{ color: rl.color, fontWeight: 700 }}>{rl.text}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span className="lbl" style={{ color: C.sub }}>あるべき金額</span>
-                  <span className="val" style={{ color: C.gold }}>{yen(log.systemCash)}</span>
+                  <span className="val" style={{ color: C.gold }}>{yen(log.system_cash)}</span>
                 </div>
                 {log.diff !== 0 && (
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginTop: 2 }}>
