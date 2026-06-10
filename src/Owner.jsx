@@ -91,6 +91,7 @@ export default function Owner() {
   const [view, setView] = useState("report"); // report | history | coupon | daily | monthly | plu | drawer | cashcheck | staytime | clear
   const [historyDay, setHistoryDay] = useState("all");
   const [coupons, setCoupons] = useState([]);
+  const [issuedCoupons, setIssuedCoupons] = useState([]);
 
   // 手入力コスト（端末に月ごと保存）
   const [foodCost, setFoodCost] = useState("");
@@ -125,11 +126,12 @@ export default function Owner() {
       setLoading(true);
       const { start, end } = monthRange(selectedMonth);
       try {
-        const [{ data: s }, { data: t }, { data: it }, { data: cp }, pt, yt] = await Promise.all([
+        const [{ data: s }, { data: t }, { data: it }, { data: cp }, { data: ic }, pt, yt] = await Promise.all([
           supabase.from("sales").select("*").gte("sale_date", start).lte("sale_date", end).order("sale_date", { ascending: true }),
           supabase.from("tobacco_sales").select("*").gte("sale_date", start).lte("sale_date", end),
           supabase.from("order_items").select("*").gte("sale_date", start).lte("sale_date", end),
           supabase.from("coupons").select("*").gte("used_at", start).lte("used_at", end + "T23:59:59").order("used_at", { ascending: false }),
+          supabase.from("coupons").select("*").gte("issued_at", start).lte("issued_at", end + "T23:59:59").eq("is_used", false).order("issued_at", { ascending: true }),
           fetchSalesTotal(prevMonth(selectedMonth)),
           fetchSalesTotal(lastYear(selectedMonth)),
         ]);
@@ -138,6 +140,7 @@ export default function Owner() {
         setTobacco(t || []);
         setItems(it || []);
         setCoupons(cp || []);
+        setIssuedCoupons(ic || []);
         setPrevTotal(pt || 0);
         setYoyTotal(yt || 0);
       } catch (e) {
@@ -303,7 +306,7 @@ export default function Owner() {
         {loading ? (
           <div style={{ textAlign: "center", color: C.sub, padding: 60 }}>読み込み中…</div>
         ) : view === "coupon" ? (
-          <CouponView coupons={coupons} selectedMonth={selectedMonth} C={C} yen={yen} />
+          <CouponView coupons={coupons} issuedCoupons={issuedCoupons} selectedMonth={selectedMonth} C={C} yen={yen} />
         ) : view === "daily" ? (
           <OwnerDailyView sales={sales} tobacco={tobacco} selectedMonth={selectedMonth} C={C} yen={yen} />
         ) : view === "monthly" ? (
@@ -597,7 +600,17 @@ function HistoryView({ sales, items, historyDay, setHistoryDay, C, yen }) {
   );
 }
 
-function CouponView({ coupons, selectedMonth, C, yen }) {
+function CouponView({ coupons, issuedCoupons = [], selectedMonth, C, yen }) {
+  // 日別発行集計
+  const byDate = {};
+  issuedCoupons.forEach(c => {
+    const d = (c.issued_at || "").slice(0, 10);
+    if (!d) return;
+    if (!byDate[d]) byDate[d] = { nums: [] };
+    const num = parseInt((c.coupon_no || "").replace(/[^0-9]/g, ""));
+    if (!isNaN(num)) byDate[d].nums.push(num);
+  });
+  const issueDates = Object.keys(byDate).sort();
   const [yy, mm] = selectedMonth.split("-");
   const isJuly = Number(mm) === 7;
   const totalDiscount = coupons.reduce((a, c) => a + (c.discount_amount || 0), 0);
@@ -636,6 +649,39 @@ function CouponView({ coupons, selectedMonth, C, yen }) {
         )}
       </div>
 
+      {/* 日別発行集計 */}
+      {issueDates.length > 0 && (
+        <div className="card" style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
+          <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 10 }}>📋 日別発行番号</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                {["日付","枚数","番号（最小〜最大）"].map(h => (
+                  <th key={h} style={{ color: C.sub, fontSize: 11, padding: "4px 8px", borderBottom: `1px solid ${C.line}`, textAlign: h === "日付" ? "left" : "right" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {issueDates.map(d => {
+                const nums = byDate[d].nums;
+                const min = Math.min(...nums);
+                const max = Math.max(...nums);
+                const [, mm, dd] = d.split("-");
+                return (
+                  <tr key={d}>
+                    <td style={{ color: C.cream, padding: "7px 8px", borderBottom: `1px solid ${C.line}33`, fontSize: 13 }}>{Number(mm)}/{Number(dd)}</td>
+                    <td style={{ color: C.sub, padding: "7px 8px", borderBottom: `1px solid ${C.line}33`, textAlign: "right", fontSize: 13 }}>{nums.length}枚</td>
+                    <td style={{ color: C.gold, padding: "7px 8px", borderBottom: `1px solid ${C.line}33`, textAlign: "right", fontWeight: 700, fontSize: 13 }}>A{min}〜A{max}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* 利用一覧 */}
+      <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 8 }}>🎟 利用履歴</div>
       {/* 一覧 */}
       {coupons.length === 0 ? (
         <div className="lbl" style={{ color: C.sub, textAlign: "center", padding: 40 }}>この月のクーポン利用はありません</div>
