@@ -138,6 +138,12 @@ export default function App() {
     setUnservedOrders((data || []).filter(o => !o.item_name.startsWith("【人数")));
   };
 
+  // 30秒ごとに未提供リストを自動更新（10分超チェック用）
+  useEffect(() => {
+    const iv = setInterval(() => { fetchUnserved(); }, 30000);
+    return () => clearInterval(iv);
+  }, []);
+
   const markServed = async (id) => {
     await supabase.from("orders").update({ status: "served" }).eq("id", id);
     fetchUnserved();
@@ -176,8 +182,23 @@ export default function App() {
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
+  // 10分以上未提供のオーダーがあるか
+  const now = new Date();
+  const hasOverdue = unservedOrders.some(o => {
+    if (!o.created_at) return false;
+    return (now - new Date(o.created_at)) > 10 * 60 * 1000;
+  });
+
   if (screen === "table") return (
     <div style={{ padding: 16, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0" }}>
+      <style>{`
+        @keyframes pulse-red {
+          0%   { box-shadow: 0 0 0 0 rgba(220,50,50,0.7); background: #2a0a0a; }
+          50%  { box-shadow: 0 0 0 14px rgba(220,50,50,0); background: #4a1010; }
+          100% { box-shadow: 0 0 0 0 rgba(220,50,50,0); background: #2a0a0a; }
+        }
+        .pulse-btn { animation: pulse-red 1.2s infinite; }
+      `}</style>
       <h1 style={{ color: "#c9952a", marginBottom: 16, fontFamily: "serif" }}>Lounge Cattleya</h1>
       <p style={{ color: "#8a7050", marginBottom: 12 }}>テーブルを選択</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
@@ -190,10 +211,24 @@ export default function App() {
       </div>
 
       {/* 未提供ボタン */}
-      <button onClick={() => { fetchUnserved(); setUnservedTable(null); setShowUnserved(true); }}
-        style={{ marginTop: 16, width: "100%", padding: "14px 0", background: "#10182a", border: "2px solid #2a3a6a", borderRadius: 10, color: "#5a8aca", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
-        📦 未提供の注文を確認
-      </button>
+      {(() => {
+        const hasUnserved = unservedOrders.length > 0;
+        return (
+          <button
+            className={hasOverdue ? "pulse-btn" : ""}
+            onClick={() => { fetchUnserved(); setUnservedTable(null); setShowUnserved(true); }}
+            style={{
+              marginTop: 16, width: "100%", padding: "28px 0",
+              background: hasUnserved ? "#2a0a0a" : "#0a1a10",
+              border: `3px solid ${hasOverdue ? "#ff3333" : hasUnserved ? "#c95a5a" : "#2a6a3a"}`,
+              borderRadius: 12,
+              color: hasOverdue ? "#ff6666" : hasUnserved ? "#ff6b6b" : "#4aaa5a",
+              fontSize: 22, fontWeight: 900, cursor: "pointer"
+            }}>
+            {hasOverdue ? `🔴 ⚠️ 未提供あり（${unservedOrders.length}品）10分超！` : hasUnserved ? `🔴 未提供あり（${unservedOrders.length}品）` : "🔵 未提供商品を確認"}
+          </button>
+        );
+      })()}
 
       {/* 未提供パネル */}
       {showUnserved && (() => {
