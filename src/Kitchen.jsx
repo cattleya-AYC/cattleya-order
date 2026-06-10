@@ -11,7 +11,7 @@ function speak(text) {
     const synth = window.speechSynthesis;
     if (!synth) return;
     synth.cancel();
-    // iOSはcancel直後にspeakするとフリーズしやすいため少し待つ
+    // iOSでフリーズ対策：少し待ってから読み上げ
     setTimeout(() => {
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = "ja-JP";
@@ -21,6 +21,18 @@ function speak(text) {
       synth.speak(utter);
     }, 100);
   } catch (e) {}
+}
+
+// iOSのspeechSynthesisが止まる対策：14秒ごとにリフレッシュ
+function keepSynthAlive() {
+  const synth = window.speechSynthesis;
+  if (!synth) return;
+  if (synth.speaking) return;
+  const dummy = new SpeechSynthesisUtterance(" ");
+  dummy.volume = 0;
+  dummy.lang = "ja-JP";
+  synth.speak(dummy);
+  setTimeout(() => synth.cancel(), 500);
 }
 
 // 和語数詞（ひとつ、ふたつ...）
@@ -51,11 +63,12 @@ export default function Kitchen() {
       .order("created_at", { ascending: true });
     const list = (data || []).filter(o => o.item_name && !o.item_name.startsWith("【人数") && !o.item_name.includes("値引き") && (o.price === null || o.price >= 0));
 
-    // 新規注文があれば音声
+    // 新規注文があれば音
     const curIds = new Set(list.map(o => o.id));
     let isNew = false;
     curIds.forEach(id => { if (!prevIds.current.has(id)) isNew = true; });
     if (isNew && prevIds.current.size > 0 && soundOn) {
+      // 新しく追加されたテーブルごとに読み上げ
       const newItems = list.filter(o => !prevIds.current.has(o.id));
       const byTable = {};
       newItems.forEach(o => {
@@ -85,42 +98,18 @@ export default function Kitchen() {
     return () => clearInterval(iv);
   }, [soundOn]);
 
+  // soundONのとき14秒ごとにiOS音声エンジンをリフレッシュ
+  useEffect(() => {
+    if (!soundOn) return;
+    const keepAlive = setInterval(keepSynthAlive, 14000);
+    return () => clearInterval(keepAlive);
+  }, [soundOn]);
+
   // 経過時間の表示更新
   useEffect(() => {
     const iv = setInterval(() => setTick(t => t + 1), 30000);
     return () => clearInterval(iv);
   }, []);
-
-  // ★ 音声フリーズ防止（iOS Safari対策）★
-  useEffect(() => {
-    if (!soundOn) return;
-    const synth = window.speechSynthesis;
-
-    // 5秒ごとにspeechSynthesisの状態をチェック・リセット
-    const keepAlive = setInterval(() => {
-      try {
-        if (synth.paused) {
-          synth.resume(); // 止まっていたら再開
-        }
-        if (!synth.speaking) {
-          synth.cancel(); // キューが詰まっていたらリセット
-        }
-      } catch (e) {}
-    }, 5000);
-
-    // スリープ復帰・タブが前面に戻った時にリセット
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        try { synth.cancel(); } catch (e) {}
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-
-    return () => {
-      clearInterval(keepAlive);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, [soundOn]);
 
   // テーブルごとにまとめる（古い順）
   const byTable = {};
