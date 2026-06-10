@@ -947,7 +947,11 @@ export default function Register() {
       await supabase.from("orders").insert({ table_no: String(t), item_name: "セット値引き", price: -150, qty: 1, status: "pending" });
     }
     await fetchOrders();
-    const tableOrderItems = tableOrders(t).filter(o => (o.status === "pending" || o.status === "served") && !o.item_name.startsWith("【人数"));
+    // stateの更新を待たずSupabaseから直接取得（値引き確実に含める）
+    const { data: freshOrders } = await supabase.from("orders")
+      .select("*").eq("table_no", String(t))
+      .in("status", ["pending", "served"]);
+    const tableOrderItems = (freshOrders || []).filter(o => !o.item_name.startsWith("【人数"));
     for (const item of tableOrderItems) {
       await supabase.from("order_items").insert({
         table_no: String(t),
