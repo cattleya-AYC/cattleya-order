@@ -23,16 +23,18 @@ function speak(text) {
   } catch (e) {}
 }
 
-// iOSのspeechSynthesisが止まる対策：14秒ごとにリフレッシュ
+// iOSのspeechSynthesisが止まる対策
 function keepSynthAlive() {
   const synth = window.speechSynthesis;
   if (!synth) return;
+  // iOSはpaused状態になることがある → 強制resume
+  if (synth.paused) { synth.resume(); return; }
   if (synth.speaking) return;
-  const dummy = new SpeechSynthesisUtterance(" ");
+  const dummy = new SpeechSynthesisUtterance("\u3000");
   dummy.volume = 0;
   dummy.lang = "ja-JP";
   synth.speak(dummy);
-  setTimeout(() => synth.cancel(), 500);
+  setTimeout(() => { if (!synth.speaking) synth.cancel(); }, 500);
 }
 
 // 和語数詞（ひとつ、ふたつ...）
@@ -98,11 +100,22 @@ export default function Kitchen() {
     return () => clearInterval(iv);
   }, [soundOn]);
 
-  // soundONのとき14秒ごとにiOS音声エンジンをリフレッシュ
+  // soundONのとき8秒ごとにiOS音声エンジンをリフレッシュ
   useEffect(() => {
     if (!soundOn) return;
-    const keepAlive = setInterval(keepSynthAlive, 14000);
-    return () => clearInterval(keepAlive);
+    const keepAlive = setInterval(keepSynthAlive, 8000);
+    // 画面がバックグラウンドから復帰したときも再起動
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        const synth = window.speechSynthesis;
+        if (synth) { synth.cancel(); }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(keepAlive);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [soundOn]);
 
   // 経過時間の表示更新
