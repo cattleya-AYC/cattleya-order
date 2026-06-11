@@ -107,7 +107,7 @@ function buildInvoiceHTML(info) {
   </style></head><body>
     <div class="no">伝票番号 No.${receiptNo}</div>
     <div class="ititle">領\u3000収\u3000書</div>
-    <img class="logo" src="${RECEIPT_LOGO}"/>
+    <img class="logo" src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/invoice%20TOP.PNG"/>
     <div class="atena"><div class="aspace"></div><div class="asama">様</div></div>
     <div class="kingaku"><div class="klabel">金額</div><div class="kval">&#165;${info.amount.toLocaleString()}</div></div>
     <div class="ryos">但し　　　　　　　　　　　　<br>として上記正に領収いたしました</div>
@@ -116,7 +116,6 @@ function buildInvoiceHTML(info) {
     <div class="dt">${dateStr}</div>
     <br><br>
     <img class="addr" src="${RECEIPT_ADDR}"/>
-    <div class="inkan">印</div>
     <br/><br/>
   </body></html>`;
 }
