@@ -11,6 +11,7 @@ function speak(text) {
     const synth = window.speechSynthesis;
     if (!synth) return;
     synth.cancel();
+    // iOSでフリーズ対策：少し待ってから読み上げ
     setTimeout(() => {
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = "ja-JP";
@@ -22,6 +23,7 @@ function speak(text) {
   } catch (e) {}
 }
 
+// iOSのspeechSynthesisが止まる対策：14秒ごとにリフレッシュ
 function keepSynthAlive() {
   const synth = window.speechSynthesis;
   if (!synth) return;
@@ -33,19 +35,7 @@ function keepSynthAlive() {
   setTimeout(() => synth.cancel(), 500);
 }
 
-function resetSynth() {
-  const synth = window.speechSynthesis;
-  if (!synth) return;
-  synth.cancel();
-  setTimeout(() => {
-    const dummy = new SpeechSynthesisUtterance(" ");
-    dummy.volume = 0;
-    dummy.lang = "ja-JP";
-    synth.speak(dummy);
-    setTimeout(() => synth.cancel(), 500);
-  }, 600);
-}
-
+// 和語数詞（ひとつ、ふたつ...）
 function jpCount(n) {
   const words = ["","ひとつ","ふたつ","みっつ","よっつ","いつつ","むっつ","ななつ","やっつ","ここのつ","とお"];
   return n <= 10 ? words[n] : `${n}個`;
@@ -73,10 +63,12 @@ export default function Kitchen() {
       .order("created_at", { ascending: true });
     const list = (data || []).filter(o => o.item_name && !o.item_name.startsWith("【人数") && !o.item_name.includes("値引き") && (o.price === null || o.price >= 0));
 
+    // 新規注文があれば音
     const curIds = new Set(list.map(o => o.id));
     let isNew = false;
     curIds.forEach(id => { if (!prevIds.current.has(id)) isNew = true; });
     if (isNew && prevIds.current.size > 0 && soundOn) {
+      // 新しく追加されたテーブルごとに読み上げ
       const newItems = list.filter(o => !prevIds.current.has(o.id));
       const byTable = {};
       newItems.forEach(o => {
@@ -95,6 +87,7 @@ export default function Kitchen() {
       });
     }
     prevIds.current = curIds;
+
     setOrders(list);
     setLoading(false);
   };
@@ -102,33 +95,23 @@ export default function Kitchen() {
   useEffect(() => {
     fetchOrders();
     const iv = setInterval(fetchOrders, 4000);
-
-    // ① スリープ復帰時に音声エンジンをリセット＋データ再取得
-    const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        if (soundOn) resetSynth();
-        fetchOrders();
-      }
-    };
-    document.addEventListener("visibilitychange", onVisible);
-
-    return () => {
-      clearInterval(iv);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
+    return () => clearInterval(iv);
   }, [soundOn]);
 
+  // soundONのとき14秒ごとにiOS音声エンジンをリフレッシュ
   useEffect(() => {
     if (!soundOn) return;
     const keepAlive = setInterval(keepSynthAlive, 14000);
     return () => clearInterval(keepAlive);
   }, [soundOn]);
 
+  // 経過時間の表示更新
   useEffect(() => {
     const iv = setInterval(() => setTick(t => t + 1), 30000);
     return () => clearInterval(iv);
   }, []);
 
+  // テーブルごとにまとめる（古い順）
   const byTable = {};
   orders.forEach(o => {
     if (!byTable[o.table_no]) byTable[o.table_no] = [];
@@ -142,6 +125,8 @@ export default function Kitchen() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#0d0f12", color: "#fff", fontFamily: "'Hiragino Kaku Gothic ProN', sans-serif", padding: 12 }}>
+
+      {/* ヘッダー */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, borderBottom: "2px solid #2a3a2a", paddingBottom: 10 }}>
         <div style={{ fontSize: 26, fontWeight: 900, color: "#4aaa5a" }}>🍳 厨房モニター</div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -162,6 +147,7 @@ export default function Kitchen() {
         </div>
       </div>
 
+      {/* 注文カード */}
       {loading ? (
         <div style={{ textAlign: "center", color: "#666", padding: 60, fontSize: 20 }}>読み込み中…</div>
       ) : tables.length === 0 ? (
