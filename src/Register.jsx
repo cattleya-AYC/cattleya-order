@@ -115,7 +115,7 @@ function buildInvoiceHTML(info) {
     <br>
     <div class="dt">${dateStr}</div>
     <br><br>
-    ${isInvoice ? '<img class="addr" src="' + RECEIPT_ADDR + '"/>' : ''}
+    <img class="addr" src="${RECEIPT_ADDR}"/>
     <div class="inkan">印</div>
     <br/><br/>
   </body></html>`;
@@ -990,7 +990,7 @@ export default function Register() {
       const html = buildReceiptHTML({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null, items: tableOrderItems, receiptNo });
       // 1000円以上は レシート＋クーポンを1つのHTMLにまとめて1回で印刷
       const now2 = new Date();
-      const issuePeriod = now2 >= new Date(`${now2.getFullYear()}-06-01`);
+      const issuePeriod = true; // 常時発行
       let printHtml = html;
       if (amount >= 1000 && issuePeriod) {
         const couponNo = getNextCouponNo();
