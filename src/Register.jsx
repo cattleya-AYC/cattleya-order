@@ -106,7 +106,6 @@ function buildInvoiceHTML(info) {
   .inkan{ text-align:right; font-size:24px; margin:6px 30px 12px; }
   </style></head><body>
     <div class="no">伝票番号 No.${receiptNo}</div>
-    <div class="ititle">領\u3000収\u3000書</div>
     <img class="logo" src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/invoice%20TOP.PNG"/>
     <div class="atena"><div class="aspace"></div><div class="asama">様</div></div>
     <div class="kingaku"><div class="klabel">金額</div><div class="kval">&#165;${info.amount.toLocaleString()}</div></div>
@@ -991,7 +990,7 @@ export default function Register() {
       const now2 = new Date();
       const issuePeriod = true; // 常時発行
       let printHtml = html;
-      if (amount >= 1000 && issuePeriod) {
+      if (issuePeriod) {
         const couponNo = getNextCouponNo();
         // 発行記録をSupabaseに保存
         supabase.from("coupons").insert({
