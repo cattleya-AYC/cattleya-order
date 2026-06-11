@@ -465,7 +465,7 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
       <div style="text-align:center;font-size:28px;font-weight:700;color:#000">ありがとうございました</div>
     </body></html>`;
 
-    const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
+    const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(location.origin + location.pathname) + "&html=" + encodeURIComponent(html);
     window.location.href = url;
   };
 
@@ -1003,7 +1003,7 @@ export default function Register() {
         const couponBody = buildCouponHTML(couponNo).replace(/^[\s\S]*?<body[^>]*>/, "").replace(/<\/body>[\s\S]*$/, "");
         printHtml = html.replace("</body></html>", `<div style="margin-top:8px;border-top:3px dashed #000;padding-top:8px;margin-top:10px">${couponBody}</div></body></html>`);
       }
-      const passprntUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(printHtml);
+      const passprntUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(location.origin + location.pathname) + "&html=" + encodeURIComponent(printHtml);
       setTimeout(() => { window.location.href = passprntUrl; }, 1200);
     }
   };
@@ -1035,7 +1035,7 @@ export default function Register() {
     supabase.from("drawer_logs").insert({ opened_at: now.toISOString(), log_date: today });
     // mPOP ドロアオープン（最小レシートでPassPRNTを動かす）
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:2px;width:384px;font-size:1px;color:white;">.</body></html>`;
-    const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(window.location.href) + "&html=" + encodeURIComponent(html);
+    const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(location.origin + location.pathname) + "&html=" + encodeURIComponent(html);
     window.location.href = url;
   };
 

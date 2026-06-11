@@ -103,18 +103,44 @@ export default function Kitchen() {
   // soundONのとき8秒ごとにiOS音声エンジンをリフレッシュ
   useEffect(() => {
     if (!soundOn) return;
-    const keepAlive = setInterval(keepSynthAlive, 8000);
+    const keepAlive = setInterval(keepSynthAlive, 5000);
     // 画面がバックグラウンドから復帰したときも再起動
     const onVisible = () => {
       if (document.visibilityState === "visible") {
+        // PassPRNTから戻ってきたとき・画面復帰時に音声エンジンを再起動
         const synth = window.speechSynthesis;
-        if (synth) { synth.cancel(); }
+        if (synth) {
+          synth.cancel();
+          setTimeout(() => {
+            const wake = new SpeechSynthesisUtterance("\u3000");
+            wake.volume = 0;
+            wake.lang = "ja-JP";
+            synth.speak(wake);
+            setTimeout(() => synth.cancel(), 500);
+          }, 300);
+        }
       }
     };
     document.addEventListener("visibilitychange", onVisible);
+    // pageshow はPassPRNTから戻ったときにも発火する
+    const onPageShow = () => {
+      const synth = window.speechSynthesis;
+      if (synth && soundOn) {
+        synth.cancel();
+        setTimeout(() => {
+          const wake = new SpeechSynthesisUtterance("\u3000");
+          wake.volume = 0;
+          wake.lang = "ja-JP";
+          synth.speak(wake);
+          setTimeout(() => synth.cancel(), 500);
+        }, 500);
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
     return () => {
       clearInterval(keepAlive);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onPageShow);
     };
   }, [soundOn]);
 
