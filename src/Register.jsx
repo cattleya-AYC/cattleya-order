@@ -83,6 +83,7 @@ const RECEIPT_LOGO = "https://raw.githubusercontent.com/cattleya-AYC/cattleya-or
 const COUPON_IMG = "https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/coupon1.jpg";
 
 function buildInvoiceHTML(info) {
+  const isTakeout = info.takeout || false;
   const now = new Date();
   const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
   const receiptNo = info.receiptNo || "000000000";
@@ -961,7 +962,7 @@ export default function Register() {
     }
 
     await supabase.from("orders").delete().eq("table_no", String(t));
-    await supabase.from("sales").insert({ table_no: String(t), amount, pay_method: payMethod, receipt_type: receiptType, people_count: people, sale_time: now, checkin_time: checkinTime });
+    await supabase.from("sales").insert({ table_no: String(t), amount, pay_method: payMethod, receipt_type: receiptType, people_count: people, sale_time: now, checkin_time: checkinTime, takeout: (freshOrders || []).some(o => o.takeout === true) });
     await fetchTodaySales();
     const record = { table: t, amount, time: now, pay: payMethod, receipt: receiptType, timestamp: Date.now() };
     setHistory((prev) => [record, ...prev]);
@@ -985,7 +986,8 @@ export default function Register() {
     // PassPRNT 自動印刷（レシート or 領収書 のときだけ）
     if (receiptType !== "なし") {
       const receiptNo = getNextReceiptNo();
-      const html = buildReceiptHTML({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null, items: tableOrderItems, receiptNo });
+      const isTakeout = (freshOrders || []).some(o => o.takeout === true);
+      const html = buildReceiptHTML({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null, items: tableOrderItems, receiptNo, takeout: isTakeout });
       // 1000円以上は レシート＋クーポンを1つのHTMLにまとめて1回で印刷
       const now2 = new Date();
       const issuePeriod = true; // 常時発行
