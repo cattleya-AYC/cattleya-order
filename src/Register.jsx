@@ -1035,17 +1035,17 @@ export default function Register() {
     setPreviewHtml(html);
   };
 
-  const openDrawer = () => {
+  const openDrawer = async () => {
     // 時刻をlocalStorageに記録
     const now = new Date();
-    const today = now.toISOString().split("T")[0];
+    const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
     const timeStr = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
     const key = `cattleya_drawer_${today}`;
     const existing = JSON.parse(localStorage.getItem(key) || "[]");
     existing.push(timeStr);
     localStorage.setItem(key, JSON.stringify(existing));
-    // Supabaseにも保存（どのデバイスからも参照可能）
-    supabase.from("drawer_logs").insert({ opened_at: now.toISOString(), log_date: today });
+    // Supabaseに先に保存（実機がなくても記録が残る）
+    await supabase.from("drawer_logs").insert({ opened_at: now.toISOString(), log_date: today });
     // mPOP ドロアオープン（最小レシートでPassPRNTを動かす）
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:2px;width:384px;font-size:1px;color:white;">.</body></html>`;
     const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(location.origin + location.pathname) + "&html=" + encodeURIComponent(html);
@@ -1134,7 +1134,7 @@ export default function Register() {
     setTobaccoConfirming(null); setTobaccoReceiptType(null); setTobaccoReceived(""); setMode("register");
   };
 
-  const confirmCashCheck = () => {
+  const confirmCashCheck = async () => {
     const staffName = showOtherInput ? cashCheckOther : cashCheckStaff;
     if (!staffName || !cashCheckResult) return;
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
@@ -1144,9 +1144,9 @@ export default function Register() {
     const newLog = { time: now, staff: staffName, systemCash, salesCash: todayCashFromDB, result: cashCheckResult, diff: diffSigned };
     setCashCheckLogs((prev) => [newLog, ...prev]);
     // Supabaseに保存（どのデバイスからも参照可能）
-    supabase.from("cashcheck_logs").insert({
+    await supabase.from("cashcheck_logs").insert({
       checked_at: new Date().toISOString(),
-      log_date: new Date().toISOString().slice(0,10),
+      log_date: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0],
       staff: staffName,
       system_cash: systemCash,
       result: cashCheckResult,
