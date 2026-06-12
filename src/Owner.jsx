@@ -836,7 +836,7 @@ function DrawerLogView({ selectedMonth, C }) {
   const [logs, setLogs] = useState([]);
   const [yy, mm] = selectedMonth.split("-");
   const start = `${yy}-${String(mm).padStart(2,"0")}-01`;
-  const end = `${yy}-${String(mm).padStart(2,"0")}-31`;
+  const end = `${yy}-${String(mm).padStart(2,"0")}-${String(new Date(Number(yy), Number(mm), 0).getDate()).padStart(2,"0")}`;
 
   useEffect(() => {
     supabase.from("drawer_logs").select("*")
@@ -873,7 +873,7 @@ function CashCheckLogView({ selectedMonth, C, yen }) {
   const [logs, setLogs] = useState([]);
   const [yy, mm] = selectedMonth.split("-");
   const start = `${yy}-${String(mm).padStart(2,"0")}-01`;
-  const end = `${yy}-${String(mm).padStart(2,"0")}-31`;
+  const end = `${yy}-${String(mm).padStart(2,"0")}-${String(new Date(Number(yy), Number(mm), 0).getDate()).padStart(2,"0")}`;
 
   useEffect(() => {
     supabase.from("cashcheck_logs").select("*")
