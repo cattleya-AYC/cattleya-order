@@ -112,6 +112,7 @@ export default function App() {
   const [confirming, setConfirming] = useState(false);
   const [sending, setSending] = useState(false);
   const [showUnserved, setShowUnserved] = useState(false);
+  const [takeout, setTakeout] = useState(false);
   const [unservedOrders, setUnservedOrders] = useState([]);
   const [unservedTable, setUnservedTable] = useState(null);
 
@@ -160,14 +161,16 @@ export default function App() {
           price: item.price,
           qty: item.qty,
           status: "pending",
+          takeout: takeout,
         });
       }
       await supabase.from("orders").insert({
         table_no: String(selectedTable),
-        item_name: `【人数：${people}名】`,
+        item_name: `【人数：${people}名】${takeout ? "【持ち帰り】" : ""}`,
         price: 0,
         qty: 1,
         status: "info",
+        takeout: takeout,
       });
       setConfirming(false);
       setSent(true);
@@ -203,7 +206,7 @@ export default function App() {
       <p style={{ color: "#8a7050", marginBottom: 12 }}>テーブルを選択</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
         {TABLES.map((t) => (
-          <button key={t} onClick={() => { setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setActiveCat("コーヒー"); setConfirming(false); }}
+          <button key={t} onClick={() => { setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setActiveCat("コーヒー"); setConfirming(false); setTakeout(false); }}
             style={{ padding: "12px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#c9952a", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
             {t}
           </button>
@@ -351,7 +354,10 @@ export default function App() {
     <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
       <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "80vh", overflow: "auto" }}>
         <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>注文確認</div>
-        <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 16 }}>テーブル {selectedTable}・{people}名</div>
+        <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 12 }}>テーブル {selectedTable}・{people}名</div>
+        <button onClick={() => setTakeout(t => !t)} style={{ width: "100%", padding: "10px 0", marginBottom: 12, background: takeout ? "#1a3a1a" : "#1c1208", border: `2px solid ${takeout ? "#4aaa5a" : "#3d2c14"}`, borderRadius: 8, color: takeout ? "#4aaa5a" : "#8a7050", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+          {takeout ? "🛍 持ち帰り（税8%）✓" : "🛍 持ち帰りにする（税8%）"}
+        </button>
         <div style={{ background: "#2a1a0a", border: "2px solid #c9952a", borderRadius: 10, padding: "12px 14px", marginBottom: 14, textAlign: "center" }}>
           <div style={{ color: "#fff", fontWeight: 900, fontSize: 18 }}>⚠️ 必ずお客様に復唱して確認してください</div>
         </div>
