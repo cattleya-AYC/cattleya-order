@@ -233,6 +233,26 @@ export default function App() {
         );
       })()}
 
+      {/* 持ち帰りボタン */}
+      <button onClick={() => {
+        setSelectedTable("持ち帰り");
+        setPeople(1);
+        setCart([]);
+        setActiveCat("コーヒー");
+        setConfirming(false);
+        setTakeout(true);
+        setScreen("order");
+      }} style={{
+        marginTop: 12, width: "100%", padding: "22px 0",
+        background: "#0a1a2a",
+        border: "3px solid #2a6aaa",
+        borderRadius: 12,
+        color: "#5aaaff",
+        fontSize: 22, fontWeight: 900, cursor: "pointer"
+      }}>
+        🛍 持ち帰り（税8%）
+      </button>
+
       {/* 未提供パネル */}
       {showUnserved && (() => {
         const byTable = {};
