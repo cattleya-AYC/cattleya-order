@@ -354,7 +354,11 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
   const todayCashCount = sales.filter(s => s.pay_method === "現金").length;
   const todayPayCount = sales.filter(s => s.pay_method === "ペイキャス").length;
   const todayReceiptCount = sales.filter(s => s.receipt_type === "領収書").length;
-  const todayTax = Math.round(todayTotal / 11);
+  const todayTakeoutTotal = sales.filter(s => s.takeout === true).reduce((a, s) => a + s.amount, 0);
+  const todayDineInTotal = todayTotal - todayTakeoutTotal;
+  const todayTax10 = Math.round(todayDineInTotal / 11);
+  const todayTax8 = Math.round(todayTakeoutTotal * 8 / 108);
+  const todayTax = todayTax10 + todayTax8;
   const tobaccoTotal = tobaccoSales.reduce((a, s) => a + s.price, 0);
 
   // 時間帯別（件数＋金額）
@@ -391,7 +395,9 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
   <div class="section">売上集計</div>
   <table>
     <tr><td>純売上（タバコ除く）</td><td class="total" style="text-align:right">¥${todayTotal.toLocaleString()}</td></tr>
-    <tr><td>　内消費税10%</td><td style="text-align:right">¥${todayTax.toLocaleString()}</td></tr>
+    <tr><td>　内消費税10%</td><td style="text-align:right">¥${todayTax10.toLocaleString()}</td></tr>
+    <tr><td>　内消費税 8%</td><td style="text-align:right">¥${todayTax8.toLocaleString()}</td></tr>
+    <tr><td>　消費税計</td><td style="text-align:right">¥${todayTax.toLocaleString()}</td></tr>
     <tr><td>現金合計（${todayCashCount}件）</td><td style="text-align:right">¥${todayCash.toLocaleString()}</td></tr>
     <tr><td>ペイキャス合計（${todayPayCount}件）</td><td style="text-align:right">¥${todayPay.toLocaleString()}</td></tr>
     <tr><td>領収書発行</td><td style="text-align:right">${todayReceiptCount}件</td></tr>
@@ -456,7 +462,9 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
         <tr class="total"><td>総売上</td><td style="text-align:right">¥${todayTotal.toLocaleString()}</td></tr>
         <tr><td class="lbl">現金（${todayCashCount}件）</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayCash.toLocaleString()}</td></tr>
         <tr><td class="lbl">ペイキャス（${todayPayCount}件）</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayPay.toLocaleString()}</td></tr>
-        <tr><td class="lbl">内消費税10%</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayTax.toLocaleString()}</td></tr>
+        <tr><td class="lbl">内消費税10%</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayTax10.toLocaleString()}</td></tr>
+        <tr><td class="lbl">内消費税 8%</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayTax8.toLocaleString()}</td></tr>
+        <tr><td class="lbl">消費税計</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayTax.toLocaleString()}</td></tr>
         <tr><td class="lbl">領収書発行</td><td style="text-align:right;font-size:28px;font-weight:700">${todayReceiptCount}件</td></tr>
         <tr><td class="lbl">来客組数</td><td style="text-align:right;font-size:28px;font-weight:700">${todayCount}組</td></tr>
         <tr><td class="lbl">来客人数</td><td style="text-align:right;font-size:28px;font-weight:700">${todayPeople}名</td></tr>
@@ -503,7 +511,9 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
               <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 20, fontWeight: 700 }}>¥{todayTotal.toLocaleString()}</span>
             </div>
             {[
-              ["内消費税10%", `¥${todayTax.toLocaleString()}`],
+              ["　内消費税10%", `¥${todayTax10.toLocaleString()}`],
+              ["　内消費税 8%", `¥${todayTax8.toLocaleString()}`],
+              ["　消費税計", `¥${todayTax.toLocaleString()}`],
               ["領収書発行", `${todayReceiptCount}件`],
               ["来客組数", `${todayCount}組`],
               ["来客人数", `${todayPeople}名`],
