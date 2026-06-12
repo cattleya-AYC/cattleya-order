@@ -331,12 +331,12 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
 
   useEffect(() => { fetchAll(); }, []);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
   const drawerLogs = JSON.parse(localStorage.getItem(`cattleya_drawer_${today}`) || "[]");
 
   const fetchAll = async () => {
     setLoading(true);
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
     const [{ data: s }, { data: t }] = await Promise.all([
       supabase.from("sales").select("*").eq("sale_date", today).order("created_at", { ascending: true }),
       supabase.from("tobacco_sales").select("*").eq("sale_date", today).order("created_at", { ascending: true }),
