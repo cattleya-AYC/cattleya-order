@@ -1633,10 +1633,15 @@ export default function Register() {
               style={{ padding: "16px 4px", background: "#10182a", border: "1px solid #2a3a6a", borderRadius: 10, color: "#5a8aca", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
               ⚙️ 管理
             </button>
-            <button onClick={() => setSelected("持ち帰り")}
-              style={{ padding: "32px 4px", background: "#0a1a2a", border: "2px solid #2a6aaa", borderRadius: 10, color: "#5aaaff", fontSize: 14, fontWeight: 700, cursor: "pointer", marginTop: 4 }}>
-              🛍 持ち帰り
-            </button>
+            {(() => {
+              const takeoutOcc = tableOrders("持ち帰り").length > 0;
+              return (
+                <button onClick={() => setSelected("持ち帰り")}
+                  style={{ padding: "32px 4px", background: takeoutOcc ? "#0a2a1a" : "#0a1a2a", border: `2px solid ${takeoutOcc ? "#2aaa6a" : "#2a6aaa"}`, borderRadius: 10, color: takeoutOcc ? "#2aff8a" : "#5aaaff", fontSize: 14, fontWeight: 700, cursor: "pointer", marginTop: 4 }}>
+                  🛍 持ち帰り{takeoutOcc ? "　●" : ""}
+                </button>
+              );
+            })()}
           </div>
 
           {/* 会計済み履歴 */}
