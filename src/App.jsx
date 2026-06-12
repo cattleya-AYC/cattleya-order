@@ -175,6 +175,7 @@ export default function App() {
       setConfirming(false);
       setSent(true);
       setCart([]);
+      fetchUnserved();
     } catch (e) {
       alert("送信エラーが発生しました。もう一度お試しください。");
     } finally {
