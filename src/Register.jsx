@@ -859,13 +859,13 @@ export default function Register() {
   };
 
   const fetchTodaySales = async () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
     const { data } = await supabase.from("sales").select("*").eq("sale_date", today);
     setTodaySalesFromDB(data || []);
   };
 
   const fetchTodayTobacco = async () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
     const { data } = await supabase.from("tobacco_sales").select("*").eq("sale_date", today).order("created_at", { ascending: false });
     setTodayTobaccoFromDB(data || []);
   };
