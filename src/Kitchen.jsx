@@ -98,7 +98,12 @@ export default function Kitchen() {
           return acc;
         }, {});
         const itemList = Object.entries(counts).map(([name, qty]) => ({ name, qty }));
-        setTimeout(() => playOrder(itemList), i * 100);
+        // 複数テーブル同時は少しずらして再生
+        if (i === 0) {
+          playOrder(itemList);
+        } else {
+          setTimeout(() => playOrder(itemList), i * 500);
+        }
       });
     }
     prevIds.current = curIds;
@@ -142,12 +147,11 @@ export default function Kitchen() {
           {!soundOn ? (
             <div style={{ textAlign: "center" }}>
               <button onClick={() => {
+                // iOSはタップの直接イベント内でplay()を呼ぶ必要がある
+                const audio = new Audio("/audio/注文が入りました.mp3");
+                audio.volume = 1.0;
+                audio.play().catch(() => {});
                 setSoundOn(true);
-                // 最初のタップで「注文が入りました」を1回鳴らして再生許可を取る
-                audioQueue.length = 0;
-                audioPlaying = false;
-                audioQueue.push(audioUrl("注文が入りました"));
-                playNext();
               }}
                 style={{ padding: "14px 24px", background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontWeight: 900, fontSize: 18, cursor: "pointer", animation: "pulse 1.5s infinite" }}>
                 🔔 最初に必ずタップ！
@@ -156,10 +160,9 @@ export default function Kitchen() {
             </div>
           ) : (
             <button onClick={() => {
-              audioQueue.length = 0;
-              audioPlaying = false;
-              audioQueue.push(audioUrl("注文が入りました"));
-              playNext();
+              const audio = new Audio("/audio/注文が入りました.mp3");
+              audio.volume = 1.0;
+              audio.play().catch(() => {});
             }} style={{ padding: "10px 18px", background: "#1a2a1a", border: "1px solid #4aaa5a", borderRadius: 8, color: "#4aaa5a", fontSize: 15, cursor: "pointer" }}>
               🔔 音声ON（テスト）
             </button>
