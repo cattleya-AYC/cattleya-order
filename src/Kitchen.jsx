@@ -6,45 +6,33 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODM2MTksImV4cCI6MjA5NTI1OTYxOX0.vNndS7JEzIUsa007EPO2zRoYhUr-z01LM32BKIhMSz4"
 );
 
-// ファイル名をURLに変換（public/audio/ に配置）
-function audioUrl(name) {
-  return `/audio/${encodeURIComponent(name)}.mp3`;
+function speak(text) {
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    synth.cancel();
+    setTimeout(() => {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "ja-JP";
+      utter.rate = 0.9;
+      utter.pitch = 1.1;
+      utter.volume = 1.0;
+      synth.speak(utter);
+    }, 100);
+  } catch (e) {}
 }
 
-// audioタグを使ったキュー再生（PWA対応）
-let audioEl = null;
-let audioQueue = [];
-let audioPlaying = false;
-
-function getAudioEl() {
-  if (!audioEl) {
-    audioEl = document.createElement("audio");
-    audioEl.volume = 1.0;
-    audioEl.onended = () => { audioPlaying = false; playNext(); };
-    audioEl.onerror = () => { audioPlaying = false; playNext(); };
-    document.body.appendChild(audioEl);
-  }
-  return audioEl;
-}
-
-function playNext() {
-  if (audioPlaying || audioQueue.length === 0) return;
-  audioPlaying = true;
-  const src = audioQueue.shift();
-  const el = getAudioEl();
-  el.src = src;
-  el.load();
-  el.play().catch(() => { audioPlaying = false; playNext(); });
-}
-
-// 注文を読み上げ（定型→品目→数量 の順）
-function playOrder(items) {
-  audioQueue.push(audioUrl("注文が入りました"));
-  items.forEach(({ name, qty }) => {
-    audioQueue.push(audioUrl(name));
-    audioQueue.push(audioUrl(`${qty}点`));
-  });
-  playNext();
+// iOSのspeechSynthesisが止まる対策
+function keepSynthAlive() {
+  const synth = window.speechSynthesis;
+  if (!synth) return;
+  if (synth.paused) { synth.resume(); return; }
+  if (synth.speaking) return;
+  const dummy = new SpeechSynthesisUtterance("\u3000");
+  dummy.volume = 0;
+  dummy.lang = "ja-JP";
+  synth.speak(dummy);
+  setTimeout(() => { if (!synth.speaking) synth.cancel(); }, 500);
 }
 
 // 和語数詞（ひとつ、ふたつ...）
@@ -92,13 +80,9 @@ export default function Kitchen() {
           acc[o.item_name] = (acc[o.item_name] || 0) + (o.qty || 1);
           return acc;
         }, {});
-        const itemList = Object.entries(counts).map(([name, qty]) => ({ name, qty }));
-        // 複数テーブル同時は少しずらして再生
-        if (i === 0) {
-          playOrder(itemList);
-        } else {
-          setTimeout(() => playOrder(itemList), i * 500);
-        }
+        const itemText = Object.entries(counts).map(([name, qty]) => `${name} ${qty}点`).join("、");
+        const msg = `注文が入りました。${itemText}`;
+        setTimeout(() => speak(msg), i * 3000);
       });
     }
     prevIds.current = curIds;
@@ -111,6 +95,47 @@ export default function Kitchen() {
     fetchOrders();
     const iv = setInterval(fetchOrders, 4000);
     return () => clearInterval(iv);
+  }, [soundOn]);
+
+  // soundONのとき5秒ごとにiOS音声エンジンをリフレッシュ
+  useEffect(() => {
+    if (!soundOn) return;
+    const keepAlive = setInterval(keepSynthAlive, 5000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        const synth = window.speechSynthesis;
+        if (synth) {
+          synth.cancel();
+          setTimeout(() => {
+            const wake = new SpeechSynthesisUtterance("\u3000");
+            wake.volume = 0;
+            wake.lang = "ja-JP";
+            synth.speak(wake);
+            setTimeout(() => synth.cancel(), 500);
+          }, 300);
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    const onPageShow = () => {
+      const synth = window.speechSynthesis;
+      if (synth && soundOn) {
+        synth.cancel();
+        setTimeout(() => {
+          const wake = new SpeechSynthesisUtterance("\u3000");
+          wake.volume = 0;
+          wake.lang = "ja-JP";
+          synth.speak(wake);
+          setTimeout(() => synth.cancel(), 500);
+        }, 500);
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      clearInterval(keepAlive);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onPageShow);
+    };
   }, [soundOn]);
 
   // 経過時間の表示更新
@@ -141,15 +166,7 @@ export default function Kitchen() {
           <span style={{ fontSize: 16, color: "#888" }}>{tables.length}テーブル 調理中</span>
           {!soundOn ? (
             <div style={{ textAlign: "center" }}>
-              <button onClick={() => {
-                const el = getAudioEl();
-                el.src = "/audio/注文が入りました.mp3";
-                el.load();
-                el.play()
-                  .then(() => { alert("再生OK！音は聞こえましたか？"); })
-                  .catch((e) => { alert("エラー: " + e.message); });
-                setSoundOn(true);
-              }}
+              <button onClick={() => { setSoundOn(true); speak("音声をオンにしました"); }}
                 style={{ padding: "14px 24px", background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontWeight: 900, fontSize: 18, cursor: "pointer", animation: "pulse 1.5s infinite" }}>
                 🔔 最初に必ずタップ！
               </button>
@@ -157,14 +174,15 @@ export default function Kitchen() {
             </div>
           ) : (
             <button onClick={() => {
-              const el = getAudioEl();
-              el.src = "/audio/注文が入りました.mp3";
-              el.load();
-              el.play()
-                .then(() => { alert("再生OK！音は聞こえましたか？"); })
-                .catch((e) => { alert("エラー: " + e.message); });
+              const synth = window.speechSynthesis;
+              if (synth) { synth.cancel(); }
+              setSoundOn(false);
+              setTimeout(() => {
+                setSoundOn(true);
+                speak("音声を再起動しました");
+              }, 500);
             }} style={{ padding: "10px 18px", background: "#1a2a1a", border: "1px solid #4aaa5a", borderRadius: 8, color: "#4aaa5a", fontSize: 15, cursor: "pointer" }}>
-              🔔 音声ON（テスト）
+              🔔 音声ON（止まったらタップ）
             </button>
           )}
         </div>
