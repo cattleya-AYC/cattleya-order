@@ -6,50 +6,45 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODM2MTksImV4cCI6MjA5NTI1OTYxOX0.vNndS7JEzIUsa007EPO2zRoYhUr-z01LM32BKIhMSz4"
 );
 
-// 音声ファイルをキューで順番に再生（iOSで止まらない方式）
-const audioQueue = [];
-let audioPlaying = false;
-
-function playNext() {
-  if (audioPlaying || audioQueue.length === 0) return;
-  audioPlaying = true;
-  const src = audioQueue.shift();
-  const audio = new Audio(src);
-  audio.volume = 1.0;
-  audio.onended = () => { audioPlaying = false; playNext(); };
-  audio.onerror = () => { audioPlaying = false; playNext(); };
-  audio.play().catch(() => { audioPlaying = false; playNext(); });
-}
-
 // ファイル名をURLに変換（public/audio/ に配置）
 function audioUrl(name) {
   return `/audio/${encodeURIComponent(name)}.mp3`;
 }
 
+// audioタグを使ったキュー再生（PWA対応）
+let audioEl = null;
+let audioQueue = [];
+let audioPlaying = false;
+
+function getAudioEl() {
+  if (!audioEl) {
+    audioEl = document.createElement("audio");
+    audioEl.volume = 1.0;
+    audioEl.onended = () => { audioPlaying = false; playNext(); };
+    audioEl.onerror = () => { audioPlaying = false; playNext(); };
+    document.body.appendChild(audioEl);
+  }
+  return audioEl;
+}
+
+function playNext() {
+  if (audioPlaying || audioQueue.length === 0) return;
+  audioPlaying = true;
+  const src = audioQueue.shift();
+  const el = getAudioEl();
+  el.src = src;
+  el.load();
+  el.play().catch(() => { audioPlaying = false; playNext(); });
+}
+
 // 注文を読み上げ（定型→品目→数量 の順）
 function playOrder(items) {
-  // items: [{name, qty}, ...]
   audioQueue.push(audioUrl("注文が入りました"));
   items.forEach(({ name, qty }) => {
     audioQueue.push(audioUrl(name));
     audioQueue.push(audioUrl(`${qty}点`));
   });
   playNext();
-}
-
-// 旧speak（フォールバック用・未使用）
-function speak(text) {
-  try {
-    const synth = window.speechSynthesis;
-    if (!synth) return;
-    synth.cancel();
-    setTimeout(() => {
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = "ja-JP";
-      utter.rate = 0.9;
-      synth.speak(utter);
-    }, 100);
-  } catch (e) {}
 }
 
 // 和語数詞（ひとつ、ふたつ...）
@@ -147,9 +142,10 @@ export default function Kitchen() {
           {!soundOn ? (
             <div style={{ textAlign: "center" }}>
               <button onClick={() => {
-                const audio = new Audio("/audio/注文が入りました.mp3");
-                audio.volume = 1.0;
-                audio.play()
+                const el = getAudioEl();
+                el.src = "/audio/注文が入りました.mp3";
+                el.load();
+                el.play()
                   .then(() => { alert("再生OK！音は聞こえましたか？"); })
                   .catch((e) => { alert("エラー: " + e.message); });
                 setSoundOn(true);
@@ -161,9 +157,10 @@ export default function Kitchen() {
             </div>
           ) : (
             <button onClick={() => {
-              const audio = new Audio("/audio/注文が入りました.mp3");
-              audio.volume = 1.0;
-              audio.play()
+              const el = getAudioEl();
+              el.src = "/audio/注文が入りました.mp3";
+              el.load();
+              el.play()
                 .then(() => { alert("再生OK！音は聞こえましたか？"); })
                 .catch((e) => { alert("エラー: " + e.message); });
             }} style={{ padding: "10px 18px", background: "#1a2a1a", border: "1px solid #4aaa5a", borderRadius: 8, color: "#4aaa5a", fontSize: 15, cursor: "pointer" }}>
