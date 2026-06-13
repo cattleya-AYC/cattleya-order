@@ -147,10 +147,11 @@ export default function Kitchen() {
           {!soundOn ? (
             <div style={{ textAlign: "center" }}>
               <button onClick={() => {
-                // iOSはタップの直接イベント内でplay()を呼ぶ必要がある
                 const audio = new Audio("/audio/注文が入りました.mp3");
                 audio.volume = 1.0;
-                audio.play().catch(() => {});
+                audio.play()
+                  .then(() => { alert("再生OK！音は聞こえましたか？"); })
+                  .catch((e) => { alert("エラー: " + e.message); });
                 setSoundOn(true);
               }}
                 style={{ padding: "14px 24px", background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontWeight: 900, fontSize: 18, cursor: "pointer", animation: "pulse 1.5s infinite" }}>
@@ -162,7 +163,9 @@ export default function Kitchen() {
             <button onClick={() => {
               const audio = new Audio("/audio/注文が入りました.mp3");
               audio.volume = 1.0;
-              audio.play().catch(() => {});
+              audio.play()
+                .then(() => { alert("再生OK！音は聞こえましたか？"); })
+                .catch((e) => { alert("エラー: " + e.message); });
             }} style={{ padding: "10px 18px", background: "#1a2a1a", border: "1px solid #4aaa5a", borderRadius: 8, color: "#4aaa5a", fontSize: 15, cursor: "pointer" }}>
               🔔 音声ON（テスト）
             </button>
