@@ -1566,16 +1566,26 @@ export default function Register() {
               </div>
             )}
             <div style={{ background: "#1a1208", border: "2px solid #c9952a", borderRadius: 12, padding: "14px 16px", marginBottom: 16 }}>
-              {selectedDiscount > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid #3d2c14" }}>
-                  <span style={{ color: "#4aaa5a", fontSize: 14 }}>値引き合計</span>
-                  <span style={{ color: "#4aaa5a", fontSize: 18, fontWeight: 700 }}>-¥{selectedDiscount.toLocaleString()}</span>
-                </div>
-              )}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "#c9952a", fontSize: 16, fontWeight: 700 }}>お会計金額</span>
-                <span style={{ fontFamily: "serif", fontSize: 42, fontWeight: 900, color: "#c9952a", lineHeight: 1 }}>¥{selectedTotal.toLocaleString()}</span>
-              </div>
+              {(() => {
+                const setDisc = setCount * 150;
+                const coupDisc = couponApplied ? couponDiscount : 0;
+                const totalDisc = setDisc + coupDisc;
+                const finalAmount = selectedSubtotal - totalDisc;
+                return (
+                  <>
+                    {totalDisc > 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid #3d2c14" }}>
+                        <span style={{ color: "#4aaa5a", fontSize: 14 }}>値引き合計</span>
+                        <span style={{ color: "#4aaa5a", fontSize: 18, fontWeight: 700 }}>-¥{totalDisc.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "#c9952a", fontSize: 16, fontWeight: 700 }}>お会計金額</span>
+                      <span style={{ fontFamily: "serif", fontSize: 42, fontWeight: 900, color: "#c9952a", lineHeight: 1 }}>¥{finalAmount.toLocaleString()}</span>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>支払い方法</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
@@ -1593,13 +1603,23 @@ export default function Register() {
                   <button onClick={() => setReceivedAmount("")} style={{ padding: "4px 10px", background: "#3d1010", border: "1px solid #c95a5a", borderRadius: 6, color: "#c95a5a", fontSize: 11, cursor: "pointer" }}>訂正</button>
                 </div>
                 <div style={{ fontSize: 28, fontFamily: "serif", color: receivedAmount ? "#f0e6d0" : "#3d2c14", marginBottom: 4 }}>¥{receivedAmount || "0"}</div>
-                {change !== null && change >= 0 && (
-                  <div style={{ background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 8, padding: "10px 14px", marginBottom: 4 }}>
-                    <span style={{ color: "#8a7050", fontSize: 12 }}>おつり </span>
-                    <span style={{ color: "#4aaa5a", fontSize: 24, fontWeight: 800, fontFamily: "serif" }}>¥{change.toLocaleString()}</span>
-                  </div>
-                )}
-                {change !== null && change < 0 && <div style={{ color: "#c95a5a", fontSize: 13, marginBottom: 4 }}>金額が足りません</div>}
+                {(() => {
+                  const setDisc = setCount * 150;
+                  const coupDisc = couponApplied ? couponDiscount : 0;
+                  const finalAmount = selectedSubtotal - setDisc - coupDisc;
+                  const chg = receivedAmount ? parseInt(receivedAmount) - finalAmount : null;
+                  return (
+                    <>
+                      {chg !== null && chg >= 0 && (
+                        <div style={{ background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 8, padding: "10px 14px", marginBottom: 4 }}>
+                          <span style={{ color: "#8a7050", fontSize: 12 }}>おつり </span>
+                          <span style={{ color: "#4aaa5a", fontSize: 24, fontWeight: 800, fontFamily: "serif" }}>¥{chg.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {chg !== null && chg < 0 && <div style={{ color: "#c95a5a", fontSize: 13, marginBottom: 4 }}>金額が足りません</div>}
+                    </>
+                  );
+                })()}
                 <Keypad value={receivedAmount} onChange={setReceivedAmount} />
               </div>
             )}
