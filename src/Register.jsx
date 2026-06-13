@@ -915,6 +915,8 @@ export default function Register() {
     ? tableOrders(selected).filter(o => (o.status === "pending" || o.status === "served") && !o.item_name.startsWith("【人数"))
     : [];
   const selectedTotal = selected ? tableTotal(selected) : 0;
+  const selectedSubtotal = selected ? selectedOrders.filter(o => o.price > 0).reduce((s, o) => s + o.price * o.qty, 0) : 0;
+  const selectedDiscount = selectedSubtotal - selectedTotal;
   const selectedPeople = selected ? tablePeopleStr(selected) : "-";
 
   const change = receivedAmount ? parseInt(receivedAmount) - selectedTotal : null;
@@ -1531,9 +1533,9 @@ export default function Register() {
                 </div>
               ))}
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ color: "#8a7050" }}>お会計合計</span>
-              <span style={{ fontFamily: "serif", fontSize: 34, fontWeight: 900, color: "#c9952a" }}>¥{selectedTotal.toLocaleString()}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ color: "#8a7050", fontSize: 14 }}>小計（値引き前）</span>
+              <span style={{ fontFamily: "serif", fontSize: 20, fontWeight: 700, color: "#f0e6d0" }}>¥{selectedSubtotal.toLocaleString()}</span>
             </div>
             <div style={{ background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 10, padding: "10px 14px", marginBottom: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1563,6 +1565,18 @@ export default function Register() {
                 <button onClick={removeCoupon} style={{ padding: "4px 10px", background: "transparent", border: "1px solid #c95a5a", borderRadius: 6, color: "#c95a5a", fontSize: 11, cursor: "pointer" }}>取消</button>
               </div>
             )}
+            <div style={{ background: "#1a1208", border: "2px solid #c9952a", borderRadius: 12, padding: "14px 16px", marginBottom: 16 }}>
+              {selectedDiscount > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid #3d2c14" }}>
+                  <span style={{ color: "#4aaa5a", fontSize: 14 }}>値引き合計</span>
+                  <span style={{ color: "#4aaa5a", fontSize: 18, fontWeight: 700 }}>-¥{selectedDiscount.toLocaleString()}</span>
+                </div>
+              )}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#c9952a", fontSize: 16, fontWeight: 700 }}>お会計金額</span>
+                <span style={{ fontFamily: "serif", fontSize: 42, fontWeight: 900, color: "#c9952a", lineHeight: 1 }}>¥{selectedTotal.toLocaleString()}</span>
+              </div>
+            </div>
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>支払い方法</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
               {["現金", "ペイキャス"].map((p) => (
