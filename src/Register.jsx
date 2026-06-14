@@ -564,15 +564,15 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
                 return (
                   <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid #3d2c1433" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span style={{ color: "#f0e6d0", fontWeight: 700 }}>{log.time}　{log.staff}</span>
-                      <span style={{ color: resultLabel.color, fontWeight: 700 }}>{resultLabel.text}</span>
+                      <span style={{ color: "#f0e6d0", fontWeight: 700, fontSize: 18 }}>{log.time}　{log.staff}</span>
+                      <span style={{ color: resultLabel.color, fontWeight: 700, fontSize: 18 }}>{resultLabel.text}</span>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16 }}>
                       <span style={{ color: "#8a7050" }}>あるべき金額</span>
-                      <span style={{ color: "#c9952a" }}>¥{log.systemCash.toLocaleString()}</span>
+                      <span style={{ color: "#c9952a", fontWeight: 700 }}>¥{log.systemCash.toLocaleString()}</span>
                     </div>
                     {log.diff !== 0 && (
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginTop: 2 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, marginTop: 2 }}>
                         <span style={{ color: "#8a7050" }}>差額</span>
                         <span style={{ color: log.diff < 0 ? "#c95a5a" : "#5a8aca", fontWeight: 700 }}>
                           {log.diff > 0 ? "+" : ""}¥{log.diff.toLocaleString()}
@@ -1483,11 +1483,11 @@ export default function Register() {
             </div>
 
             {/* 照合結果 */}
-            <div style={{ color: "#f0e6d0", fontSize: 14, marginBottom: 8, fontWeight: 700 }}>実際のレジ内金額と一致していますか？</div>
+            <div style={{ color: "#f0e6d0", fontSize: 17, marginBottom: 8, fontWeight: 700 }}>実際のレジ内金額と一致していますか？</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 12 }}>
               {[["same","✅ 同じ","#2a6a3a","#4aaa5a"],["short","⚠️ 不足","#6a2a2a","#c95a5a"],["over","💡 多い","#2a4a6a","#5a8aca"]].map(([key, label, bg, color]) => (
                 <button key={key} onClick={() => { setCashCheckResult(key); if (key === "same") setCashCheckDiff(""); }}
-                  style={{ padding: "12px 4px", background: cashCheckResult === key ? bg : "transparent", border: `2px solid ${cashCheckResult === key ? color : "#3d2c14"}`, borderRadius: 10, color: cashCheckResult === key ? "#fff" : "#8a7050", fontWeight: 900, fontSize: 15, cursor: "pointer" }}>
+                  style={{ padding: "16px 4px", background: cashCheckResult === key ? bg : "transparent", border: `2px solid ${cashCheckResult === key ? color : "#3d2c14"}`, borderRadius: 10, color: cashCheckResult === key ? "#fff" : "#c9952a", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>
                   {label}
                 </button>
               ))}
@@ -1496,39 +1496,39 @@ export default function Register() {
             {/* 差額入力 */}
             {(cashCheckResult === "short" || cashCheckResult === "over") && (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 6 }}>差額（円）を入力してください</div>
+                <div style={{ color: "#8a7050", fontSize: 16, marginBottom: 6, fontWeight: 700 }}>差額（円）を入力してください</div>
                 <input type="number" value={cashCheckDiff} onChange={(e) => setCashCheckDiff(e.target.value)}
                   placeholder="例：500"
-                  style={{ width: "100%", padding: "12px", background: "#251a0a", border: "1px solid #c9952a", borderRadius: 8, color: "#f0e6d0", fontSize: 18, fontWeight: 700, boxSizing: "border-box" }} />
+                  style={{ width: "100%", padding: "14px", background: "#251a0a", border: "1px solid #c9952a", borderRadius: 8, color: "#f0e6d0", fontSize: 20, fontWeight: 700, boxSizing: "border-box" }} />
               </div>
             )}
 
             {/* 確認者 */}
-            <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>確認者</div>
+            <div style={{ color: "#8a7050", fontSize: 17, marginBottom: 8, fontWeight: 700 }}>確認者</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8, marginBottom: 10 }}>
               {STAFF.map((s) => (
                 <button key={s} onClick={() => { setCashCheckStaff(s); setShowOtherInput(false); setCashCheckOther(""); }}
-                  style={{ padding: 12, background: cashCheckStaff === s && !showOtherInput ? "#c9952a" : "transparent", border: `1px solid ${cashCheckStaff === s && !showOtherInput ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: cashCheckStaff === s && !showOtherInput ? "#0d0905" : "#8a7050", fontWeight: 700, cursor: "pointer" }}>
+                  style={{ padding: 16, background: cashCheckStaff === s && !showOtherInput ? "#c9952a" : "transparent", border: `2px solid ${cashCheckStaff === s && !showOtherInput ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: cashCheckStaff === s && !showOtherInput ? "#0d0905" : "#c9952a", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>
                   {s}
                 </button>
               ))}
               <button onClick={() => { setShowOtherInput(true); setCashCheckStaff(null); }}
-                style={{ padding: 12, background: showOtherInput ? "#c9952a" : "transparent", border: `1px solid ${showOtherInput ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: showOtherInput ? "#0d0905" : "#8a7050", fontWeight: 700, cursor: "pointer" }}>
+                style={{ padding: 16, background: showOtherInput ? "#c9952a" : "transparent", border: `2px solid ${showOtherInput ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: showOtherInput ? "#0d0905" : "#c9952a", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>
                 その他
               </button>
             </div>
             {showOtherInput && (
               <input value={cashCheckOther} onChange={(e) => setCashCheckOther(e.target.value)} placeholder="名前を入力"
-                style={{ width: "100%", padding: "10px 12px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#f0e6d0", fontSize: 14, marginBottom: 10, boxSizing: "border-box" }} />
+                style={{ width: "100%", padding: "14px 12px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#f0e6d0", fontSize: 18, marginBottom: 10, boxSizing: "border-box" }} />
             )}
 
             {/* ボタン */}
             <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
               <button onClick={() => { setCashChecking(false); setCashCheckStaff(null); setCashCheckOther(""); setShowOtherInput(false); setCashCheckResult(null); setCashCheckDiff(""); }}
-                style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>キャンセル</button>
+                style={{ flex: 1, padding: 16, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 16, cursor: "pointer" }}>キャンセル</button>
               <button onClick={confirmCashCheck}
                 disabled={(!cashCheckStaff && !cashCheckOther) || !cashCheckResult || ((cashCheckResult === "short" || cashCheckResult === "over") && !cashCheckDiff)}
-                style={{ flex: 2, padding: 14, background: ((cashCheckStaff || cashCheckOther) && cashCheckResult) ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: ((cashCheckStaff || cashCheckOther) && cashCheckResult) ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
+                style={{ flex: 2, padding: 16, background: ((cashCheckStaff || cashCheckOther) && cashCheckResult) ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: ((cashCheckStaff || cashCheckOther) && cashCheckResult) ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 19, cursor: "pointer" }}>
                 ✅ 確認完了
               </button>
             </div>
@@ -1611,11 +1611,11 @@ export default function Register() {
                 );
               })()}
             </div>
-            <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>支払い方法</div>
+            <div style={{ color: "#8a7050", fontSize: 17, marginBottom: 8, fontWeight: 700 }}>支払い方法</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
               {["現金", "ペイキャス"].map((p) => (
                 <button key={p} onClick={() => { setPayMethod(p); setReceivedAmount(""); }}
-                  style={{ flex: 1, padding: 12, background: payMethod === p ? "#c9952a" : "transparent", border: `1px solid ${payMethod === p ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: payMethod === p ? "#0d0905" : "#8a7050", fontWeight: 700, cursor: "pointer" }}>
+                  style={{ flex: 1, padding: 16, background: payMethod === p ? "#c9952a" : "transparent", border: `2px solid ${payMethod === p ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: payMethod === p ? "#0d0905" : "#c9952a", fontWeight: 900, fontSize: 19, cursor: "pointer" }}>
                   {p}
                 </button>
               ))}
@@ -1623,10 +1623,10 @@ export default function Register() {
             {payMethod === "現金" && (
               <div style={{ marginBottom: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                  <div style={{ color: "#8a7050", fontSize: 12 }}>受取金額</div>
-                  <button onClick={() => setReceivedAmount("")} style={{ padding: "4px 10px", background: "#3d1010", border: "1px solid #c95a5a", borderRadius: 6, color: "#c95a5a", fontSize: 11, cursor: "pointer" }}>訂正</button>
+                  <div style={{ color: "#8a7050", fontSize: 17, fontWeight: 700 }}>受取金額</div>
+                  <button onClick={() => setReceivedAmount("")} style={{ padding: "6px 14px", background: "#3d1010", border: "1px solid #c95a5a", borderRadius: 6, color: "#c95a5a", fontSize: 14, cursor: "pointer" }}>訂正</button>
                 </div>
-                <div style={{ fontSize: 28, fontFamily: "serif", color: receivedAmount ? "#f0e6d0" : "#3d2c14", marginBottom: 4 }}>¥{receivedAmount || "0"}</div>
+                <div style={{ fontSize: 32, fontFamily: "serif", color: receivedAmount ? "#f0e6d0" : "#3d2c14", marginBottom: 4 }}>¥{receivedAmount || "0"}</div>
                 {(() => {
                   const setDisc = setCount * 150;
                   const coupDisc = couponApplied ? couponDiscount : 0;
@@ -1635,23 +1635,23 @@ export default function Register() {
                   return (
                     <>
                       {chg !== null && chg >= 0 && (
-                        <div style={{ background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 8, padding: "10px 14px", marginBottom: 4 }}>
-                          <span style={{ color: "#8a7050", fontSize: 12 }}>おつり </span>
-                          <span style={{ color: "#4aaa5a", fontSize: 24, fontWeight: 800, fontFamily: "serif" }}>¥{chg.toLocaleString()}</span>
+                        <div style={{ background: "#1a3020", border: "1px solid #2a6a3a", borderRadius: 8, padding: "12px 16px", marginBottom: 4 }}>
+                          <span style={{ color: "#8a7050", fontSize: 16 }}>おつり </span>
+                          <span style={{ color: "#4aaa5a", fontSize: 30, fontWeight: 800, fontFamily: "serif" }}>¥{chg.toLocaleString()}</span>
                         </div>
                       )}
-                      {chg !== null && chg < 0 && <div style={{ color: "#c95a5a", fontSize: 13, marginBottom: 4 }}>金額が足りません</div>}
+                      {chg !== null && chg < 0 && <div style={{ color: "#c95a5a", fontSize: 16, marginBottom: 4, fontWeight: 700 }}>金額が足りません</div>}
                     </>
                   );
                 })()}
                 <Keypad value={receivedAmount} onChange={setReceivedAmount} />
               </div>
             )}
-            <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>書類</div>
+            <div style={{ color: "#8a7050", fontSize: 17, marginBottom: 8, fontWeight: 700 }}>書類</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
               {["レシート", "領収書", "なし"].map((r) => (
                 <button key={r} onClick={() => setReceiptType(r)}
-                  style={{ flex: 1, padding: 10, background: receiptType === r ? "#c9952a" : "transparent", border: `1px solid ${receiptType === r ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: receiptType === r ? "#0d0905" : "#8a7050", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  style={{ flex: 1, padding: 16, background: receiptType === r ? "#c9952a" : "transparent", border: `2px solid ${receiptType === r ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: receiptType === r ? "#0d0905" : "#c9952a", fontSize: 17, fontWeight: 900, cursor: "pointer" }}>
                   {r}
                 </button>
               ))}
