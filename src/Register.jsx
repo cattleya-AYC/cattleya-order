@@ -1132,10 +1132,32 @@ export default function Register() {
 
   const completeTobaccoSale = async () => {
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-    await supabase.from("tobacco_sales").insert({ item_name: tobaccoConfirming.name, price: tobaccoConfirming.price, receipt_type: tobaccoReceiptType, sale_time: now });
+    const item = tobaccoConfirming;
+    const receiptType = tobaccoReceiptType;
+    const received = tobaccoReceived ? parseInt(tobaccoReceived) : null;
+    const chg = received ? received - item.price : null;
+    await supabase.from("tobacco_sales").insert({ item_name: item.name, price: item.price, receipt_type: receiptType, sale_time: now });
     await fetchTodayTobacco();
     await fetchMonthlyTobacco();
-    setTobaccoConfirming(null); setTobaccoReceiptType(null); setTobaccoReceived(""); setMode("register");
+    setTobaccoConfirming(null); setTobaccoReceiptType(null); setTobaccoReceived("");
+    // レシート/領収書を選んでいたら印刷
+    if (receiptType === "レシート" || receiptType === "領収書") {
+      const receiptNo = String(Date.now()).slice(-9);
+      const html = buildReceiptHTML({
+        amount: item.price,
+        pay: "現金",
+        receipt: receiptType,
+        change: chg,
+        received: received,
+        items: [{ item_name: item.name, qty: 1, price: item.price }],
+        receiptNo,
+        takeout: false,
+      });
+      const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(location.origin + location.pathname) + "&html=" + encodeURIComponent(html);
+      window.location.href = url;
+    } else {
+      setMode("register");
+    }
   };
 
   const confirmCashCheck = async () => {
