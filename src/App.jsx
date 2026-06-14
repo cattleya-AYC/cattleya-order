@@ -85,6 +85,7 @@ const MENU = {
   おかわり: [
     { id: 91, name: "コーヒー おかわり（HOT）", price: 300 },
     { id: 92, name: "コーヒー おかわり（ICE）", price: 300 },
+    { id: 99, name: "アメリカン おかわり（HOT）", price: 300 },
     { id: 93, name: "レモンティ おかわり（HOT）", price: 300 },
     { id: 94, name: "レモンティ おかわり（ICE）", price: 300 },
     { id: 95, name: "ミルクティ おかわり（HOT）", price: 300 },

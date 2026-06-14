@@ -1817,14 +1817,17 @@ export default function Register() {
                         <span style={{ fontFamily: "serif", fontSize: 22, fontWeight: 700, color: "#f0e6d0" }}>¥{selectedSubtotal.toLocaleString()}</span>
                       </div>
                       {(() => {
-                        const people = parseInt(tablePeopleStr(selected)) || 0;
-                        const autoSet = Math.floor(people / 2);
+                        const foodItems = ["トースト", "ピザトースト", "ミックスサンド", "ハムサンド", "野菜サンド", "玉子サンド", "トーストサンド", "ミルクレープ", "ガトーショコラ", "フォンダンショコラ", "チーズケーキ", "紅茶のシフォン", "栗のモンブラン", "バニラアイスクリーム", "コーヒーゼリー"];
+                        const isFoodItem = (name) => foodItems.some(f => name.includes(f));
+                        const foodCount = selectedOrders.filter(o => isFoodItem(o.item_name)).reduce((a, o) => a + (o.qty || 1), 0);
+                        const drinkCount = selectedOrders.filter(o => !isFoodItem(o.item_name) && !o.item_name.includes("モーニング") && !o.item_name.includes("おかわり") && o.price > 0).reduce((a, o) => a + (o.qty || 1), 0);
+                        const autoSet = foodCount > 0 && drinkCount > 0 ? Math.min(foodCount, drinkCount) : 0;
                         const autoDisc = autoSet * 150;
                         const afterDisc = selectedSubtotal - autoDisc;
                         return autoDisc > 0 ? (
                           <>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                              <span style={{ color: "#4aaa5a", fontSize: 14 }}>🍽 自動セット割引（{autoSet}セット）</span>
+                              <span style={{ color: "#4aaa5a", fontSize: 14 }}>🍽 セット割引目安（{autoSet}セット）</span>
                               <span style={{ color: "#4aaa5a", fontSize: 18, fontWeight: 700 }}>-¥{autoDisc.toLocaleString()}</span>
                             </div>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #3d2c14", paddingTop: 10 }}>
