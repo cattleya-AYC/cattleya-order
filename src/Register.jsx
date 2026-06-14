@@ -87,7 +87,7 @@ function buildInvoiceHTML(info) {
   const now = new Date();
   const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
   const receiptNo = info.receiptNo || "000000000";
-  const taxAmount = Math.round(info.amount / 11);
+  const taxAmount = isTakeout ? Math.round(info.amount * 8 / 108) : Math.round(info.amount / 11);
   return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
   html,body{ margin:0; padding:0; }
   body{ font-family:'Hiragino Mincho ProN','Yu Mincho',serif; width:384px; margin:0; padding:0; box-sizing:border-box; color:#000; text-align:center; }
@@ -127,7 +127,9 @@ function buildReceiptHTML(info) {
   const now = new Date();
   const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日\u3000${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
   const receiptNo = info.receiptNo || "000000000";
-  const taxAmount = Math.round(info.amount / 11);
+  const isTakeout = info.takeout || false;
+  const taxAmount = isTakeout ? Math.round(info.amount * 8 / 108) : Math.round(info.amount / 11);
+  const taxLabel = isTakeout ? "内消費税8%対象" : "内消費税10%対象";
   const items = info.items || [];
 
   const itemRows = items.map(o => {
@@ -175,7 +177,7 @@ function buildReceiptHTML(info) {
   <table class="items">${itemRows}</table>
   <hr class="sline"/>
   <table class="total"><tr><td style="text-align:left">合\u3000計</td><td style="text-align:right">&#165;${info.amount.toLocaleString()}</td></tr></table>
-  <div class="tax">\uff08内消費税10%対象\u3000${taxAmount.toLocaleString()}\uff09</div>
+  <div class="tax">\uff08${taxLabel}\u3000${taxAmount.toLocaleString()}\uff09</div>
   <table class="pay">${payRow}</table>
   <div class="foot">ありがとうございました</div>
   <br/><br/>
