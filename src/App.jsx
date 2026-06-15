@@ -146,6 +146,8 @@ export default function App() {
     setTableMoveTo(null);
     setTableMoveStep("from");
   };
+
+  const addItem = (item) => {
     setCart((prev) => {
       const ex = prev.find((c) => c.id === item.id);
       if (ex) return prev.map((c) => c.id === item.id ? { ...c, qty: c.qty + 1 } : c);
