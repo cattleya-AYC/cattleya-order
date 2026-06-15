@@ -522,34 +522,30 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
       {loading ? <div style={{ textAlign: "center", color: "#8a7050", paddingTop: 40 }}>読み込み中...</div> : (
         <>
           {/* メイン集計 */}
-          <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
-            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 14, marginBottom: 10 }}>{new Date().toLocaleDateString("ja-JP")} 本日集計</div>
+          <div style={{ background: "#181008", borderRadius: 10, padding: 20, marginBottom: 16 }}>
+            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 22, marginBottom: 14, fontWeight: 700 }}>{new Date().toLocaleDateString("ja-JP")} 本日集計</div>
             {/* 現金合計 3列表記 */}
-            <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 6 }}>現金合計</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginBottom: 12 }}>
+            <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 8, fontWeight: 700 }}>現金合計</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 16 }}>
               {[
                 ["10時〜15時", cashBy1015, cashBy1015Count],
                 ["15時〜閉店", cashBy15close, cashBy15closeCount],
                 ["1日合計", todayCash, todayCashCount],
               ].map(([label, val, cnt]) => (
-                <div key={label} style={{ background: "#251a0a", borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
-                  <div style={{ color: "#8a7050", fontSize: 11, marginBottom: 4 }}>{label}</div>
-                  <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 15, fontWeight: 700 }}>¥{val.toLocaleString()}</div>
-                  <div style={{ color: "#8a7050", fontSize: 11, marginTop: 2 }}>{cnt}件</div>
+                <div key={label} style={{ background: "#251a0a", borderRadius: 8, padding: "14px 8px", textAlign: "center" }}>
+                  <div style={{ color: "#8a7050", fontSize: 15, marginBottom: 6 }}>{label}</div>
+                  <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 22, fontWeight: 700 }}>¥{val.toLocaleString()}</div>
+                  <div style={{ color: "#8a7050", fontSize: 15, marginTop: 4 }}>{cnt}件</div>
                 </div>
               ))}
             </div>
-            {[
-              ["ペイキャス合計", `¥${todayPay.toLocaleString()}（${todayPayCount}件）`],
-            ].map(([label, val]) => (
-              <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ color: "#8a7050" }}>{label}</span>
-                <span style={{ color: "#c9952a", fontFamily: "serif" }}>{val}</span>
-              </div>
-            ))}
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, borderTop: "1px solid #3d2c14", paddingTop: 8 }}>
-              <span style={{ color: "#f0e6d0", fontWeight: 700 }}>純売上（タバコ除く）</span>
-              <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 20, fontWeight: 700 }}>¥{todayTotal.toLocaleString()}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+              <span style={{ color: "#8a7050", fontSize: 18 }}>ペイキャス合計</span>
+              <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 20, fontWeight: 700 }}>¥{todayPay.toLocaleString()}（{todayPayCount}件）</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, borderTop: "1px solid #3d2c14", paddingTop: 12 }}>
+              <span style={{ color: "#f0e6d0", fontWeight: 700, fontSize: 20 }}>純売上（タバコ除く）</span>
+              <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 900 }}>¥{todayTotal.toLocaleString()}</span>
             </div>
             {[
               ["　内消費税10%", `¥${todayTax10.toLocaleString()}`],
@@ -559,35 +555,35 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
               ["来客組数", `${todayCount}組`],
               ["来客人数", `${todayPeople}名`],
             ].map(([label, val]) => (
-              <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <span style={{ color: "#8a7050" }}>{label}</span>
-                <span style={{ color: "#c9952a", fontFamily: "serif" }}>{val}</span>
+              <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ color: "#8a7050", fontSize: 18 }}>{label}</span>
+                <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 20, fontWeight: 700 }}>{val}</span>
               </div>
             ))}
           </div>
 
           {/* 時間帯別 */}
-          <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
-            <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>時間帯別売上</div>
+          <div style={{ background: "#181008", borderRadius: 10, padding: 20, marginBottom: 16 }}>
+            <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 10, fontWeight: 700 }}>時間帯別売上</div>
             {Object.keys(groups).length === 0
-              ? <div style={{ color: "#3d2c14", fontSize: 13 }}>データなし</div>
+              ? <div style={{ color: "#3d2c14", fontSize: 18 }}>データなし</div>
               : Object.entries(groups).sort().map(([hour, g]) => (
-                <div key={hour} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #3d2c1433" }}>
-                  <span style={{ color: "#8a7050" }}>{hour}:00〜{Number(hour)+1}:00</span>
-                  <span style={{ color: "#8a7050", fontSize: 12 }}>{g.count}件</span>
-                  <span style={{ color: "#c9952a" }}>¥{g.amount.toLocaleString()}</span>
+                <div key={hour} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #3d2c1433" }}>
+                  <span style={{ color: "#8a7050", fontSize: 18 }}>{hour}:00〜{Number(hour)+1}:00</span>
+                  <span style={{ color: "#8a7050", fontSize: 18 }}>{g.count}件</span>
+                  <span style={{ color: "#c9952a", fontSize: 20, fontWeight: 700 }}>¥{g.amount.toLocaleString()}</span>
                 </div>
               ))}
           </div>
 
           {/* タバコ */}
-          <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ color: "#8a7050" }}>🚬 タバコ売上（現金・別）</span>
-              <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>¥{tobaccoTotal.toLocaleString()}</span>
+          <div style={{ background: "#181008", borderRadius: 10, padding: 20, marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+              <span style={{ color: "#8a7050", fontSize: 18 }}>🚬 タバコ売上（現金・別）</span>
+              <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700, fontSize: 22 }}>¥{tobaccoTotal.toLocaleString()}</span>
             </div>
             {tobaccoSales.map((h, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#8a7050", padding: "3px 0" }}>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 17, color: "#8a7050", padding: "6px 0" }}>
                 <span>{h.sale_time} {h.item_name}</span>
                 <span>¥{h.price}</span>
               </div>
@@ -596,13 +592,13 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
 
           {/* レジ確認履歴 */}
           {cashCheckLogs.length > 0 && (
-            <div style={{ background: "#181008", borderRadius: 10, padding: 16 }}>
-              <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>💰 レジ確認履歴</div>
+            <div style={{ background: "#181008", borderRadius: 10, padding: 20 }}>
+              <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 10, fontWeight: 700 }}>💰 レジ確認履歴</div>
               {cashCheckLogs.map((log, i) => {
                 const resultLabel = log.result === "same" ? { text: "✅ 同じ", color: "#4aaa5a" } : log.result === "short" ? { text: "⚠️ 不足", color: "#c95a5a" } : { text: "💡 多い", color: "#5a8aca" };
                 return (
-                  <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid #3d2c1433" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <div key={i} style={{ padding: "12px 0", borderBottom: "1px solid #3d2c1433" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                       <span style={{ color: "#f0e6d0", fontWeight: 700, fontSize: 18 }}>{log.time}　{log.staff}</span>
                       <span style={{ color: resultLabel.color, fontWeight: 700, fontSize: 18 }}>{resultLabel.text}</span>
                     </div>

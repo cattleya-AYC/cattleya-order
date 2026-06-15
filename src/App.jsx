@@ -165,14 +165,16 @@ export default function App() {
           takeout: takeout,
         });
       }
-      await supabase.from("orders").insert({
-        table_no: String(selectedTable),
-        item_name: `【人数：${people}名】${takeout ? "【持ち帰り】" : ""}`,
-        price: 0,
-        qty: 1,
-        status: "info",
-        takeout: takeout,
-      });
+      if (people > 0) {
+        await supabase.from("orders").insert({
+          table_no: String(selectedTable),
+          item_name: `【人数：${people}名】${takeout ? "【持ち帰り】" : ""}`,
+          price: 0,
+          qty: 1,
+          status: "info",
+          takeout: takeout,
+        });
+      }
       setConfirming(false);
       setSent(true);
       setCart([]);
@@ -314,7 +316,7 @@ export default function App() {
       <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>Lounge Cattleya</div>
       <div style={{ color: "#8a7050", marginBottom: 24 }}>テーブル {selectedTable}</div>
       <div style={{ fontFamily: "serif", color: "#f0e6d0", fontSize: 20, marginBottom: 16 }}>人数を選択してください</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 16 }}>
         {PEOPLE.map((n) => (
           <button key={n} onClick={() => setPeople(n)}
             style={{ padding: "16px 0", background: people === n ? "#c9952a" : "#251a0a", border: `1px solid ${people === n ? "#c9952a" : "#3d2c14"}`, borderRadius: 10, color: people === n ? "#0f0a05" : "#c9952a", fontSize: 20, fontWeight: 700, cursor: "pointer" }}>
@@ -322,7 +324,12 @@ export default function App() {
           </button>
         ))}
       </div>
-      {people && <div style={{ textAlign: "center", marginBottom: 16, color: "#8a7050" }}>{people}名 が選択されています</div>}
+      {/* 追加ボタン（人数カウントなし） */}
+      <button onClick={() => { setPeople(0); setScreen("order"); }}
+        style={{ width: "100%", padding: "18px 0", background: "#1a1a30", border: "2px solid #5a5ac9", borderRadius: 10, color: "#9a9af0", fontSize: 22, fontWeight: 900, cursor: "pointer", marginBottom: 20 }}>
+        ➕ 追加注文（人数カウントなし）
+      </button>
+      {people > 0 && <div style={{ textAlign: "center", marginBottom: 16, color: "#8a7050" }}>{people}名 が選択されています</div>}
       <div style={{ display: "flex", gap: 10 }}>
         <button onClick={() => setScreen("table")}
           style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 15, cursor: "pointer" }}>
