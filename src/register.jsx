@@ -1706,6 +1706,10 @@ export default function Register() {
               style={{ padding: "16px 4px", background: "#10182a", border: "1px solid #2a3a6a", borderRadius: 10, color: "#5a8aca", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
               ⚙️ 管理
             </button>
+            <a href="/history" target="_blank" rel="noopener noreferrer"
+              style={{ display: "block", padding: "16px 4px", background: "#1a1208", border: "1px solid #c9952a", borderRadius: 10, color: "#c9952a", fontSize: 14, fontWeight: 700, cursor: "pointer", textAlign: "center", textDecoration: "none", marginTop: 4 }}>
+              📋 取引履歴
+            </a>
             {(() => {
               const takeoutOcc = tableOrders("持ち帰り").length > 0;
               return (
