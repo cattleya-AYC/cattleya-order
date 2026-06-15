@@ -1569,7 +1569,7 @@ export default function Register() {
         </div>
       )}
 
-      {cashChecking && (
+      {false && cashChecking && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 16, overflowY: "auto" }}>
           <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 20, width: "100%", maxWidth: 400 }}>
             <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 14 }}>💰 レジ金額確認</div>
