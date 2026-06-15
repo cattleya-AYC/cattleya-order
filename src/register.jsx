@@ -841,6 +841,10 @@ export default function Register() {
   const [todaySalesFromDB, setTodaySalesFromDB] = useState([]);
   const [todayTobaccoFromDB, setTodayTobaccoFromDB] = useState([]);
   const [monthlyTobaccoFromDB, setMonthlyTobaccoFromDB] = useState([]);
+  const [showDrawerModal, setShowDrawerModal] = useState(false);
+  const [drawerStaff, setDrawerStaff] = useState(null);
+  const [drawerReason, setDrawerReason] = useState(null);
+  const [drawerOther, setDrawerOther] = useState("");
 
   useEffect(() => {
     fetchOrders();
@@ -1039,7 +1043,7 @@ export default function Register() {
     setPreviewHtml(html);
   };
 
-  const openDrawer = async () => {
+  const openDrawer = async (staff, reason) => {
     // 時刻をlocalStorageに記録
     const now = new Date();
     const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
@@ -1048,9 +1052,14 @@ export default function Register() {
     const existing = JSON.parse(localStorage.getItem(key) || "[]");
     existing.push(timeStr);
     localStorage.setItem(key, JSON.stringify(existing));
-    // Supabaseに先に保存（実機がなくても記録が残る）
-    await supabase.from("drawer_logs").insert({ opened_at: now.toISOString(), log_date: today });
-    // mPOP ドロアオープン（最小レシートでPassPRNTを動かす）
+    // Supabaseに保存（スタッフ・理由も記録）
+    await supabase.from("drawer_logs").insert({ opened_at: now.toISOString(), log_date: today, staff, reason });
+    // モーダルを閉じる
+    setShowDrawerModal(false);
+    setDrawerStaff(null);
+    setDrawerReason(null);
+    setDrawerOther("");
+    // mPOP ドロアオープン
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:2px;width:384px;font-size:1px;color:white;">.</body></html>`;
     const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(location.origin + location.pathname) + "&html=" + encodeURIComponent(html);
     window.location.href = url;
@@ -1192,38 +1201,46 @@ export default function Register() {
 
   if (checkoutDone && checkoutInfo) return (
     <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
-      <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 22, marginBottom: 8 }}>会計完了</div>
-      <div style={{ color: "#8a7050", marginBottom: 24 }}>テーブル {checkoutInfo.table}</div>
-      <div style={{ background: "#181008", borderRadius: 12, padding: 24, width: "100%", maxWidth: 360, marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-          <span style={{ color: "#8a7050" }}>お会計</span>
-          <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 20, fontWeight: 700 }}>¥{checkoutInfo.amount.toLocaleString()}</span>
+      <div style={{ fontSize: 56, marginBottom: 8 }}>✅</div>
+      <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 20, marginBottom: 4 }}>会計完了　テーブル {checkoutInfo.table}</div>
+
+      {/* お会計金額 大きく */}
+      <div style={{ background: "#181008", border: "1px solid #3d2c14", borderRadius: 16, padding: "24px 28px", width: "100%", maxWidth: 380, marginBottom: 16, marginTop: 12 }}>
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 4 }}>お会計</div>
+          <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 48, fontWeight: 900, letterSpacing: 2 }}>¥{checkoutInfo.amount.toLocaleString()}</div>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-          <span style={{ color: "#8a7050" }}>支払い</span>
-          <span style={{ color: "#f0e6d0" }}>{checkoutInfo.pay}</span>
-        </div>
-        {checkoutInfo.received && (
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-            <span style={{ color: "#8a7050" }}>お預かり</span>
-            <span style={{ color: "#f0e6d0" }}>¥{checkoutInfo.received.toLocaleString()}</span>
+
+        {checkoutInfo.pay === "現金" && checkoutInfo.received && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "1px solid #3d2c14" }}>
+              <span style={{ color: "#8a7050", fontSize: 15 }}>お預かり</span>
+              <span style={{ color: "#f0e6d0", fontFamily: "serif", fontSize: 24, fontWeight: 700 }}>¥{checkoutInfo.received.toLocaleString()}</span>
+            </div>
+            {checkoutInfo.change !== null && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 16px", background: "#0a2010", border: "2px solid #2a6a3a", borderRadius: 12, marginTop: 8 }}>
+                <span style={{ color: "#4aaa5a", fontSize: 18, fontWeight: 700 }}>おつり</span>
+                <span style={{ color: "#4aaa5a", fontFamily: "serif", fontSize: 44, fontWeight: 900 }}>¥{checkoutInfo.change.toLocaleString()}</span>
+              </div>
+            )}
+          </>
+        )}
+
+        {checkoutInfo.pay !== "現金" && (
+          <div style={{ textAlign: "center", padding: "10px 0", borderTop: "1px solid #3d2c14", color: "#5a8aca", fontSize: 16, fontWeight: 700 }}>
+            💳 ペイキャス
           </div>
         )}
-        {checkoutInfo.change !== null && (
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderTop: "1px solid #3d2c14", marginTop: 8 }}>
-            <span style={{ color: "#4aaa5a", fontSize: 16 }}>おつり</span>
-            <span style={{ color: "#4aaa5a", fontFamily: "serif", fontSize: 28, fontWeight: 800 }}>¥{checkoutInfo.change.toLocaleString()}</span>
-          </div>
-        )}
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-          <span style={{ color: "#8a7050" }}>書類</span>
-          <span style={{ color: "#f0e6d0" }}>{checkoutInfo.receipt}</span>
+
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, paddingTop: 10, borderTop: "1px solid #3d2c14" }}>
+          <span style={{ color: "#8a7050", fontSize: 13 }}>書類</span>
+          <span style={{ color: "#8a7050", fontSize: 13 }}>{checkoutInfo.receipt}</span>
         </div>
       </div>
+
       <button onClick={() => { setCheckoutDone(false); setCheckoutInfo(null); }}
-        style={{ width: "100%", maxWidth: 360, padding: 16, background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
-        次の会計へ
+        style={{ width: "100%", maxWidth: 380, padding: 20, background: "#c9952a", border: "none", borderRadius: 12, color: "#0d0905", fontSize: 20, fontWeight: 900, cursor: "pointer", letterSpacing: 2 }}>
+        次の会計へ →
       </button>
     </div>
   );
@@ -1536,6 +1553,57 @@ export default function Register() {
         </div>
       )}
 
+      {/* ===== ドロアモーダル ===== */}
+      {showDrawerModal && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
+          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, width: "90%", maxWidth: 400, padding: 24 }}>
+            <div style={{ fontFamily: "serif", color: "#3a9a8a", fontSize: 20, marginBottom: 16 }}>🔓 ドロアを開ける</div>
+
+            {/* スタッフ選択 */}
+            <div style={{ color: "#8a7050", fontSize: 14, fontWeight: 700, marginBottom: 8 }}>担当者</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+              {["佐々木店長", "宮川", "末永", "井淵"].map((s) => (
+                <button key={s} onClick={() => setDrawerStaff(s)}
+                  style={{ padding: "14px 8px", background: drawerStaff === s ? "#1a4a3a" : "transparent", border: `2px solid ${drawerStaff === s ? "#3a9a8a" : "#3d2c14"}`, borderRadius: 8, color: drawerStaff === s ? "#3a9a8a" : "#8a7050", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            {/* 理由選択 */}
+            <div style={{ color: "#8a7050", fontSize: 14, fontWeight: 700, marginBottom: 8 }}>理由</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+              {["💴 現金確認のため", "🏦 銀行入金のため", "📝 その他"].map((r) => (
+                <button key={r} onClick={() => { setDrawerReason(r); if (r !== "📝 その他") setDrawerOther(""); }}
+                  style={{ padding: "14px 12px", background: drawerReason === r ? "#1a4a3a" : "transparent", border: `2px solid ${drawerReason === r ? "#3a9a8a" : "#3d2c14"}`, borderRadius: 8, color: drawerReason === r ? "#3a9a8a" : "#8a7050", fontWeight: 700, fontSize: 15, cursor: "pointer", textAlign: "left" }}>
+                  {r}
+                </button>
+              ))}
+              {drawerReason === "📝 その他" && (
+                <input value={drawerOther} onChange={(e) => setDrawerOther(e.target.value)}
+                  placeholder="理由を入力..."
+                  style={{ padding: "12px 14px", background: "#0d0905", border: "1px solid #3d2c14", borderRadius: 8, color: "#f0e6d0", fontSize: 14, outline: "none" }} />
+              )}
+            </div>
+
+            {/* ボタン */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => { setShowDrawerModal(false); setDrawerStaff(null); setDrawerReason(null); setDrawerOther(""); }}
+                style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>キャンセル</button>
+              <button
+                onClick={() => {
+                  const reason = drawerReason === "📝 その他" ? (drawerOther || "その他") : drawerReason;
+                  openDrawer(drawerStaff, reason);
+                }}
+                disabled={!drawerStaff || !drawerReason || (drawerReason === "📝 その他" && !drawerOther)}
+                style={{ flex: 2, padding: 14, background: (drawerStaff && drawerReason && !(drawerReason === "📝 その他" && !drawerOther)) ? "#1a4a3a" : "#3d2c14", border: "none", borderRadius: 10, color: (drawerStaff && drawerReason && !(drawerReason === "📝 その他" && !drawerOther)) ? "#3a9a8a" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
+                🔓 ドロアを開ける
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirming && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
           <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, width: "90%", maxWidth: 400, maxHeight: "92vh", display: "flex", flexDirection: "column" }}>
@@ -1698,7 +1766,7 @@ export default function Register() {
               style={{ padding: "16px 4px", background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 10, color: "#4aaa5a", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
               💰 レジ確認
             </button>
-            <button onClick={openDrawer}
+            <button onClick={() => { setShowDrawerModal(true); setDrawerStaff(null); setDrawerReason(null); setDrawerOther(""); }}
               style={{ padding: "16px 4px", background: "#0a1a18", border: "1px solid #1a4a3a", borderRadius: 10, color: "#3a9a8a", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
               🔓 ドロア
             </button>
@@ -1706,10 +1774,6 @@ export default function Register() {
               style={{ padding: "16px 4px", background: "#10182a", border: "1px solid #2a3a6a", borderRadius: 10, color: "#5a8aca", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
               ⚙️ 管理
             </button>
-            <a href="/history.html" target="_blank" rel="noopener noreferrer"
-              style={{ display: "block", padding: "16px 4px", background: "#1a1208", border: "1px solid #c9952a", borderRadius: 10, color: "#c9952a", fontSize: 14, fontWeight: 700, cursor: "pointer", textAlign: "center", textDecoration: "none", marginTop: 4 }}>
-              📋 取引履歴
-            </a>
             {(() => {
               const takeoutOcc = tableOrders("持ち帰り").length > 0;
               return (
