@@ -363,28 +363,6 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
   const todayTax = todayTax10 + todayTax8;
   const tobaccoTotal = tobaccoSales.reduce((a, s) => a + s.price, 0);
 
-  // 時間帯別現金合計（10-15時、15時以降、全日）
-  const cashBy1015 = sales.filter(s => {
-    if (s.pay_method !== "現金") return false;
-    const h = parseInt((s.sale_time || "0").split(":")[0]);
-    return h >= 10 && h < 15;
-  }).reduce((a, s) => a + s.amount, 0);
-  const cashBy1015Count = sales.filter(s => {
-    if (s.pay_method !== "現金") return false;
-    const h = parseInt((s.sale_time || "0").split(":")[0]);
-    return h >= 10 && h < 15;
-  }).length;
-  const cashBy15close = sales.filter(s => {
-    if (s.pay_method !== "現金") return false;
-    const h = parseInt((s.sale_time || "0").split(":")[0]);
-    return h >= 15;
-  }).reduce((a, s) => a + s.amount, 0);
-  const cashBy15closeCount = sales.filter(s => {
-    if (s.pay_method !== "現金") return false;
-    const h = parseInt((s.sale_time || "0").split(":")[0]);
-    return h >= 15;
-  }).length;
-
   // 時間帯別（件数＋金額）
   const groups = {};
   sales.forEach(s => {
@@ -485,9 +463,6 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
       <table>
         <tr class="total"><td>総売上</td><td style="text-align:right">¥${todayTotal.toLocaleString()}</td></tr>
         <tr><td class="lbl">現金（${todayCashCount}件）</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayCash.toLocaleString()}</td></tr>
-        <tr><td class="lbl">　10時〜15時（${cashBy1015Count}件）</td><td style="text-align:right;font-size:24px">¥${cashBy1015.toLocaleString()}</td></tr>
-        <tr><td class="lbl">　15時〜閉店（${cashBy15closeCount}件）</td><td style="text-align:right;font-size:24px">¥${cashBy15close.toLocaleString()}</td></tr>
-        <tr><td class="lbl">現金計</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayCash.toLocaleString()}</td></tr>
         <tr><td class="lbl">ペイキャス（${todayPayCount}件）</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayPay.toLocaleString()}</td></tr>
         <tr><td class="lbl">内消費税10%</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayTax10.toLocaleString()}</td></tr>
         <tr><td class="lbl">内消費税 8%</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayTax8.toLocaleString()}</td></tr>
@@ -511,10 +486,10 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
         <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18 }}>📊 日計</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={printSummary} style={{ padding: "18px 16px", background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", cursor: "pointer", fontWeight: 900, fontSize: 18, lineHeight: 1.3 }}>🖨 集計印刷<br/>（レシート）</button>
-          <button onClick={printPDF} style={{ padding: "18px 16px", background: "#1a2510", border: "2px solid #2a6a3a", borderRadius: 10, color: "#4aaa5a", cursor: "pointer", fontWeight: 900, fontSize: 18, lineHeight: 1.3 }}>🖨 プリンターで<br/>印刷</button>
-          <button onClick={fetchAll} style={{ padding: "18px 12px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>更新</button>
-          <button onClick={onBack} style={{ padding: "18px 12px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>戻る</button>
+          <button onClick={printSummary} style={{ padding: "6px 12px", background: "#c9952a", border: "none", borderRadius: 8, color: "#0d0905", cursor: "pointer", fontWeight: 700, fontSize: 11 }}>🖨 集計印刷（レシート）</button>
+          <button onClick={printPDF} style={{ padding: "6px 12px", background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 8, color: "#4aaa5a", cursor: "pointer", fontWeight: 700, fontSize: 11 }}>🖨 PDF印刷</button>
+          <button onClick={fetchAll} style={{ padding: "6px 12px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer", fontSize: 11 }}>更新</button>
+          <button onClick={onBack} style={{ padding: "6px 12px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>戻る</button>
         </div>
       </div>
       {lastPrintTime && <div style={{ color: "#8a7050", fontSize: 11, marginBottom: 8 }}>最終集計印刷: {lastPrintTime}</div>}
@@ -522,30 +497,20 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
       {loading ? <div style={{ textAlign: "center", color: "#8a7050", paddingTop: 40 }}>読み込み中...</div> : (
         <>
           {/* メイン集計 */}
-          <div style={{ background: "#181008", borderRadius: 10, padding: 20, marginBottom: 16 }}>
-            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 22, marginBottom: 14, fontWeight: 700 }}>{new Date().toLocaleDateString("ja-JP")} 本日集計</div>
-            {/* 現金合計 3列表記 */}
-            <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 8, fontWeight: 700 }}>現金合計</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 16 }}>
-              {[
-                ["10時〜15時", cashBy1015, cashBy1015Count],
-                ["15時〜閉店", cashBy15close, cashBy15closeCount],
-                ["1日合計", todayCash, todayCashCount],
-              ].map(([label, val, cnt]) => (
-                <div key={label} style={{ background: "#251a0a", borderRadius: 8, padding: "14px 8px", textAlign: "center" }}>
-                  <div style={{ color: "#8a7050", fontSize: 15, marginBottom: 6 }}>{label}</div>
-                  <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 22, fontWeight: 700 }}>¥{val.toLocaleString()}</div>
-                  <div style={{ color: "#8a7050", fontSize: 15, marginTop: 4 }}>{cnt}件</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-              <span style={{ color: "#8a7050", fontSize: 18 }}>ペイキャス合計</span>
-              <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 20, fontWeight: 700 }}>¥{todayPay.toLocaleString()}（{todayPayCount}件）</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, borderTop: "1px solid #3d2c14", paddingTop: 12 }}>
-              <span style={{ color: "#f0e6d0", fontWeight: 700, fontSize: 20 }}>純売上（タバコ除く）</span>
-              <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 900 }}>¥{todayTotal.toLocaleString()}</span>
+          <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
+            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 14, marginBottom: 10 }}>{new Date().toLocaleDateString("ja-JP")} 本日集計</div>
+            {[
+              ["現金合計", `¥${todayCash.toLocaleString()}（${todayCashCount}件）`],
+              ["ペイキャス合計", `¥${todayPay.toLocaleString()}（${todayPayCount}件）`],
+            ].map(([label, val]) => (
+              <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ color: "#8a7050" }}>{label}</span>
+                <span style={{ color: "#c9952a", fontFamily: "serif" }}>{val}</span>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, borderTop: "1px solid #3d2c14", paddingTop: 8 }}>
+              <span style={{ color: "#f0e6d0", fontWeight: 700 }}>純売上（タバコ除く）</span>
+              <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 20, fontWeight: 700 }}>¥{todayTotal.toLocaleString()}</span>
             </div>
             {[
               ["　内消費税10%", `¥${todayTax10.toLocaleString()}`],
@@ -555,35 +520,35 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
               ["来客組数", `${todayCount}組`],
               ["来客人数", `${todayPeople}名`],
             ].map(([label, val]) => (
-              <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ color: "#8a7050", fontSize: 18 }}>{label}</span>
-                <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 20, fontWeight: 700 }}>{val}</span>
+              <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ color: "#8a7050" }}>{label}</span>
+                <span style={{ color: "#c9952a", fontFamily: "serif" }}>{val}</span>
               </div>
             ))}
           </div>
 
           {/* 時間帯別 */}
-          <div style={{ background: "#181008", borderRadius: 10, padding: 20, marginBottom: 16 }}>
-            <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 10, fontWeight: 700 }}>時間帯別売上</div>
+          <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
+            <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>時間帯別売上</div>
             {Object.keys(groups).length === 0
-              ? <div style={{ color: "#3d2c14", fontSize: 18 }}>データなし</div>
+              ? <div style={{ color: "#3d2c14", fontSize: 13 }}>データなし</div>
               : Object.entries(groups).sort().map(([hour, g]) => (
-                <div key={hour} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #3d2c1433" }}>
-                  <span style={{ color: "#8a7050", fontSize: 18 }}>{hour}:00〜{Number(hour)+1}:00</span>
-                  <span style={{ color: "#8a7050", fontSize: 18 }}>{g.count}件</span>
-                  <span style={{ color: "#c9952a", fontSize: 20, fontWeight: 700 }}>¥{g.amount.toLocaleString()}</span>
+                <div key={hour} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #3d2c1433" }}>
+                  <span style={{ color: "#8a7050" }}>{hour}:00〜{Number(hour)+1}:00</span>
+                  <span style={{ color: "#8a7050", fontSize: 12 }}>{g.count}件</span>
+                  <span style={{ color: "#c9952a" }}>¥{g.amount.toLocaleString()}</span>
                 </div>
               ))}
           </div>
 
           {/* タバコ */}
-          <div style={{ background: "#181008", borderRadius: 10, padding: 20, marginBottom: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-              <span style={{ color: "#8a7050", fontSize: 18 }}>🚬 タバコ売上（現金・別）</span>
-              <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700, fontSize: 22 }}>¥{tobaccoTotal.toLocaleString()}</span>
+          <div style={{ background: "#181008", borderRadius: 10, padding: 16, marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ color: "#8a7050" }}>🚬 タバコ売上（現金・別）</span>
+              <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>¥{tobaccoTotal.toLocaleString()}</span>
             </div>
             {tobaccoSales.map((h, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 17, color: "#8a7050", padding: "6px 0" }}>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#8a7050", padding: "3px 0" }}>
                 <span>{h.sale_time} {h.item_name}</span>
                 <span>¥{h.price}</span>
               </div>
@@ -592,13 +557,13 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
 
           {/* レジ確認履歴 */}
           {cashCheckLogs.length > 0 && (
-            <div style={{ background: "#181008", borderRadius: 10, padding: 20 }}>
-              <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 10, fontWeight: 700 }}>💰 レジ確認履歴</div>
+            <div style={{ background: "#181008", borderRadius: 10, padding: 16 }}>
+              <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>💰 レジ確認履歴</div>
               {cashCheckLogs.map((log, i) => {
                 const resultLabel = log.result === "same" ? { text: "✅ 同じ", color: "#4aaa5a" } : log.result === "short" ? { text: "⚠️ 不足", color: "#c95a5a" } : { text: "💡 多い", color: "#5a8aca" };
                 return (
-                  <div key={i} style={{ padding: "12px 0", borderBottom: "1px solid #3d2c1433" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid #3d2c1433" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                       <span style={{ color: "#f0e6d0", fontWeight: 700, fontSize: 18 }}>{log.time}　{log.staff}</span>
                       <span style={{ color: resultLabel.color, fontWeight: 700, fontSize: 18 }}>{resultLabel.text}</span>
                     </div>
@@ -876,6 +841,49 @@ export default function Register() {
   const [todaySalesFromDB, setTodaySalesFromDB] = useState([]);
   const [todayTobaccoFromDB, setTodayTobaccoFromDB] = useState([]);
   const [monthlyTobaccoFromDB, setMonthlyTobaccoFromDB] = useState([]);
+  const [showDrawerModal, setShowDrawerModal] = useState(false);
+  const [drawerStaff, setDrawerStaff] = useState(null);
+  const [drawerReason, setDrawerReason] = useState(null);
+  const [drawerOther, setDrawerOther] = useState("");
+  // レジ確認（新版）
+  const [cashAlertTime, setCashAlertTime] = useState(null); // "10" | "13" | "17" | "20"
+  const [cashAlertStart, setCashAlertStart] = useState(null); // アラート開始時刻
+  const [showCashCheck, setShowCashCheck] = useState(false);
+  const [cashCheckPhase, setCashCheckPhase] = useState(1); // 1=1人目 2=2人目
+  const [ccStaff1, setCcStaff1] = useState(null);
+  const [ccStaff2, setCcStaff2] = useState(null);
+  const [ccDenoms1, setCcDenoms1] = useState({ "10000": "", "5000": "", "1000": "", "500": "", "100": "", "50": "", "10": "" });
+  const [ccDenoms2, setCcDenoms2] = useState({ "10000": "", "5000": "", "1000": "", "500": "", "100": "", "50": "", "10": "" });
+  const [cashCheckTodayLogs, setCashCheckTodayLogs] = useState([]);
+
+  // 時刻アラートチェック
+  useEffect(() => {
+    const ALERT_HOURS = ["10", "13", "17", "20"];
+    const check = () => {
+      const now = new Date();
+      const h = String(now.getHours());
+      const m = now.getMinutes();
+      if (ALERT_HOURS.includes(h) && m < 30) {
+        const today = now.toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
+        const key = `cashcheck_alerted_${today}_${h}`;
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem(key, "1");
+          setCashAlertTime(h);
+          setCashAlertStart(Date.now());
+        }
+      }
+    };
+    check();
+    const timer = setInterval(check, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 今日のレジ確認ログを取得
+  useEffect(() => {
+    const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
+    supabase.from("cashcheck_logs").select("*").eq("log_date", today).order("checked_at", { ascending: true })
+      .then(({ data }) => setCashCheckTodayLogs(data || []));
+  }, [showCashCheck]);
 
   useEffect(() => {
     fetchOrders();
@@ -1074,7 +1082,7 @@ export default function Register() {
     setPreviewHtml(html);
   };
 
-  const openDrawer = async () => {
+  const openDrawer = async (staff, reason) => {
     // 時刻をlocalStorageに記録
     const now = new Date();
     const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
@@ -1083,12 +1091,69 @@ export default function Register() {
     const existing = JSON.parse(localStorage.getItem(key) || "[]");
     existing.push(timeStr);
     localStorage.setItem(key, JSON.stringify(existing));
-    // Supabaseに先に保存（実機がなくても記録が残る）
-    await supabase.from("drawer_logs").insert({ opened_at: now.toISOString(), log_date: today });
-    // mPOP ドロアオープン（最小レシートでPassPRNTを動かす）
+    // Supabaseに保存（スタッフ・理由も記録）
+    await supabase.from("drawer_logs").insert({ opened_at: now.toISOString(), log_date: today, staff, reason });
+    // モーダルを閉じる
+    setShowDrawerModal(false);
+    setDrawerStaff(null);
+    setDrawerReason(null);
+    setDrawerOther("");
+    // mPOP ドロアオープン
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:2px;width:384px;font-size:1px;color:white;">.</body></html>`;
     const url = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(location.origin + location.pathname) + "&html=" + encodeURIComponent(html);
     window.location.href = url;
+  };
+
+  // ===== 新レジ確認関数 =====
+  const DENOMS = [
+    { key: "10000", label: "1万円札", unit: 10000 },
+    { key: "5000",  label: "5千円札", unit: 5000 },
+    { key: "1000",  label: "千円札",  unit: 1000 },
+    { key: "500",   label: "500円玉", unit: 500 },
+    { key: "100",   label: "100円玉", unit: 100 },
+    { key: "50",    label: "50円玉",  unit: 50 },
+    { key: "10",    label: "10円玉",  unit: 10 },
+  ];
+
+  const calcTotal = (denoms) =>
+    DENOMS.reduce((sum, d) => sum + (parseInt(denoms[d.key] || "0") * d.unit), 0);
+
+  const openCashCheck = () => {
+    setShowCashCheck(true);
+    setCashCheckPhase(1);
+    setCcStaff1(null); setCcStaff2(null);
+    setCcDenoms1({ "10000":"","5000":"","1000":"","500":"","100":"","50":"","10":"" });
+    setCcDenoms2({ "10000":"","5000":"","1000":"","500":"","100":"","50":"","10":"" });
+  };
+
+  const closeCashCheck = () => {
+    setShowCashCheck(false);
+    setCashAlertTime(null);
+    setCashAlertStart(null);
+    setCashCheckPhase(1);
+    setCcStaff1(null); setCcStaff2(null);
+  };
+
+  const saveCashCheckLog = async (staff1, total1, staff2, total2, systemCash, alertHour) => {
+    const now = new Date();
+    const today = now.toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
+    const diff1 = total1 - systemCash;
+    const diff2 = total2 !== null ? total2 - systemCash : null;
+    await supabase.from("cashcheck_logs").insert({
+      checked_at: now.toISOString(),
+      log_date: today,
+      staff: staff1,
+      staff2: staff2 || null,
+      system_cash: systemCash,
+      actual_cash1: total1,
+      actual_cash2: total2,
+      diff: diff1,
+      diff2: diff2,
+      alert_hour: alertHour || null,
+      result: diff1 === 0 ? "same" : diff1 < 0 ? "short" : "over",
+    });
+    const { data } = await supabase.from("cashcheck_logs").select("*").eq("log_date", today).order("checked_at", { ascending: true });
+    setCashCheckTodayLogs(data || []);
   };
 
   // クーポン有効期間チェック（7月1日〜7月31日）
@@ -1227,38 +1292,46 @@ export default function Register() {
 
   if (checkoutDone && checkoutInfo) return (
     <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
-      <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 22, marginBottom: 8 }}>会計完了</div>
-      <div style={{ color: "#8a7050", marginBottom: 24 }}>テーブル {checkoutInfo.table}</div>
-      <div style={{ background: "#181008", borderRadius: 12, padding: 24, width: "100%", maxWidth: 360, marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-          <span style={{ color: "#8a7050" }}>お会計</span>
-          <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 20, fontWeight: 700 }}>¥{checkoutInfo.amount.toLocaleString()}</span>
+      <div style={{ fontSize: 56, marginBottom: 8 }}>✅</div>
+      <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 20, marginBottom: 4 }}>会計完了　テーブル {checkoutInfo.table}</div>
+
+      {/* お会計金額 大きく */}
+      <div style={{ background: "#181008", border: "1px solid #3d2c14", borderRadius: 16, padding: "24px 28px", width: "100%", maxWidth: 380, marginBottom: 16, marginTop: 12 }}>
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 4 }}>お会計</div>
+          <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 48, fontWeight: 900, letterSpacing: 2 }}>¥{checkoutInfo.amount.toLocaleString()}</div>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-          <span style={{ color: "#8a7050" }}>支払い</span>
-          <span style={{ color: "#f0e6d0" }}>{checkoutInfo.pay}</span>
-        </div>
-        {checkoutInfo.received && (
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-            <span style={{ color: "#8a7050" }}>お預かり</span>
-            <span style={{ color: "#f0e6d0" }}>¥{checkoutInfo.received.toLocaleString()}</span>
+
+        {checkoutInfo.pay === "現金" && checkoutInfo.received && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "1px solid #3d2c14" }}>
+              <span style={{ color: "#8a7050", fontSize: 15 }}>お預かり</span>
+              <span style={{ color: "#f0e6d0", fontFamily: "serif", fontSize: 24, fontWeight: 700 }}>¥{checkoutInfo.received.toLocaleString()}</span>
+            </div>
+            {checkoutInfo.change !== null && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 16px", background: "#0a2010", border: "2px solid #2a6a3a", borderRadius: 12, marginTop: 8 }}>
+                <span style={{ color: "#4aaa5a", fontSize: 18, fontWeight: 700 }}>おつり</span>
+                <span style={{ color: "#4aaa5a", fontFamily: "serif", fontSize: 44, fontWeight: 900 }}>¥{checkoutInfo.change.toLocaleString()}</span>
+              </div>
+            )}
+          </>
+        )}
+
+        {checkoutInfo.pay !== "現金" && (
+          <div style={{ textAlign: "center", padding: "10px 0", borderTop: "1px solid #3d2c14", color: "#5a8aca", fontSize: 16, fontWeight: 700 }}>
+            💳 ペイキャス
           </div>
         )}
-        {checkoutInfo.change !== null && (
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderTop: "1px solid #3d2c14", marginTop: 8 }}>
-            <span style={{ color: "#4aaa5a", fontSize: 16 }}>おつり</span>
-            <span style={{ color: "#4aaa5a", fontFamily: "serif", fontSize: 28, fontWeight: 800 }}>¥{checkoutInfo.change.toLocaleString()}</span>
-          </div>
-        )}
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-          <span style={{ color: "#8a7050" }}>書類</span>
-          <span style={{ color: "#f0e6d0" }}>{checkoutInfo.receipt}</span>
+
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, paddingTop: 10, borderTop: "1px solid #3d2c14" }}>
+          <span style={{ color: "#8a7050", fontSize: 13 }}>書類</span>
+          <span style={{ color: "#8a7050", fontSize: 13 }}>{checkoutInfo.receipt}</span>
         </div>
       </div>
+
       <button onClick={() => { setCheckoutDone(false); setCheckoutInfo(null); }}
-        style={{ width: "100%", maxWidth: 360, padding: 16, background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
-        次の会計へ
+        style={{ width: "100%", maxWidth: 380, padding: 20, background: "#c9952a", border: "none", borderRadius: 12, color: "#0d0905", fontSize: 20, fontWeight: 900, cursor: "pointer", letterSpacing: 2 }}>
+        次の会計へ →
       </button>
     </div>
   );
@@ -1315,12 +1388,12 @@ export default function Register() {
         <button onClick={() => setMode("register")} style={{ padding: "6px 14px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>戻る</button>
       </div>
       {TOBACCO.map((item) => (
-        <div key={item.id} style={{ background: "#181008", border: "2px solid #3d2c14", borderRadius: 14, padding: "24px 20px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div key={item.id} style={{ background: "#181008", border: "1px solid #3d2c14", borderRadius: 10, padding: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ color: "#f0e6d0", fontSize: 28, fontWeight: 700 }}>{item.name}</div>
-            <div style={{ color: "#c9952a", fontSize: 24, marginTop: 6, fontFamily: "serif", fontWeight: 700 }}>¥{item.price}</div>
+            <div style={{ color: "#f0e6d0", fontSize: 15 }}>{item.name}</div>
+            <div style={{ color: "#8a7050", fontSize: 13, marginTop: 2 }}>¥{item.price}</div>
           </div>
-          <button onClick={() => openTobaccoConfirm(item)} style={{ padding: "24px 36px", background: "#c9952a", border: "none", borderRadius: 12, color: "#0d0905", fontWeight: 900, fontSize: 28, cursor: "pointer" }}>販売</button>
+          <button onClick={() => openTobaccoConfirm(item)} style={{ padding: "10px 20px", background: "#c9952a", border: "none", borderRadius: 8, color: "#0d0905", fontWeight: 700, cursor: "pointer" }}>販売</button>
         </div>
       ))}
       {todayTobaccoFromDB.length > 0 && (
@@ -1496,24 +1569,24 @@ export default function Register() {
         </div>
       )}
 
-      {cashChecking && (
+      {false && cashChecking && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 16, overflowY: "auto" }}>
           <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 20, width: "100%", maxWidth: 400 }}>
-            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 24, marginBottom: 14, fontWeight: 700 }}>💰 レジ金額確認</div>
+            <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 14 }}>💰 レジ金額確認</div>
 
             {/* レジ内金額 */}
-            <div style={{ background: "#251a0a", borderRadius: 10, padding: 16, marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ color: "#8a7050", fontSize: 18 }}>釣り銭（固定）</span>
-                <span style={{ color: "#f0e6d0", fontSize: 18 }}>¥50,000</span>
+            <div style={{ background: "#251a0a", borderRadius: 10, padding: 14, marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ color: "#8a7050" }}>釣り銭（固定）</span>
+                <span style={{ color: "#f0e6d0" }}>¥50,000</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ color: "#8a7050", fontSize: 18 }}>本日の現金売上</span>
-                <span style={{ color: "#f0e6d0", fontSize: 18 }}>¥{todayCashFromDB.toLocaleString()}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ color: "#8a7050" }}>本日の現金売上</span>
+                <span style={{ color: "#f0e6d0" }}>¥{todayCashFromDB.toLocaleString()}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #3d2c14", paddingTop: 12 }}>
-                <span style={{ color: "#f0e6d0", fontWeight: 700, fontSize: 20 }}>レジ内あるべき金額</span>
-                <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 36, fontWeight: 900 }}>¥{(todayCashFromDB + 50000).toLocaleString()}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #3d2c14", paddingTop: 10 }}>
+                <span style={{ color: "#f0e6d0", fontWeight: 700, fontSize: 16 }}>レジ内あるべき金額</span>
+                <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 24, fontWeight: 900 }}>¥{(todayCashFromDB + 50000).toLocaleString()}</span>
               </div>
             </div>
 
@@ -1571,9 +1644,210 @@ export default function Register() {
         </div>
       )}
 
+      {/* ===== 新レジ確認モーダル ===== */}
+      {showCashCheck && (() => {
+        const systemCash = todayCashFromDB + 50000;
+        const total1 = calcTotal(ccDenoms1);
+        const total2 = calcTotal(ccDenoms2);
+        const is10 = cashAlertTime === "10";
+        const allFilled1 = ccStaff1 && DENOMS.some(d => ccDenoms1[d.key] !== "");
+        const allFilled2 = ccStaff2 && DENOMS.some(d => ccDenoms2[d.key] !== "");
+        const diff1 = total1 - systemCash;
+        const diff2 = total2 - systemCash;
+
+        const DenomInput = ({ denoms, setDenoms }) => (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {DENOMS.map(d => (
+              <div key={d.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ color: "#8a7050", fontSize: 13, width: 70, textAlign: "right" }}>{d.label}</div>
+                <input type="number" inputMode="numeric" value={denoms[d.key]}
+                  onChange={e => setDenoms(prev => ({ ...prev, [d.key]: e.target.value }))}
+                  placeholder="0"
+                  style={{ width: 70, padding: "8px 10px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#f0e6d0", fontSize: 16, textAlign: "right" }} />
+                <div style={{ color: "#8a7050", fontSize: 12 }}>枚</div>
+                <div style={{ color: "#c9952a", fontSize: 13, marginLeft: "auto" }}>
+                  {denoms[d.key] ? `¥${(parseInt(denoms[d.key]) * d.unit).toLocaleString()}` : ""}
+                </div>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #3d2c14", paddingTop: 10, marginTop: 4 }}>
+              <span style={{ color: "#f0e6d0", fontWeight: 700 }}>合計</span>
+              <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 22, fontWeight: 900 }}>¥{calcTotal(denoms).toLocaleString()}</span>
+            </div>
+          </div>
+        );
+
+        const StaffSelect = ({ value, setValue, exclude }) => (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+            {STAFF.filter(s => s !== exclude).map(s => (
+              <button key={s} onClick={() => setValue(s)}
+                style={{ padding: "14px 8px", background: value === s ? "#c9952a" : "transparent", border: `2px solid ${value === s ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: value === s ? "#0d0905" : "#c9952a", fontWeight: 900, fontSize: 16, cursor: "pointer" }}>
+                {s}
+              </button>
+            ))}
+          </div>
+        );
+
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", alignItems: "flex-start", justifyContent: "center", zIndex: 300, overflowY: "auto", padding: "16px 0 40px" }}>
+            <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, width: "95%", maxWidth: 420, padding: 20 }}>
+              <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>💰 レジ金額確認　{cashAlertTime}時</div>
+
+              {/* あるべき金額 */}
+              <div style={{ background: "#251a0a", borderRadius: 10, padding: 12, marginBottom: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span style={{ color: "#8a7050", fontSize: 12 }}>釣り銭（固定）</span>
+                  <span style={{ color: "#f0e6d0", fontSize: 12 }}>¥50,000</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span style={{ color: "#8a7050", fontSize: 12 }}>現金売上累計</span>
+                  <span style={{ color: "#f0e6d0", fontSize: 12 }}>¥{todayCashFromDB.toLocaleString()}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #3d2c14", paddingTop: 8 }}>
+                  <span style={{ color: "#f0e6d0", fontWeight: 700 }}>レジ内あるべき金額</span>
+                  <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 20, fontWeight: 900 }}>¥{systemCash.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* フェーズ1 */}
+              <div style={{ color: "#c9952a", fontWeight: 700, marginBottom: 8 }}>
+                {is10 ? "確認者" : "1人目の確認者"}
+              </div>
+              <StaffSelect value={ccStaff1} setValue={setCcStaff1} exclude={null} />
+              <DenomInput denoms={ccDenoms1} setDenoms={setCcDenoms1} />
+
+              {/* フェーズ2（13/17/20時のみ） */}
+              {!is10 && cashCheckPhase >= 2 && (
+                <>
+                  <div style={{ borderTop: "1px solid #3d2c14", margin: "16px 0" }} />
+                  <div style={{ color: "#5a8aca", fontWeight: 700, marginBottom: 8 }}>2人目の確認者（{ccStaff1}以外）</div>
+                  <StaffSelect value={ccStaff2} setValue={setCcStaff2} exclude={ccStaff1} />
+                  <DenomInput denoms={ccDenoms2} setDenoms={setCcDenoms2} />
+
+                  {/* 比較結果 */}
+                  {allFilled2 && (
+                    <div style={{ background: "#251a0a", borderRadius: 10, padding: 12, marginTop: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                        <span style={{ color: "#8a7050" }}>{ccStaff1}の確認額</span>
+                        <span style={{ color: diff1 === 0 ? "#4aaa5a" : "#c95a5a", fontWeight: 700 }}>¥{total1.toLocaleString()}　({diff1 >= 0 ? "+" : ""}{diff1.toLocaleString()})</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                        <span style={{ color: "#8a7050" }}>{ccStaff2}の確認額</span>
+                        <span style={{ color: diff2 === 0 ? "#4aaa5a" : "#c95a5a", fontWeight: 700 }}>¥{total2.toLocaleString()}　({diff2 >= 0 ? "+" : ""}{diff2.toLocaleString()})</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #3d2c14", paddingTop: 8 }}>
+                        <span style={{ color: "#f0e6d0", fontWeight: 700 }}>あるべき金額</span>
+                        <span style={{ color: "#c9952a", fontWeight: 900 }}>¥{systemCash.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ボタン */}
+              <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+                {!is10 && cashCheckPhase === 1 && (
+                  <button onClick={() => { setCashCheckPhase(2); }}
+                    disabled={!allFilled1}
+                    style={{ flex: 1, padding: 14, background: allFilled1 ? "#2a4a6a" : "#3d2c14", border: "none", borderRadius: 10, color: allFilled1 ? "#5a8aca" : "#8a7050", fontWeight: 700, fontSize: 15, cursor: allFilled1 ? "pointer" : "not-allowed" }}>
+                    次の人に確認依頼 →
+                  </button>
+                )}
+                {(is10 || cashCheckPhase >= 2) && (
+                  <>
+                    <button onClick={closeCashCheck}
+                      style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
+                      数え直す
+                    </button>
+                    <button
+                      disabled={is10 ? !allFilled1 : !allFilled2}
+                      onClick={async () => {
+                        await saveCashCheckLog(ccStaff1, total1, is10 ? null : ccStaff2, is10 ? null : total2, systemCash, cashAlertTime);
+                        closeCashCheck();
+                      }}
+                      style={{ flex: 2, padding: 14, background: (is10 ? allFilled1 : allFilled2) ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: (is10 ? allFilled1 : allFilled2) ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
+                      ✅ 確認完了
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* 今日のログ */}
+              {cashCheckTodayLogs.length > 0 && (
+                <div style={{ marginTop: 20, borderTop: "1px solid #3d2c14", paddingTop: 12 }}>
+                  <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>本日の確認履歴</div>
+                  {cashCheckTodayLogs.map((log, i) => {
+                    const t = new Date(log.checked_at).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+                    const d = log.diff;
+                    return (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #3d2c1444", fontSize: 12 }}>
+                        <span style={{ color: "#8a7050" }}>{log.alert_hour}時　{t}　{log.staff}{log.staff2 ? `・${log.staff2}` : ""}</span>
+                        <span style={{ color: d === 0 ? "#4aaa5a" : "#c95a5a", fontWeight: 700 }}>{d >= 0 ? "+" : ""}{(d||0).toLocaleString()}円</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ===== ドロアモーダル ===== */}
+      {showDrawerModal && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
+          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, width: "90%", maxWidth: 400, padding: 24 }}>
+            <div style={{ fontFamily: "serif", color: "#3a9a8a", fontSize: 20, marginBottom: 16 }}>🔓 ドロアを開ける</div>
+
+            {/* スタッフ選択 */}
+            <div style={{ color: "#8a7050", fontSize: 14, fontWeight: 700, marginBottom: 8 }}>担当者</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+              {["佐々木店長", "宮川", "末永", "井淵"].map((s) => (
+                <button key={s} onClick={() => setDrawerStaff(s)}
+                  style={{ padding: "14px 8px", background: drawerStaff === s ? "#1a4a3a" : "transparent", border: `2px solid ${drawerStaff === s ? "#3a9a8a" : "#3d2c14"}`, borderRadius: 8, color: drawerStaff === s ? "#3a9a8a" : "#8a7050", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            {/* 理由選択 */}
+            <div style={{ color: "#8a7050", fontSize: 14, fontWeight: 700, marginBottom: 8 }}>理由</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+              {["💴 現金確認のため", "🏦 銀行入金のため", "📝 その他"].map((r) => (
+                <button key={r} onClick={() => { setDrawerReason(r); if (r !== "📝 その他") setDrawerOther(""); }}
+                  style={{ padding: "14px 12px", background: drawerReason === r ? "#1a4a3a" : "transparent", border: `2px solid ${drawerReason === r ? "#3a9a8a" : "#3d2c14"}`, borderRadius: 8, color: drawerReason === r ? "#3a9a8a" : "#8a7050", fontWeight: 700, fontSize: 15, cursor: "pointer", textAlign: "left" }}>
+                  {r}
+                </button>
+              ))}
+              {drawerReason === "📝 その他" && (
+                <input value={drawerOther} onChange={(e) => setDrawerOther(e.target.value)}
+                  placeholder="理由を入力..."
+                  style={{ padding: "12px 14px", background: "#0d0905", border: "1px solid #3d2c14", borderRadius: 8, color: "#f0e6d0", fontSize: 14, outline: "none" }} />
+              )}
+            </div>
+
+            {/* ボタン */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => { setShowDrawerModal(false); setDrawerStaff(null); setDrawerReason(null); setDrawerOther(""); }}
+                style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>キャンセル</button>
+              <button
+                onClick={() => {
+                  const reason = drawerReason === "📝 その他" ? (drawerOther || "その他") : drawerReason;
+                  openDrawer(drawerStaff, reason);
+                }}
+                disabled={!drawerStaff || !drawerReason || (drawerReason === "📝 その他" && !drawerOther)}
+                style={{ flex: 2, padding: 14, background: (drawerStaff && drawerReason && !(drawerReason === "📝 その他" && !drawerOther)) ? "#1a4a3a" : "#3d2c14", border: "none", borderRadius: 10, color: (drawerStaff && drawerReason && !(drawerReason === "📝 その他" && !drawerOther)) ? "#3a9a8a" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
+                🔓 ドロアを開ける
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirming && (
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "90vh", overflow: "auto" }}>
+          <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, width: "90%", maxWidth: 400, maxHeight: "92vh", display: "flex", flexDirection: "column" }}>
+          <div style={{ overflowY: "auto", flex: 1, padding: 24, paddingBottom: 8 }}>
             <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 20, marginBottom: 4 }}>テーブル {selected} 会計</div>
             <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 12 }}>{selectedPeople}名</div>
             <div style={{ borderTop: "1px solid #3d2c14", paddingTop: 12, marginBottom: 12 }}>
@@ -1691,60 +1965,60 @@ export default function Register() {
                 </button>
               ))}
             </div>
+          </div>
+          {/* 固定ボタンエリア */}
+          <div style={{ padding: "12px 24px 20px", borderTop: "1px solid #3d2c14", background: "#1c1208", borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); }}
                 style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>戻る</button>
               <button onClick={checkout} disabled={!canCheckout || checkingOut}
-                style={{ flex: 2, padding: 14, background: canCheckout ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: canCheckout ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 16, cursor: canCheckout ? "pointer" : "not-allowed" }}>
+                style={{ flex: 2, padding: 14, background: canCheckout ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: canCheckout ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 18, cursor: canCheckout ? "pointer" : "not-allowed" }}>
                 {checkingOut ? "処理中…" : "✅ 会計完了"}
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}
 
       <div style={{ display: "flex", flex: 1, overflow: "auto" }}>
 
-        {/* ===== 左サイドバー（大きめ） ===== */}
-        <div style={{ width: 220, minWidth: 220, background: "#181008", borderRight: "1px solid #3d2c14", display: "flex", flexDirection: "column" }}>
+        {/* ===== 左サイドバー（コンパクト） ===== */}
+        <div style={{ width: 160, minWidth: 160, background: "#181008", borderRight: "1px solid #3d2c14", display: "flex", flexDirection: "column" }}>
 
           {/* ヘッダー＋使用中テーブル数 */}
-          <div style={{ padding: "10px 12px", borderBottom: "1px solid #3d2c14" }}>
-            <div style={{ fontFamily: "serif", fontSize: 16, color: "#c9952a", fontWeight: 700 }}>Lounge Cattleya</div>
-            <div style={{ fontSize: 15, color: "#8a7050", marginTop: 2 }}>使用中 {occupiedTables.length} / 30</div>
+          <div style={{ padding: "8px 10px", borderBottom: "1px solid #3d2c14" }}>
+            <div style={{ fontFamily: "serif", fontSize: 14, color: "#c9952a", fontWeight: 700 }}>Lounge Cattleya</div>
+            <div style={{ fontSize: 13, color: "#8a7050", marginTop: 2 }}>使用中 {occupiedTables.length} / 30</div>
           </div>
 
           {/* 操作ボタン（大きめ） */}
-          <div style={{ padding: "10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
-            <button onClick={() => setMode("daily")}
-              style={{ padding: "20px 4px", background: "#1a0a25", border: "1px solid #6a3a9a", borderRadius: 10, color: "#c9952a", fontSize: 22, fontWeight: 700, cursor: "pointer" }}>
-              📊 途中集計
-            </button>
+          <div style={{ padding: "8px 8px", display: "flex", flexDirection: "column", gap: 6 }}>
             <button onClick={() => { setShowCoupon(true); setCouponError(""); }}
-              style={{ padding: "14px 4px", background: "#1a1a30", border: "1px solid #5a5ac9", borderRadius: 8, color: "#9a9af0", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
+              style={{ padding: "12px 4px", background: "#1a1a30", border: "1px solid #5a5ac9", borderRadius: 8, color: "#9a9af0", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
               🎟 クーポン
             </button>
             <button onClick={() => setMode("tobacco")}
-              style={{ padding: "20px 4px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 22, fontWeight: 700, cursor: "pointer" }}>
+              style={{ padding: "16px 4px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
               🚬 タバコ
             </button>
-            <button onClick={() => setCashChecking(true)}
-              style={{ padding: "20px 4px", background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 10, color: "#4aaa5a", fontSize: 22, fontWeight: 700, cursor: "pointer" }}>
+            <button onClick={() => { setCashAlertTime("手動"); setCashAlertStart(Date.now()); openCashCheck(); }}
+              style={{ padding: "16px 4px", background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 10, color: "#4aaa5a", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
               💰 レジ確認
             </button>
-            <button onClick={openDrawer}
-              style={{ padding: "20px 4px", background: "#0a1a18", border: "1px solid #1a4a3a", borderRadius: 10, color: "#3a9a8a", fontSize: 22, fontWeight: 700, cursor: "pointer" }}>
+            <button onClick={() => { setShowDrawerModal(true); setDrawerStaff(null); setDrawerReason(null); setDrawerOther(""); }}
+              style={{ padding: "16px 4px", background: "#0a1a18", border: "1px solid #1a4a3a", borderRadius: 10, color: "#3a9a8a", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
               🔓 ドロア
             </button>
             <button onClick={() => { setShowPinModal(true); setPinInput(""); setPinError(false); }}
-              style={{ padding: "20px 4px", background: "#10182a", border: "1px solid #2a3a6a", borderRadius: 10, color: "#5a8aca", fontSize: 22, fontWeight: 700, cursor: "pointer" }}>
+              style={{ padding: "16px 4px", background: "#10182a", border: "1px solid #2a3a6a", borderRadius: 10, color: "#5a8aca", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
               ⚙️ 管理
             </button>
             {(() => {
               const takeoutOcc = tableOrders("持ち帰り").length > 0;
               return (
                 <button onClick={() => setSelected("持ち帰り")}
-                  style={{ padding: "36px 4px", background: takeoutOcc ? "#0a2a1a" : "#0a1a2a", border: `2px solid ${takeoutOcc ? "#2aaa6a" : "#2a6aaa"}`, borderRadius: 10, color: takeoutOcc ? "#2aff8a" : "#5aaaff", fontSize: 20, fontWeight: 700, cursor: "pointer", marginTop: 4 }}>
+                  style={{ padding: "32px 4px", background: takeoutOcc ? "#0a2a1a" : "#0a1a2a", border: `2px solid ${takeoutOcc ? "#2aaa6a" : "#2a6aaa"}`, borderRadius: 10, color: takeoutOcc ? "#2aff8a" : "#5aaaff", fontSize: 14, fontWeight: 700, cursor: "pointer", marginTop: 4 }}>
                   🛍 持ち帰り{takeoutOcc ? "　●" : ""}
                 </button>
               );
@@ -1754,9 +2028,9 @@ export default function Register() {
           {/* 会計済み履歴 */}
           {history.length > 0 && (
             <div style={{ padding: "6px 8px", borderTop: "1px solid #3d2c14", flex: 1, overflow: "auto" }}>
-              <div style={{ fontSize: 11, color: "#8a7050", marginBottom: 4 }}>会計済み</div>
+              <div style={{ fontSize: 9, color: "#8a7050", marginBottom: 4 }}>会計済み</div>
               {history.map((h, i) => (
-                <div key={i} style={{ fontSize: 12, color: "#8a7050", padding: "2px 0" }}>
+                <div key={i} style={{ fontSize: 10, color: "#8a7050", padding: "2px 0" }}>
                   <div>T{h.table} {h.time}</div>
                   <div style={{ color: "#c9952a" }}>¥{h.amount.toLocaleString()}</div>
                 </div>
@@ -1768,19 +2042,35 @@ export default function Register() {
         {/* ===== 右メインエリア ===== */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "auto", minWidth: 0 }}>
 
+          {/* ===== レジ確認アラートバナー ===== */}
+          {cashAlertTime && !showCashCheck && (() => {
+            const elapsed = Date.now() - (cashAlertStart || Date.now());
+            const isRed = elapsed > 5 * 60 * 1000;
+            return (
+              <div onClick={openCashCheck}
+                style={{ margin: "8px 8px 0", padding: "14px 16px", background: isRed ? "#3a0a0a" : "#0a1a3a", border: `2px solid ${isRed ? "#c95a5a" : "#5a8aca"}`, borderRadius: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <div style={{ color: isRed ? "#c95a5a" : "#5a8aca", fontWeight: 900, fontSize: 16 }}>
+                    {isRed ? "🔴" : "🔵"} {cashAlertTime}時　レジ金額確認の時間です
+                  </div>
+                  <div style={{ color: "#8a7050", fontSize: 12, marginTop: 2 }}>タップして確認を開始</div>
+                </div>
+                <div style={{ color: isRed ? "#c95a5a" : "#5a8aca", fontSize: 24 }}>→</div>
+              </div>
+            );
+          })()}
+
           {/* テーブル未選択：テーブル一覧を大きく表示 */}
           {!selected ? (
-            <div style={{ padding: 10, overflow: "auto" }}>
-              <div style={{ fontSize: 14, color: "#8a7050", marginBottom: 10 }}>🧾 テーブルを選択してください</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(56px, 1fr))", gap: 8 }}>
+            <div style={{ padding: 14, overflow: "auto" }}>
+              <div style={{ fontSize: 16, color: "#8a7050", marginBottom: 14 }}>🧾 テーブルを選択してください</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))", gap: 10 }}>
                 {TABLES.map((t) => {
                   const occ = tableOrders(t).length > 0;
-                  const total = occ ? tableTotal(t) : 0;
                   return (
                     <div key={t} onClick={() => occ && setSelected(t)}
-                      style={{ padding: "12px 2px", borderRadius: 10, border: `2px solid ${occ ? "#c9952a" : "#3d2c14"}`, background: occ ? "#2a1c0a" : "#0d0905", color: occ ? "#c9952a" : "#3d2c14", textAlign: "center", fontSize: 18, fontWeight: 900, cursor: occ ? "pointer" : "default" }}>
-                      <div>{t}</div>
-                      {occ && <div style={{ fontSize: 10, color: "#8a7050", marginTop: 2 }}>¥{total.toLocaleString()}</div>}
+                      style={{ padding: "18px 4px", borderRadius: 10, border: `2px solid ${occ ? "#c9952a" : "#3d2c14"}`, background: occ ? "#2a1c0a" : "#0d0905", color: occ ? "#c9952a" : "#3d2c14", textAlign: "center", fontSize: 20, fontWeight: 900, cursor: occ ? "pointer" : "default" }}>
+                      {t}
                     </div>
                   );
                 })}
@@ -1825,38 +2115,9 @@ export default function Register() {
                         ))}
                       </tbody>
                     </table>
-                    <div style={{ marginTop: 16, padding: "14px 12px", background: "#1a1008", borderRadius: 8 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                        <span style={{ color: "#8a7050", fontSize: 15 }}>小計（値引き前）</span>
-                        <span style={{ fontFamily: "serif", fontSize: 22, fontWeight: 700, color: "#f0e6d0" }}>¥{selectedSubtotal.toLocaleString()}</span>
-                      </div>
-                      {(() => {
-                        const foodItems = ["トースト", "ピザトースト", "ミックスサンド", "ハムサンド", "野菜サンド", "玉子サンド", "トーストサンド", "ミルクレープ", "ガトーショコラ", "フォンダンショコラ", "チーズケーキ", "紅茶のシフォン", "栗のモンブラン", "バニラアイスクリーム", "コーヒーゼリー"];
-                        const isFoodItem = (name) => foodItems.some(f => name.includes(f));
-                        const foodCount = selectedOrders.filter(o => isFoodItem(o.item_name)).reduce((a, o) => a + (o.qty || 1), 0);
-                        const drinkCount = selectedOrders.filter(o => !isFoodItem(o.item_name) && !o.item_name.includes("モーニング") && !o.item_name.includes("おかわり") && o.price > 0).reduce((a, o) => a + (o.qty || 1), 0);
-                        const autoSet = foodCount > 0 && drinkCount > 0 ? Math.min(foodCount, drinkCount) : 0;
-                        const autoDisc = autoSet * 150;
-                        const afterDisc = selectedSubtotal - autoDisc;
-                        return autoDisc > 0 ? (
-                          <>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                              <span style={{ color: "#4aaa5a", fontSize: 14 }}>🍽 セット割引目安（{autoSet}セット）</span>
-                              <span style={{ color: "#4aaa5a", fontSize: 18, fontWeight: 700 }}>-¥{autoDisc.toLocaleString()}</span>
-                            </div>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #3d2c14", paddingTop: 10 }}>
-                              <span style={{ color: "#c9952a", fontSize: 16, fontWeight: 700 }}>お会計目安</span>
-                              <span style={{ fontFamily: "serif", fontSize: 34, fontWeight: 900, color: "#c9952a" }}>¥{afterDisc.toLocaleString()}</span>
-                            </div>
-                            <div style={{ color: "#8a7050", fontSize: 11, marginTop: 4 }}>※会計画面でセット数を調整できます</div>
-                          </>
-                        ) : (
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #3d2c14", paddingTop: 10 }}>
-                            <span style={{ color: "#c9952a", fontSize: 16, fontWeight: 700 }}>お会計合計</span>
-                            <span style={{ fontFamily: "serif", fontSize: 34, fontWeight: 900, color: "#c9952a" }}>¥{selectedTotal.toLocaleString()}</span>
-                          </div>
-                        );
-                      })()}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, padding: "14px 12px", background: "#1a1008", borderRadius: 8 }}>
+                      <span style={{ color: "#8a7050" }}>お会計合計</span>
+                      <span style={{ fontFamily: "serif", fontSize: 34, fontWeight: 900, color: "#c9952a" }}>¥{selectedTotal.toLocaleString()}</span>
                     </div>
                   </>
                 )}
