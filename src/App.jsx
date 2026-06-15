@@ -116,8 +116,36 @@ export default function App() {
   const [takeout, setTakeout] = useState(false);
   const [unservedOrders, setUnservedOrders] = useState([]);
   const [unservedTable, setUnservedTable] = useState(null);
+  const [showTableMove, setShowTableMove] = useState(false);
+  const [tableMoveFrom, setTableMoveFrom] = useState(null);
+  const [tableMoveTo, setTableMoveTo] = useState(null);
+  const [tableMoveStep, setTableMoveStep] = useState("from");
+  const [tableMoveLoading, setTableMoveLoading] = useState(false);
 
-  const addItem = (item) => {
+  // 座席変更処理
+  const occupiedTables = [...new Set(unservedOrders.map(o => String(o.table_no)))];
+
+  const executeTableMove = async () => {
+    setTableMoveLoading(true);
+    try {
+      await supabase.from("orders")
+        .update({ table_no: String(tableMoveTo) })
+        .eq("table_no", String(tableMoveFrom))
+        .in("status", ["pending", "served", "info"]);
+      setTableMoveStep("done");
+    } catch (e) {
+      alert("移動中にエラーが発生しました");
+    } finally {
+      setTableMoveLoading(false);
+    }
+  };
+
+  const closTableMove = () => {
+    setShowTableMove(false);
+    setTableMoveFrom(null);
+    setTableMoveTo(null);
+    setTableMoveStep("from");
+  };
     setCart((prev) => {
       const ex = prev.find((c) => c.id === item.id);
       if (ex) return prev.map((c) => c.id === item.id ? { ...c, qty: c.qty + 1 } : c);
@@ -256,6 +284,95 @@ export default function App() {
       }}>
         🛍 持ち帰り（税8%）
       </button>
+
+      {/* 座席変更ボタン */}
+      <button onClick={() => { setShowTableMove(true); setTableMoveStep("from"); setTableMoveFrom(null); setTableMoveTo(null); }}
+        style={{ marginTop: 12, width: "100%", padding: "22px 0", background: "#1a1020", border: "3px solid #8a4ac9", borderRadius: 12, color: "#c98af0", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>
+        🔀 座席変更
+      </button>
+
+      {/* 座席変更モーダル */}
+      {showTableMove && (
+        <div onClick={closTableMove} style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#0f0a05", border: "2px solid #8a4ac9", borderRadius: 14, width: "100%", maxWidth: 420, padding: 20 }}>
+
+            {/* STEP1: 移動元を選ぶ */}
+            {tableMoveStep === "from" && (
+              <>
+                <div style={{ color: "#c98af0", fontWeight: 900, fontSize: 20, marginBottom: 6 }}>🔀 座席変更</div>
+                <div style={{ color: "#8a7050", fontSize: 15, marginBottom: 16 }}>移動元のテーブルを選んでください</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 16 }}>
+                  {TABLES.map(t => {
+                    const hasOrders = occupiedTables.includes(String(t));
+                    return (
+                      <button key={t} onClick={() => { if (hasOrders) { setTableMoveFrom(t); setTableMoveStep("to"); } }}
+                        style={{ padding: "14px 0", background: hasOrders ? "#2a1a3a" : "#181008", border: `2px solid ${hasOrders ? "#8a4ac9" : "#3d2c14"}`, borderRadius: 10, color: hasOrders ? "#c98af0" : "#3d2c14", fontSize: 18, fontWeight: 900, cursor: hasOrders ? "pointer" : "default" }}>
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button onClick={closTableMove} style={{ width: "100%", padding: 12, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>キャンセル</button>
+              </>
+            )}
+
+            {/* STEP2: 移動先を選ぶ */}
+            {tableMoveStep === "to" && (
+              <>
+                <div style={{ color: "#c98af0", fontWeight: 900, fontSize: 20, marginBottom: 6 }}>🔀 座席変更</div>
+                <div style={{ color: "#f0e6d0", fontSize: 16, marginBottom: 4 }}>テーブル {tableMoveFrom} から移動</div>
+                <div style={{ color: "#8a7050", fontSize: 15, marginBottom: 16 }}>移動先のテーブルを選んでください</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 16 }}>
+                  {TABLES.filter(t => String(t) !== String(tableMoveFrom)).map(t => (
+                    <button key={t} onClick={() => { setTableMoveTo(t); setTableMoveStep("confirm"); }}
+                      style={{ padding: "14px 0", background: "#1a0a2a", border: "2px solid #8a4ac9", borderRadius: 10, color: "#c98af0", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setTableMoveStep("from")} style={{ width: "100%", padding: 12, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>← 戻る</button>
+              </>
+            )}
+
+            {/* STEP3: 確認 */}
+            {tableMoveStep === "confirm" && (
+              <>
+                <div style={{ color: "#c98af0", fontWeight: 900, fontSize: 20, marginBottom: 20 }}>🔀 座席変更の確認</div>
+                <div style={{ background: "#1a0a2a", borderRadius: 10, padding: 20, marginBottom: 20, textAlign: "center" }}>
+                  <div style={{ fontSize: 36, fontWeight: 900, color: "#f0e6d0" }}>
+                    テーブル {tableMoveFrom}
+                  </div>
+                  <div style={{ fontSize: 28, color: "#c98af0", margin: "12px 0" }}>↓</div>
+                  <div style={{ fontSize: 36, fontWeight: 900, color: "#c9952a" }}>
+                    テーブル {tableMoveTo}
+                  </div>
+                  <div style={{ color: "#8a7050", fontSize: 14, marginTop: 12 }}>に全注文を移動します</div>
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => setTableMoveStep("to")} style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 16, cursor: "pointer" }}>戻る</button>
+                  <button onClick={executeTableMove} disabled={tableMoveLoading}
+                    style={{ flex: 2, padding: 14, background: "#8a4ac9", border: "none", borderRadius: 10, color: "#fff", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>
+                    {tableMoveLoading ? "移動中..." : "✅ 移動する"}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* STEP4: 完了 */}
+            {tableMoveStep === "done" && (
+              <>
+                <div style={{ textAlign: "center", padding: "20px 0" }}>
+                  <div style={{ fontSize: 60, marginBottom: 12 }}>✅</div>
+                  <div style={{ color: "#4aaa5a", fontWeight: 900, fontSize: 22, marginBottom: 8 }}>移動完了！</div>
+                  <div style={{ color: "#f0e6d0", fontSize: 16, marginBottom: 4 }}>テーブル {tableMoveFrom} → テーブル {tableMoveTo}</div>
+                  <div style={{ color: "#c9952a", fontSize: 18, fontWeight: 700, marginTop: 16, marginBottom: 24 }}>🪧 テーブルカードを交換してください</div>
+                  <button onClick={closTableMove} style={{ width: "100%", padding: 16, background: "#4aaa5a", border: "none", borderRadius: 10, color: "#fff", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>OK</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 未提供パネル */}
       {showUnserved && (() => {
