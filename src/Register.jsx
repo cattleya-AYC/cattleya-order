@@ -485,6 +485,9 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
       <table>
         <tr class="total"><td>総売上</td><td style="text-align:right">¥${todayTotal.toLocaleString()}</td></tr>
         <tr><td class="lbl">現金（${todayCashCount}件）</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayCash.toLocaleString()}</td></tr>
+        <tr><td class="lbl">　10時〜15時（${cashBy1015Count}件）</td><td style="text-align:right;font-size:24px">¥${cashBy1015.toLocaleString()}</td></tr>
+        <tr><td class="lbl">　15時〜閉店（${cashBy15closeCount}件）</td><td style="text-align:right;font-size:24px">¥${cashBy15close.toLocaleString()}</td></tr>
+        <tr><td class="lbl">現金計</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayCash.toLocaleString()}</td></tr>
         <tr><td class="lbl">ペイキャス（${todayPayCount}件）</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayPay.toLocaleString()}</td></tr>
         <tr><td class="lbl">内消費税10%</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayTax10.toLocaleString()}</td></tr>
         <tr><td class="lbl">内消費税 8%</td><td style="text-align:right;font-size:28px;font-weight:700">¥${todayTax8.toLocaleString()}</td></tr>
