@@ -82,13 +82,15 @@ export default function HistoryPage() {
       return tb.localeCompare(ta);
     });
 
-  // メニュー明細をテーブル＋日付で対応
-  const itemsForSale = (s) =>
-    items.filter(
-      (it) =>
-        it.sale_date === s.sale_date &&
-        String(it.table_no) === String(s.table_no)
-    );
+  // メニュー明細をテーブル＋日付＋sale_timeで正確に1件に紐付け
+  const itemsForSale = (s) => {
+    return items.filter((it) => {
+      if (it.sale_date !== s.sale_date) return false;
+      if (String(it.table_no) !== String(s.table_no)) return false;
+      if (!it.sale_time || !s.sale_time) return false;
+      return it.sale_time === s.sale_time;
+    });
+  };
 
   // 合計
   const totalAmount = filtered.reduce((a, s) => a + s.amount, 0);
