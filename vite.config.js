@@ -10,7 +10,6 @@ export default defineConfig({
         register: "register.html",
         owner:    "owner.html",
         kitchen:  "kitchen.html",
-        history:  "history.html",
       },
     },
   },
