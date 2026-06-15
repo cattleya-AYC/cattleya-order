@@ -115,6 +115,7 @@ export default function App() {
   const [showUnserved, setShowUnserved] = useState(false);
   const [takeout, setTakeout] = useState(false);
   const [unservedOrders, setUnservedOrders] = useState([]);
+  const [allOccupiedTables, setAllOccupiedTables] = useState([]);
   const [unservedTable, setUnservedTable] = useState(null);
   const [showTableMove, setShowTableMove] = useState(false);
   const [tableMoveFrom, setTableMoveFrom] = useState(null);
@@ -123,7 +124,13 @@ export default function App() {
   const [tableMoveLoading, setTableMoveLoading] = useState(false);
 
   // 座席変更処理
-  const occupiedTables = [...new Set(unservedOrders.map(o => String(o.table_no)))];
+  const occupiedTables = allOccupiedTables;
+
+  const fetchAllOccupied = async () => {
+    const { data } = await supabase.from("orders").select("table_no").in("status", ["pending", "served"]);
+    const tables = [...new Set((data || []).map(o => String(o.table_no)).filter(t => t !== "持ち帰り"))];
+    setAllOccupiedTables(tables);
+  };
 
   const executeTableMove = async () => {
     setTableMoveLoading(true);
@@ -288,7 +295,7 @@ export default function App() {
       </button>
 
       {/* 座席変更ボタン */}
-      <button onClick={() => { setShowTableMove(true); setTableMoveStep("from"); setTableMoveFrom(null); setTableMoveTo(null); }}
+      <button onClick={() => { fetchAllOccupied(); setShowTableMove(true); setTableMoveStep("from"); setTableMoveFrom(null); setTableMoveTo(null); }}
         style={{ marginTop: 12, width: "100%", padding: "22px 0", background: "#1a1020", border: "3px solid #8a4ac9", borderRadius: 12, color: "#c98af0", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>
         🔀 座席変更
       </button>
