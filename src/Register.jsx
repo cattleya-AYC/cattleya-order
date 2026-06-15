@@ -363,17 +363,27 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
   const todayTax = todayTax10 + todayTax8;
   const tobaccoTotal = tobaccoSales.reduce((a, s) => a + s.price, 0);
 
-  // 時間帯別現金合計（10-16時、16-20時、全日）
-  const cashBy1016 = sales.filter(s => {
+  // 時間帯別現金合計（10-15時、15時以降、全日）
+  const cashBy1015 = sales.filter(s => {
     if (s.pay_method !== "現金") return false;
     const h = parseInt((s.sale_time || "0").split(":")[0]);
-    return h >= 10 && h < 16;
+    return h >= 10 && h < 15;
   }).reduce((a, s) => a + s.amount, 0);
-  const cashBy1620 = sales.filter(s => {
+  const cashBy1015Count = sales.filter(s => {
     if (s.pay_method !== "現金") return false;
     const h = parseInt((s.sale_time || "0").split(":")[0]);
-    return h >= 16 && h < 20;
+    return h >= 10 && h < 15;
+  }).length;
+  const cashBy15close = sales.filter(s => {
+    if (s.pay_method !== "現金") return false;
+    const h = parseInt((s.sale_time || "0").split(":")[0]);
+    return h >= 15;
   }).reduce((a, s) => a + s.amount, 0);
+  const cashBy15closeCount = sales.filter(s => {
+    if (s.pay_method !== "現金") return false;
+    const h = parseInt((s.sale_time || "0").split(":")[0]);
+    return h >= 15;
+  }).length;
 
   // 時間帯別（件数＋金額）
   const groups = {};
@@ -515,13 +525,14 @@ function DailyReport({ supabase, onBack, cashCheckLogs }) {
             <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 6 }}>現金合計</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginBottom: 12 }}>
               {[
-                ["10時〜16時", cashBy1016],
-                ["16時〜20時", cashBy1620],
-                ["1日合計", todayCash],
-              ].map(([label, val]) => (
+                ["10時〜15時", cashBy1015, cashBy1015Count],
+                ["15時〜閉店", cashBy15close, cashBy15closeCount],
+                ["1日合計", todayCash, todayCashCount],
+              ].map(([label, val, cnt]) => (
                 <div key={label} style={{ background: "#251a0a", borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
                   <div style={{ color: "#8a7050", fontSize: 11, marginBottom: 4 }}>{label}</div>
                   <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 15, fontWeight: 700 }}>¥{val.toLocaleString()}</div>
+                  <div style={{ color: "#8a7050", fontSize: 11, marginTop: 2 }}>{cnt}件</div>
                 </div>
               ))}
             </div>
@@ -1706,6 +1717,10 @@ export default function Register() {
 
           {/* 操作ボタン（大きめ） */}
           <div style={{ padding: "10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
+            <button onClick={() => setMode("daily")}
+              style={{ padding: "20px 4px", background: "#1a0a25", border: "1px solid #6a3a9a", borderRadius: 10, color: "#c9952a", fontSize: 22, fontWeight: 700, cursor: "pointer" }}>
+              📊 途中集計
+            </button>
             <button onClick={() => { setShowCoupon(true); setCouponError(""); }}
               style={{ padding: "14px 4px", background: "#1a1a30", border: "1px solid #5a5ac9", borderRadius: 8, color: "#9a9af0", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
               🎟 クーポン
