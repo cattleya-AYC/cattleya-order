@@ -159,7 +159,15 @@ export default function App() {
       .select("*")
       .eq("status", "pending")
       .order("created_at", { ascending: true });
-    setUnservedOrders((data || []).filter(o => !o.item_name.startsWith("【人数")));
+    // テーブルごとに最古のcreated_atでソート（古いテーブルが上）
+    const filtered = (data || []).filter(o => !o.item_name.startsWith("【人数"));
+    const tableOldest = {};
+    filtered.forEach(o => {
+      if (!tableOldest[o.table_no] || o.created_at < tableOldest[o.table_no]) {
+        tableOldest[o.table_no] = o.created_at;
+      }
+    });
+    setUnservedOrders(filtered.sort((a, b) => (tableOldest[a.table_no] || "").localeCompare(tableOldest[b.table_no] || "")));
   };
 
   // 起動時にallOrdersを取得
@@ -485,13 +493,13 @@ export default function App() {
           {takeout ? "🛍 持ち帰り（税8%）✓" : "🛍 持ち帰りにする（税8%）"}
         </button>
         <div style={{ background: "#2a1a0a", border: "2px solid #c9952a", borderRadius: 10, padding: "12px 14px", marginBottom: 14, textAlign: "center" }}>
-          <div style={{ color: "#fff", fontWeight: 900, fontSize: 18 }}>⚠️ 必ずお客様に復唱して確認してください</div>
+          <div style={{ color: "#fff", fontWeight: 900, fontSize: 24 }}>⚠️ 必ず復唱‼️</div>
         </div>
         <div style={{ borderTop: "1px solid #3d2c14", paddingTop: 12, marginBottom: 12 }}>
           {cart.map((item, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #3d2c1433", fontSize: 14 }}>
-              <span style={{ color: "#f0e6d0" }}>{item.name} ×{item.qty}</span>
-              <span style={{ color: "#c9952a", fontFamily: "serif" }}>¥{(item.price * item.qty).toLocaleString()}</span>
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #3d2c1433" }}>
+              <span style={{ color: "#f0e6d0", fontSize: 24, fontWeight: 700 }}>{item.name} ×{item.qty}</span>
+              <span style={{ color: "#8a7050", fontFamily: "serif", fontSize: 12 }}>¥{(item.price * item.qty).toLocaleString()}</span>
             </div>
           ))}
           {autoDiscount > 0 && (
@@ -526,8 +534,8 @@ export default function App() {
 
       <div style={{ padding: "10px 16px", background: "#1c1208", borderBottom: "1px solid #3d2c14", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 700 }}>T{selectedTable}</span>
-          <span style={{ color: "#8a7050", marginLeft: 8, fontSize: 13 }}>{people}名</span>
+          <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 900, fontSize: 28 }}>T{selectedTable}</span>
+          <span style={{ color: "#8a7050", marginLeft: 8, fontSize: 16 }}>{people}名</span>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={() => setChangingPeople(true)}
@@ -565,7 +573,7 @@ export default function App() {
       <div style={{ display: "flex", borderBottom: "1px solid #3d2c14", background: "#1c1208", overflowX: "auto" }}>
         {Object.keys(MENU).map((cat) => (
           <button key={cat} onClick={() => setActiveCat(cat)}
-            style={{ padding: "12px 14px", border: "none", background: "none", color: activeCat === cat ? "#c9952a" : "#8a7050", borderBottom: activeCat === cat ? "2px solid #c9952a" : "2px solid transparent", cursor: "pointer", fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>
+            style={{ padding: "12px 14px", border: "none", background: "none", color: activeCat === cat ? "#c9952a" : "#8a7050", borderBottom: activeCat === cat ? "2px solid #c9952a" : "2px solid transparent", cursor: "pointer", fontSize: 17, whiteSpace: "nowrap", flexShrink: 0 }}>
             {cat}
           </button>
         ))}
@@ -579,8 +587,8 @@ export default function App() {
             <div key={item.id}
               style={{ display: "flex", alignItems: "center", padding: "11px 14px", background: isDiscount ? "#0a1508" : "#201508", border: `1px solid ${qty > 0 ? "#6a4d15" : isDiscount ? "#1a4020" : "#352510"}`, borderRadius: 10, marginBottom: 6 }}>
               <div style={{ flex: 1, cursor: "pointer" }} onClick={() => addItem(item)}>
-                <div style={{ color: isDiscount ? "#4aaa5a" : "#f0e6d0", fontSize: 14 }}>{item.name}</div>
-                <div style={{ color: isDiscount ? "#4aaa5a" : "#8a7050", fontSize: 12, marginTop: 2 }}>
+                <div style={{ color: isDiscount ? "#4aaa5a" : "#f0e6d0", fontSize: 22, fontWeight: 700 }}>{item.name}</div>
+                <div style={{ color: isDiscount ? "#4aaa5a" : "#8a7050", fontSize: 11, marginTop: 2 }}>
                   {isDiscount ? `-¥${Math.abs(item.price)}` : `¥${item.price.toLocaleString()}`}
                 </div>
               </div>
