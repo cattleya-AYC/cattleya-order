@@ -855,6 +855,7 @@ export default function Register() {
   const [ccDenoms1, setCcDenoms1] = useState({ "10000": "", "5000": "", "1000": "", "500": "", "100": "", "50": "", "10": "" });
   const [ccDenoms2, setCcDenoms2] = useState({ "10000": "", "5000": "", "1000": "", "500": "", "100": "", "50": "", "10": "" });
   const [cashCheckTodayLogs, setCashCheckTodayLogs] = useState([]);
+  const [tableWarning, setTableWarning] = useState(null); // 警告中のテーブル番号
 
   // 時刻アラートチェック
   useEffect(() => {
@@ -1647,6 +1648,51 @@ export default function Register() {
         </div>
       )}
 
+      {/* ===== テーブル警告モーダル ===== */}
+      {tableWarning && (() => {
+        const wOrders = tableOrders(tableWarning).filter(o => !o.item_name.startsWith("【人数"));
+        const wTotal = tableTotal(tableWarning);
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "#000000ee", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 400 }}>
+            <div style={{ background: "#1c0808", border: "3px solid #c95a5a", borderRadius: 16, width: "92%", maxWidth: 400, padding: 24 }}>
+              {/* テーブル番号 超大きく */}
+              <div style={{ textAlign: "center", marginBottom: 16 }}>
+                <div style={{ color: "#c95a5a", fontSize: 16, fontWeight: 700, marginBottom: 4 }}>⚠️ 注文中のテーブルです！</div>
+                <div style={{ color: "#ff6b6b", fontFamily: "serif", fontSize: 72, fontWeight: 900, lineHeight: 1, letterSpacing: 4 }}>{tableWarning}</div>
+                <div style={{ color: "#c95a5a", fontSize: 14, marginTop: 4 }}>テーブル番号を確認してください</div>
+              </div>
+
+              {/* 既存注文一覧 */}
+              <div style={{ background: "#2a0a0a", borderRadius: 10, padding: 12, marginBottom: 16, maxHeight: 180, overflowY: "auto" }}>
+                <div style={{ color: "#8a7050", fontSize: 12, marginBottom: 8 }}>現在の注文内容</div>
+                {wOrders.filter(o => o.price >= 0).map((o, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 13 }}>
+                    <span style={{ color: "#f0e6d0" }}>{o.item_name} ×{o.qty}</span>
+                    <span style={{ color: "#c9952a" }}>¥{(o.price * o.qty).toLocaleString()}</span>
+                  </div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #3d2c14", paddingTop: 8, marginTop: 6 }}>
+                  <span style={{ color: "#f0e6d0", fontWeight: 700 }}>合計</span>
+                  <span style={{ color: "#c9952a", fontWeight: 900 }}>¥{wTotal.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* ボタン */}
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => setTableWarning(null)}
+                  style={{ flex: 1, padding: 16, background: "transparent", border: "2px solid #c95a5a", borderRadius: 10, color: "#c95a5a", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
+                  ← 戻る
+                </button>
+                <button onClick={() => { setSelected(tableWarning); setTableWarning(null); }}
+                  style={{ flex: 1, padding: 16, background: "#2a1c0a", border: "2px solid #c9952a", borderRadius: 10, color: "#c9952a", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
+                  追加注文する
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ===== 新レジ確認モーダル ===== */}
       {showCashCheck && (() => {
         const systemCash = todayCashFromDB + 50000;
@@ -2058,7 +2104,7 @@ export default function Register() {
                 {TABLES.map((t) => {
                   const occ = tableOrders(t).length > 0;
                   return (
-                    <div key={t} onClick={() => occ && setSelected(t)}
+                    <div key={t} onClick={() => { if (!occ) return; setTableWarning(t); }}
                       style={{ padding: "18px 4px", borderRadius: 10, border: `2px solid ${occ ? "#c9952a" : "#3d2c14"}`, background: occ ? "#2a1c0a" : "#0d0905", color: occ ? "#c9952a" : "#3d2c14", textAlign: "center", fontSize: 20, fontWeight: 900, cursor: occ ? "pointer" : "default" }}>
                       {t}
                     </div>
@@ -2069,10 +2115,12 @@ export default function Register() {
           ) : (
             <>
               {/* テーブル選択済み：注文詳細 */}
-              <div style={{ padding: "12px 16px", background: "#181008", borderBottom: "1px solid #3d2c14", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <span style={{ fontFamily: "serif", fontSize: 42, color: "#c9952a", fontWeight: 900, letterSpacing: 2 }}>テーブル {selected}</span>
-                  <span style={{ color: "#8a7050", marginLeft: 12, fontSize: 17 }}>{selectedPeople}名</span>
+              <div style={{ padding: "10px 16px", background: "#1c1008", borderBottom: "2px solid #c9952a", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <div style={{ fontFamily: "serif", fontSize: 52, color: "#c9952a", fontWeight: 900, letterSpacing: 4, lineHeight: 1 }}>
+                    T {selected}
+                  </div>
+                  <span style={{ color: "#8a7050", fontSize: 15, marginTop: 2 }}>{selectedPeople}名</span>
                 </div>
                 <button onClick={() => setSelected(null)}
                   style={{ padding: "10px 16px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", fontSize: 16, cursor: "pointer" }}>
