@@ -2071,7 +2071,7 @@ export default function Register() {
               {/* テーブル選択済み：注文詳細 */}
               <div style={{ padding: "12px 16px", background: "#181008", borderBottom: "1px solid #3d2c14", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                  <span style={{ fontFamily: "serif", fontSize: 26, color: "#c9952a", fontWeight: 700 }}>テーブル {selected}</span>
+                  <span style={{ fontFamily: "serif", fontSize: 42, color: "#c9952a", fontWeight: 900, letterSpacing: 2 }}>テーブル {selected}</span>
                   <span style={{ color: "#8a7050", marginLeft: 12, fontSize: 17 }}>{selectedPeople}名</span>
                 </div>
                 <button onClick={() => setSelected(null)}
