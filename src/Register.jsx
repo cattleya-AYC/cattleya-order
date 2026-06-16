@@ -964,7 +964,10 @@ export default function Register() {
   const selectedDiscount = selectedSubtotal - selectedTotal;
   const selectedPeople = selected ? tablePeopleStr(selected) : "-";
 
-  const change = receivedAmount ? parseInt(receivedAmount) - selectedTotal : null;
+  const couponDiscForChange = couponApplied ? couponDiscount : 0;
+  const setDiscForChange = setCount * 150;
+  const amountForChange = selectedTotal - couponDiscForChange - setDiscForChange;
+  const change = receivedAmount ? parseInt(receivedAmount) - amountForChange : null;
   const tobaccoChange = tobaccoReceived && tobaccoConfirming
     ? parseInt(tobaccoReceived) - tobaccoConfirming.price
     : null;
