@@ -573,7 +573,7 @@ export default function App() {
       <div style={{ display: "flex", borderBottom: "1px solid #3d2c14", background: "#1c1208", overflowX: "auto" }}>
         {Object.keys(MENU).map((cat) => (
           <button key={cat} onClick={() => setActiveCat(cat)}
-            style={{ padding: "12px 14px", border: "none", background: "none", color: activeCat === cat ? "#c9952a" : "#8a7050", borderBottom: activeCat === cat ? "2px solid #c9952a" : "2px solid transparent", cursor: "pointer", fontSize: 17, whiteSpace: "nowrap", flexShrink: 0 }}>
+            style={{ padding: "14px 16px", border: "none", background: "none", color: activeCat === cat ? "#c9952a" : "#8a7050", borderBottom: activeCat === cat ? "3px solid #c9952a" : "3px solid transparent", cursor: "pointer", fontSize: 20, whiteSpace: "nowrap", flexShrink: 0, fontWeight: 700 }}>
             {cat}
           </button>
         ))}
@@ -587,26 +587,26 @@ export default function App() {
             <div key={item.id}
               style={{ display: "flex", alignItems: "center", padding: "11px 14px", background: isDiscount ? "#0a1508" : "#201508", border: `1px solid ${qty > 0 ? "#6a4d15" : isDiscount ? "#1a4020" : "#352510"}`, borderRadius: 10, marginBottom: 6 }}>
               <div style={{ flex: 1, cursor: "pointer" }} onClick={() => addItem(item)}>
-                <div style={{ color: isDiscount ? "#4aaa5a" : "#f0e6d0", fontSize: 22, fontWeight: 700 }}>{item.name}</div>
-                <div style={{ color: isDiscount ? "#4aaa5a" : "#8a7050", fontSize: 11, marginTop: 2 }}>
+                <div style={{ color: isDiscount ? "#4aaa5a" : "#f0e6d0", fontSize: 28, fontWeight: 700, lineHeight: 1.3 }}>{item.name}</div>
+                <div style={{ color: isDiscount ? "#4aaa5a" : "#8a7050", fontSize: 13, marginTop: 2 }}>
                   {isDiscount ? `-¥${Math.abs(item.price)}` : `¥${item.price.toLocaleString()}`}
                 </div>
               </div>
               {qty > 0 ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <button onClick={() => decreaseItem(item.id)}
-                    style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid #6a4d15", background: "#1a1008", color: "#c9952a", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    style={{ width: 48, height: 48, borderRadius: "50%", border: "2px solid #6a4d15", background: "#1a1008", color: "#c9952a", fontSize: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     −
                   </button>
-                  <span style={{ color: "#c9952a", fontWeight: 700, minWidth: 20, textAlign: "center" }}>{qty}</span>
+                  <span style={{ color: "#c9952a", fontWeight: 900, fontSize: 28, minWidth: 36, textAlign: "center" }}>{qty}</span>
                   <button onClick={() => addItem(item)}
-                    style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid #6a4d15", background: "#c9952a", color: "#0f0a05", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    style={{ width: 48, height: 48, borderRadius: "50%", border: "2px solid #6a4d15", background: "#c9952a", color: "#0f0a05", fontSize: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     ＋
                   </button>
                 </div>
               ) : (
                 <button onClick={() => addItem(item)}
-                  style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid #3d2c14", background: "#251a0a", color: "#8a7050", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  style={{ width: 48, height: 48, borderRadius: "50%", border: "2px solid #3d2c14", background: "#251a0a", color: "#8a7050", fontSize: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   ＋
                 </button>
               )}
