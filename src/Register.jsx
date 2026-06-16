@@ -1826,12 +1826,8 @@ export default function Register() {
               {selected && selectedOrders.length > 0 && (
                 <div style={{ padding: "14px 16px", background: "#181008", borderTop: "1px solid #3d2c14" }}>
                   <button onClick={() => setConfirming(true)}
-                    style={{ width: "100%", padding: 20, background: "#c9952a", border: "none", borderRadius: 12, color: "#0d0905", fontSize: 22, fontWeight: 900, cursor: "pointer", marginBottom: 8 }}>
+                    style={{ width: "100%", padding: 20, background: "#c9952a", border: "none", borderRadius: 12, color: "#0d0905", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>
                     💴 会計する
-                  </button>
-                  <button onClick={() => { setConfirming(true); setPeopleZero(true); }}
-                    style={{ width: "100%", padding: 12, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 14, cursor: "pointer" }}>
-                    ➕ 追加注文（人数カウントなし）
                   </button>
                 </div>
               )}

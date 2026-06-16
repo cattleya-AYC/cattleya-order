@@ -222,13 +222,25 @@ export default function App() {
       `}</style>
       <h1 style={{ color: "#c9952a", marginBottom: 16, fontFamily: "serif" }}>Lounge Cattleya</h1>
       <p style={{ color: "#8a7050", marginBottom: 12 }}>テーブルを選択</p>
+      <style>{`
+        @keyframes pulse-gold {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(201,149,42,0.7); border-color: #c9952a; }
+          50% { box-shadow: 0 0 0 6px rgba(201,149,42,0); border-color: #ffcc66; }
+        }
+        .tbl-occ { animation: pulse-gold 2s ease-in-out infinite; }
+      `}</style>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
-        {TABLES.map((t) => (
-          <button key={t} onClick={() => { setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setActiveCat("コーヒー"); setConfirming(false); setTakeout(false); }}
-            style={{ padding: "12px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#c9952a", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
-            {t}
-          </button>
-        ))}
+        {TABLES.map((t) => {
+          const occ = unservedOrders.some(o => String(o.table_no) === String(t));
+          return (
+            <button key={t}
+              className={occ ? "tbl-occ" : ""}
+              onClick={() => { setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setActiveCat("コーヒー"); setConfirming(false); setTakeout(false); }}
+              style={{ padding: "12px 0", background: occ ? "#2a1c0a" : "#251a0a", border: `2px solid ${occ ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: occ ? "#c9952a" : "#8a7050", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
+              {t}
+            </button>
+          );
+        })}
       </div>
 
       {/* 未提供ボタン */}
@@ -287,12 +299,17 @@ export default function App() {
               <>
                 <div style={{ color: "#f0e6d0", marginBottom: 12, fontWeight: 700 }}>移動元のテーブルを選んでください</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
-                  {TABLES.map(t => (
-                    <button key={t} onClick={() => { setMoveFrom(t); setMoveStep(2); }}
-                      style={{ padding: "12px 0", background: "#251a0a", border: "1px solid #6a2aaa", borderRadius: 8, color: "#cc88ff", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
-                      {t}
-                    </button>
-                  ))}
+                  {TABLES.map(t => {
+                    const occ = unservedOrders.some(o => String(o.table_no) === String(t));
+                    return (
+                      <button key={t}
+                        className={occ ? "tbl-occ" : ""}
+                        onClick={() => { setMoveFrom(t); setMoveStep(2); }}
+                        style={{ padding: "12px 0", background: occ ? "#2a1c0a" : "#251a0a", border: `2px solid ${occ ? "#c9952a" : "#6a2aaa"}`, borderRadius: 8, color: occ ? "#c9952a" : "#cc88ff", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
+                        {t}
+                      </button>
+                    );
+                  })}
                 </div>
               </>
             )}
@@ -389,7 +406,7 @@ export default function App() {
   if (screen === "people") return (
     <div style={{ padding: 24, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0" }}>
       <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>Lounge Cattleya</div>
-      <div style={{ color: "#8a7050", marginBottom: 24 }}>テーブル {selectedTable}</div>
+      <div style={{ color: "#c9952a", fontSize: 36, fontWeight: 900, marginBottom: 16, fontFamily: "serif" }}>テーブル {selectedTable}</div>
       <div style={{ fontFamily: "serif", color: "#f0e6d0", fontSize: 20, marginBottom: 16 }}>人数を選択してください</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 24 }}>
         {PEOPLE.map((n) => (
@@ -453,7 +470,7 @@ export default function App() {
     <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
       <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "80vh", overflow: "auto" }}>
         <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>注文確認</div>
-        <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 12 }}>テーブル {selectedTable}・{people}名</div>
+        <div style={{ color: "#c9952a", fontSize: 32, fontWeight: 900, marginBottom: 12, fontFamily: "serif" }}>テーブル {selectedTable}　<span style={{ fontSize: 18, color: "#8a7050" }}>{people}名</span></div>
         <button onClick={() => setTakeout(t => !t)} style={{ width: "100%", padding: "10px 0", marginBottom: 12, background: takeout ? "#1a3a1a" : "#1c1208", border: `2px solid ${takeout ? "#4aaa5a" : "#3d2c14"}`, borderRadius: 8, color: takeout ? "#4aaa5a" : "#8a7050", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
           {takeout ? "🛍 持ち帰り（税8%）✓" : "🛍 持ち帰りにする（税8%）"}
         </button>
