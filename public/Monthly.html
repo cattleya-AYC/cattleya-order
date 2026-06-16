@@ -114,12 +114,14 @@ function render(year, month) {
   const byDate = {};
   salesData.forEach(s => {
     const d = s.sale_date;
-    if (!byDate[d]) byDate[d] = { cash:0, pay:0, total:0, count:0, people:0 };
+    if (!byDate[d]) byDate[d] = { cash:0, pay:0, total:0, count:0, people:0, cashMorning:0 };
     byDate[d].total += s.amount;
     byDate[d].count++;
     byDate[d].people += s.people_count||0;
-    if (s.pay_method === '現金') byDate[d].cash += s.amount;
-    else byDate[d].pay += s.amount;
+    if (s.pay_method === '現金') {
+      byDate[d].cash += s.amount;
+      if ((s.sale_time||'') < '15:00') byDate[d].cashMorning += s.amount;
+    } else byDate[d].pay += s.amount;
   });
 
   let html = '<div class="card"><div class="card-title">' + year + '年' + month + '月　月間合計</div>';
@@ -134,7 +136,7 @@ function render(year, month) {
     const day = parseInt(date.split('-')[2]);
     html += '<div class="day-row">';
     html += '<div class="day-title"><span class="day-date">' + day + '日</span><span class="day-total">¥' + d.total.toLocaleString() + '</span></div>';
-    html += '<div class="day-detail"><span>現金 ¥' + d.cash.toLocaleString() + '</span><span>ペイキャス ¥' + d.pay.toLocaleString() + '</span><span>' + d.count + '組</span><span>' + d.people + '名</span></div>';
+    html += '<div class="day-detail"><span>現金 ¥' + d.cash.toLocaleString() + '</span><span style="color:#5aaa8a">〜15時 ¥' + d.cashMorning.toLocaleString() + '</span><span>ペイキャス ¥' + d.pay.toLocaleString() + '</span><span>' + d.count + '組</span><span>' + d.people + '名</span></div>';
     html += '</div>';
   });
   html += '</div>';
