@@ -273,6 +273,21 @@
     <div class="total-amount" id="totalAmount">¥0</div>
   </div>
 
+  <!-- 15時入金ボタン -->
+  <div id="bankBtnArea" style="display:none;margin-bottom:12px">
+    <div style="font-size:13px;color:#8a7050;margin-bottom:8px">15時分の銀行入金</div>
+    <div style="display:flex;gap:10px">
+      <button id="btnNotDeposited" onclick="setDeposit(false)"
+        style="flex:1;padding:14px;background:#6a2a2a;border:2px solid #c95a5a;border-radius:10px;color:#fff;font-size:15px;font-weight:700;cursor:pointer">
+        ⏳ 未入金
+      </button>
+      <button id="btnDeposited" onclick="setDeposit(true)"
+        style="flex:1;padding:14px;background:transparent;border:2px solid #3d2c14;border-radius:10px;color:#8a7050;font-size:15px;font-weight:700;cursor:pointer">
+        ✅ 入金済み
+      </button>
+    </div>
+  </div>
+
   <!-- レジあるべき金額との比較 -->
   <div class="compare-area" id="compareArea" style="display:none">
     <div class="compare-row">
@@ -368,24 +383,55 @@ function calc() {
   return total;
 }
 
-async function loadShouldCash() {
-  const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
-  const { data } = await sb.from("sales").select("amount,pay_method,sale_time").eq("sale_date", today);
-  if (data) {
-    const now = new Date();
-    const currentHour = now.getHours();
-    if (currentHour >= 15) {
-      // 15時以降：釣り銭 + 15時以降の現金のみ
+window._deposited = false; // 15時分入金済みフラグ
+
+function setDeposit(deposited) {
+  window._deposited = deposited;
+  document.getElementById('btnDeposited').style.background = deposited ? '#2a6a3a' : 'transparent';
+  document.getElementById('btnDeposited').style.borderColor = deposited ? '#4aaa5a' : '#3d2c14';
+  document.getElementById('btnDeposited').style.color = deposited ? '#fff' : '#8a7050';
+  document.getElementById('btnNotDeposited').style.background = deposited ? 'transparent' : '#6a2a2a';
+  document.getElementById('btnNotDeposited').style.borderColor = deposited ? '#3d2c14' : '#c95a5a';
+  document.getElementById('btnNotDeposited').style.color = deposited ? '#8a7050' : '#fff';
+  updateShouldCash();
+}
+
+function updateShouldCash() {
+  if (!window._salesData) return;
+  const data = window._salesData;
+  const now = new Date();
+  const currentHour = now.getHours();
+
+  if (currentHour >= 15) {
+    if (window._deposited) {
+      // 入金済み：15時以降の現金のみ
       const cashAfter15 = data.filter(s => s.pay_method === '現金' && (s.sale_time || '') >= '15:00').reduce((a, s) => a + s.amount, 0);
       window._shouldCash = cashAfter15 + 50000;
       window._shouldLabel = '釣り銭＋15時以降現金';
     } else {
-      // 15時前：釣り銭 + 全現金
+      // 未入金：全現金
       const cashAll = data.filter(s => s.pay_method === '現金').reduce((a, s) => a + s.amount, 0);
       window._shouldCash = cashAll + 50000;
-      window._shouldLabel = '釣り銭＋本日全現金';
+      window._shouldLabel = '釣り銭＋全現金（未入金）';
     }
-    calc();
+  } else {
+    const cashAll = data.filter(s => s.pay_method === '現金').reduce((a, s) => a + s.amount, 0);
+    window._shouldCash = cashAll + 50000;
+    window._shouldLabel = '釣り銭＋本日全現金';
+  }
+  calc();
+}
+
+async function loadShouldCash() {
+  const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
+  const { data } = await sb.from("sales").select("amount,pay_method,sale_time").eq("sale_date", today);
+  if (data) {
+    window._salesData = data;
+    const now = new Date();
+    if (now.getHours() >= 15) {
+      document.getElementById('bankBtnArea').style.display = '';
+    }
+    updateShouldCash();
   }
 }
 
