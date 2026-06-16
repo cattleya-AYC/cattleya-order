@@ -921,7 +921,10 @@ export default function Register() {
   const selectedDiscount = selectedSubtotal - selectedTotal;
   const selectedPeople = selected ? tablePeopleStr(selected) : "-";
 
-  const change = receivedAmount ? parseInt(receivedAmount) - selectedTotal : null;
+  const setDisc = setCount * 150;
+  const coupDisc = couponApplied ? couponDiscount : 0;
+  const finalAmount = selectedSubtotal - setDisc - coupDisc;
+  const change = receivedAmount ? parseInt(receivedAmount) - finalAmount : null;
   const tobaccoChange = tobaccoReceived && tobaccoConfirming
     ? parseInt(tobaccoReceived) - tobaccoConfirming.price
     : null;
@@ -965,7 +968,6 @@ export default function Register() {
       .select("*").eq("table_no", String(t))
       .in("status", ["pending", "served"]);
     const tableOrderItems = (freshOrders || []).filter(o => !o.item_name.startsWith("【人数"));
-    const saleDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
     for (const item of tableOrderItems) {
       await supabase.from("order_items").insert({
         table_no: String(t),
@@ -973,11 +975,11 @@ export default function Register() {
         price: item.price,
         qty: item.qty,
         sale_time: now,
-        sale_date: saleDate,
       });
     }
 
     await supabase.from("orders").delete().eq("table_no", String(t));
+    const saleDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
     await supabase.from("sales").insert({ table_no: String(t), amount, pay_method: payMethod, receipt_type: receiptType, people_count: people, sale_time: now, checkin_time: checkinTime, takeout: (freshOrders || []).some(o => o.takeout === true), sale_date: saleDate });
     await fetchTodaySales();
     const record = { table: t, amount, time: now, pay: payMethod, receipt: receiptType, timestamp: Date.now() };
@@ -1197,29 +1199,29 @@ export default function Register() {
       <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 22, marginBottom: 8 }}>会計完了</div>
       <div style={{ color: "#8a7050", marginBottom: 24 }}>テーブル {checkoutInfo.table}</div>
       <div style={{ background: "#181008", borderRadius: 12, padding: 24, width: "100%", maxWidth: 360, marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-          <span style={{ color: "#8a7050" }}>お会計</span>
-          <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 20, fontWeight: 700 }}>¥{checkoutInfo.amount.toLocaleString()}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid #3d2c14" }}>
+          <span style={{ color: "#8a7050", fontSize: 18 }}>お会計</span>
+          <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 42, fontWeight: 900 }}>¥{checkoutInfo.amount.toLocaleString()}</span>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-          <span style={{ color: "#8a7050" }}>支払い</span>
-          <span style={{ color: "#f0e6d0" }}>{checkoutInfo.pay}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <span style={{ color: "#8a7050", fontSize: 18 }}>支払い</span>
+          <span style={{ color: "#f0e6d0", fontSize: 24, fontWeight: 700 }}>{checkoutInfo.pay}</span>
         </div>
         {checkoutInfo.received && (
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-            <span style={{ color: "#8a7050" }}>お預かり</span>
-            <span style={{ color: "#f0e6d0" }}>¥{checkoutInfo.received.toLocaleString()}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <span style={{ color: "#8a7050", fontSize: 18 }}>お預かり</span>
+            <span style={{ color: "#f0e6d0", fontFamily: "serif", fontSize: 36, fontWeight: 700 }}>¥{checkoutInfo.received.toLocaleString()}</span>
           </div>
         )}
         {checkoutInfo.change !== null && (
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderTop: "1px solid #3d2c14", marginTop: 8 }}>
-            <span style={{ color: "#4aaa5a", fontSize: 16 }}>おつり</span>
-            <span style={{ color: "#4aaa5a", fontFamily: "serif", fontSize: 28, fontWeight: 800 }}>¥{checkoutInfo.change.toLocaleString()}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderTop: "2px solid #4aaa5a", marginTop: 8 }}>
+            <span style={{ color: "#4aaa5a", fontSize: 22, fontWeight: 700 }}>おつり</span>
+            <span style={{ color: "#4aaa5a", fontFamily: "serif", fontSize: 64, fontWeight: 900 }}>¥{checkoutInfo.change.toLocaleString()}</span>
           </div>
         )}
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-          <span style={{ color: "#8a7050" }}>書類</span>
-          <span style={{ color: "#f0e6d0" }}>{checkoutInfo.receipt}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12 }}>
+          <span style={{ color: "#8a7050", fontSize: 16 }}>書類</span>
+          <span style={{ color: "#f0e6d0", fontSize: 18 }}>{checkoutInfo.receipt}</span>
         </div>
       </div>
       <button onClick={() => { setCheckoutDone(false); setCheckoutInfo(null); }}
