@@ -849,10 +849,13 @@ export default function Register() {
     fetchTodaySales();
     fetchTodayTobacco();
     fetchMonthlyTobacco();
+    // リアルタイム購読
     const subscription = supabase.channel("orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => { fetchOrders(); })
       .subscribe();
-    return () => supabase.removeChannel(subscription);
+    // 30秒ごとに自動再取得（接続切れ対策）
+    const timer = setInterval(() => { fetchOrders(); fetchTodaySales(); }, 30000);
+    return () => { supabase.removeChannel(subscription); clearInterval(timer); };
   }, []);
 
   const fetchOrders = async () => {
@@ -1376,7 +1379,10 @@ export default function Register() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#0d0905", color: "#f0e6d0", fontFamily: "'Noto Sans JP', sans-serif" }}>
-      <div style={{ background: "#333", color: "#fff", padding: "4px 12px", fontSize: 11 }}>{debugMsg}</div>
+      <div style={{ background: "#333", color: "#fff", padding: "4px 12px", fontSize: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span>{debugMsg}</span>
+        <button onClick={() => { fetchOrders(); fetchTodaySales(); setDebugMsg("手動更新しました"); }} style={{ padding: "2px 10px", background: "#555", border: "none", borderRadius: 4, color: "#fff", fontSize: 11, cursor: "pointer" }}>🔄 更新</button>
+      </div>
 
       {showAdmin && (
         <div onClick={() => setShowAdmin(false)} style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 280, padding: 20 }}>
