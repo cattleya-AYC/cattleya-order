@@ -930,7 +930,7 @@ export default function Register() {
     : null;
 
   const canCheckout = payMethod && receiptType && (
-    payMethod === "ペイキャス" || (receivedAmount && parseInt(receivedAmount) >= finalAmount)
+    payMethod === "ペイキャス" || (receivedAmount && change !== null && change >= 0)
   );
   const canTobaccoCheckout = tobaccoReceiptType && tobaccoReceived && tobaccoChange !== null && tobaccoChange >= 0;
 
