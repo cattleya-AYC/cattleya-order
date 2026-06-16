@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Cattleya レジ現金</title>
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/count.PNG">
+<link rel="icon" href="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/count.PNG">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -274,7 +276,7 @@
   <!-- レジあるべき金額との比較 -->
   <div class="compare-area" id="compareArea" style="display:none">
     <div class="compare-row">
-      <span class="cl">レジあるべき金額</span>
+      <span class="cl" id="shouldLabel">レジあるべき金額</span>
       <span class="cv" id="shouldAmount">—</span>
     </div>
     <div class="compare-row">
@@ -350,6 +352,7 @@ function calc() {
   if (window._shouldCash !== undefined) {
     const diff = total - window._shouldCash;
     document.getElementById('shouldAmount').textContent = '¥' + window._shouldCash.toLocaleString();
+    if (window._shouldLabel) document.getElementById('shouldLabel').textContent = window._shouldLabel;
     document.getElementById('actualAmount').textContent = '¥' + total.toLocaleString();
     const diffEl = document.getElementById('diffAmount');
     if (diff === 0) {
@@ -367,10 +370,21 @@ function calc() {
 
 async function loadShouldCash() {
   const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
-  const { data } = await sb.from("sales").select("amount,pay_method").eq("sale_date", today);
+  const { data } = await sb.from("sales").select("amount,pay_method,sale_time").eq("sale_date", today);
   if (data) {
-    const cashSales = data.filter(s => s.pay_method === '現金').reduce((a, s) => a + s.amount, 0);
-    window._shouldCash = cashSales + 50000;
+    const now = new Date();
+    const currentHour = now.getHours();
+    if (currentHour >= 15) {
+      // 15時以降：釣り銭 + 15時以降の現金のみ
+      const cashAfter15 = data.filter(s => s.pay_method === '現金' && (s.sale_time || '') >= '15:00').reduce((a, s) => a + s.amount, 0);
+      window._shouldCash = cashAfter15 + 50000;
+      window._shouldLabel = '釣り銭＋15時以降現金';
+    } else {
+      // 15時前：釣り銭 + 全現金
+      const cashAll = data.filter(s => s.pay_method === '現金').reduce((a, s) => a + s.amount, 0);
+      window._shouldCash = cashAll + 50000;
+      window._shouldLabel = '釣り銭＋本日全現金';
+    }
     calc();
   }
 }
