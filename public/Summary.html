@@ -77,6 +77,19 @@
   .hour-row .hc { color: #8a7050; font-size: 12px; }
   .hour-row .hr { color: #c9952a; font-weight: 700; }
 
+  .btn-email {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    margin-bottom: 10px;
+    background: #1a2a4a;
+    border: 2px solid #4a8aca;
+    border-radius: 12px;
+    color: #8ac8ff;
+    font-size: 18px;
+    font-weight: 900;
+    cursor: pointer;
+  }
   .btn-print {
     width: 100%;
     padding: 20px;
@@ -167,7 +180,8 @@ function render() {
   // 印刷・更新ボタン
   html += `
   <button class="btn-print" onclick="printSummary()">🖨 レシート印刷</button>
-  <button class="btn-reload" onclick="loadData()">🔄 最新データに更新</button>`;
+  <button class="btn-reload" onclick="loadData()">🔄 最新データに更新</button>
+  <button class="btn-email" onclick="sendEmail()">✉️ メール送信</button>`;
 
   // メイン集計
   html += `
@@ -201,6 +215,56 @@ function render() {
   html += '</div>';
 
   document.getElementById('mainContent').innerHTML = html;
+}
+
+function sendEmail() {
+  const cashSales = salesData.filter(s => s.pay_method === '現金');
+  const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス');
+  const cashTotal = cashSales.reduce((a, s) => a + s.amount, 0);
+  const paycasTotal = paycasSales.reduce((a, s) => a + s.amount, 0);
+  const grandTotal = salesData.reduce((a, s) => a + s.amount, 0);
+  const totalCount = salesData.length;
+  const totalPeople = salesData.reduce((a, s) => a + (s.people_count || 0), 0);
+  const cashMorning = cashSales.filter(s => (s.sale_time || '') < '15:00').reduce((a, s) => a + s.amount, 0);
+  const cashEvening = cashTotal - cashMorning;
+
+  const groups = {};
+  salesData.forEach(s => {
+    const h = (s.sale_time || '').split(':')[0] || '不明';
+    if (!groups[h]) groups[h] = { count: 0, amount: 0 };
+    groups[h].count++;
+    groups[h].amount += s.amount;
+  });
+
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  const hourLines = Object.entries(groups).sort()
+    .map(([h, g]) => `${h}:00〜${Number(h)+1}:00  ${g.count}件  ¥${g.amount.toLocaleString()}`)
+    .join('\n');
+
+  const body = `Lounge Cattleya 日計レポート
+${dateStr} ${timeStr} 現在
+━━━━━━━━━━━━━━━━
+総売上　　¥${grandTotal.toLocaleString()}
+
+現金　　　¥${cashTotal.toLocaleString()}（${cashSales.length}件）
+　朝〜15時　¥${cashMorning.toLocaleString()}
+　15時〜閉店　¥${cashEvening.toLocaleString()}
+ペイキャス　¥${paycasTotal.toLocaleString()}（${paycasSales.length}件）
+
+来客　${totalCount}組　${totalPeople}名
+━━━━━━━━━━━━━━━━
+時間帯別売上
+${hourLines}
+━━━━━━━━━━━━━━━━
+Lounge Cattleya`;
+
+  const to = 'h0910akio@docomo.ne.jp,mari247k@gmail.com';
+  const subject = encodeURIComponent(`カトレア日計 ${dateStr}`);
+  const bodyEncoded = encodeURIComponent(body);
+  window.location.href = `mailto:${to}?subject=${subject}&body=${bodyEncoded}`;
 }
 
 function printSummary() {
