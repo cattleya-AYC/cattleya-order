@@ -64,9 +64,10 @@ async function loadData() {
   const year = document.getElementById('yearPicker').value;
   const month = document.getElementById('monthPicker').value;
   if (!year || !month) return;
-  const startDate = `${year}-${month}-01`;
-  const lastDay = new Date(year, month, 0).getDate();
-  const endDate = `${year}-${month}-${String(lastDay).padStart(2,'0')}`;
+  const monthPad = String(month).padStart(2,'0');
+  const startDate = `${year}-${monthPad}-01`;
+  const lastDay = new Date(year, parseInt(month), 0).getDate();
+  const endDate = `${year}-${monthPad}-${String(lastDay).padStart(2,'0')}`;
   const { data } = await supabase.from('sales').select('*').gte('sale_date', startDate).lte('sale_date', endDate).order('sale_date', { ascending: true }).order('sale_time', { ascending: true });
   salesData = data || [];
   render(year, month);
