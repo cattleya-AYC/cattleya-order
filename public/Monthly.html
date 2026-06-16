@@ -40,18 +40,12 @@
   <select id="monthPicker" style="flex:1;padding:12px;background:#251a0a;border:1px solid #3d2c14;border-radius:8px;color:#f0e6d0;font-size:16px;">
   </select>
 </div>
-<button class="btn btn-reload" onclick="loadData()">🔄 更新</button>
+<button class="btn btn-reload" onclick="loadData()">🔄 更新する</button>
+<button class="btn btn-gold" onclick="printA4()">プリントする🖨</button>
+<button class="btn btn-blue" onclick="sendEmail()">メールを送る✉️</button>
 
 <div id="mainContent"><div class="loading">月を選択してください</div></div>
 
-<script>
-const sb = window.supabase ? window.supabase.createClient(
-  'https://zxdgiszrsmumjjxmvszb.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODM2MTksImV4cCI6MjA5NTI1OTYxOX0.vNndS7JEzIUsa007EPO2zRoYhUr-z01LM32BKIhMSz4'
-) : null;
-
-// Supabase CDN読み込み
-</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const supabase = window.supabase.createClient(
@@ -61,25 +55,27 @@ const supabase = window.supabase.createClient(
 
 let salesData = [];
 
-// 年・月セレクトボックスを初期化
-const now = new Date();
-const yearSel = document.getElementById('yearPicker');
-const monthSel = document.getElementById('monthPicker');
+// DOMが読み込まれてからセレクトを初期化
+window.addEventListener('DOMContentLoaded', () => {
+  const now = new Date();
+  const yearSel = document.getElementById('yearPicker');
+  const monthSel = document.getElementById('monthPicker');
 
-for (let y = now.getFullYear(); y >= 2025; y--) {
-  const opt = document.createElement('option');
-  opt.value = y;
-  opt.text = y + '年';
-  if (y === now.getFullYear()) opt.selected = true;
-  yearSel.appendChild(opt);
-}
-for (let m = 1; m <= 12; m++) {
-  const opt = document.createElement('option');
-  opt.value = String(m).padStart(2,'0');
-  opt.text = m + '月';
-  if (m === now.getMonth()+1) opt.selected = true;
-  monthSel.appendChild(opt);
-}
+  for (let y = now.getFullYear(); y >= 2025; y--) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.text = y + '年';
+    if (y === now.getFullYear()) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+  for (let m = 1; m <= 12; m++) {
+    const opt = document.createElement('option');
+    opt.value = String(m).padStart(2,'0');
+    opt.text = m + '月';
+    if (m === now.getMonth()+1) opt.selected = true;
+    monthSel.appendChild(opt);
+  }
+});
 
 async function loadData() {
   document.getElementById('mainContent').innerHTML = '<div class="loading">読み込み中...</div>';
@@ -118,10 +114,7 @@ function render(year, month) {
   let html = '';
 
   // ボタン
-  html += `
-  <button class="btn btn-gold" onclick="printA4()">🖨 A4印刷</button>
-  <button class="btn btn-blue" onclick="sendEmail()">✉️ メールで送信</button>
-  `;
+
 
   // 月間サマリー
   html += `
