@@ -116,6 +116,22 @@ export default function App() {
   const [takeout, setTakeout] = useState(false);
   const [unservedOrders, setUnservedOrders] = useState([]);
   const [unservedTable, setUnservedTable] = useState(null);
+  const [showMoveTable, setShowMoveTable] = useState(false);
+  const [moveStep, setMoveStep] = useState(1);
+  const [moveFrom, setMoveFrom] = useState(null);
+  const [moveTo, setMoveTo] = useState(null);
+  const [moveLoading, setMoveLoading] = useState(false);
+
+  const executeMoveTable = async () => {
+    if (!moveFrom || !moveTo) return;
+    setMoveLoading(true);
+    await supabase.from("orders").update({ table_no: String(moveTo) }).eq("table_no", String(moveFrom));
+    setMoveLoading(false);
+    setShowMoveTable(false);
+    setMoveStep(1);
+    setMoveFrom(null);
+    setMoveTo(null);
+  };
 
   const addItem = (item) => {
     setCart((prev) => {
@@ -254,6 +270,67 @@ export default function App() {
       }}>
         🛍 持ち帰り（税8%）
       </button>
+
+      {/* 座席変更ボタン */}
+      <button onClick={() => { setShowMoveTable(true); setMoveStep(1); setMoveFrom(null); setMoveTo(null); }}
+        style={{ marginTop: 12, width: "100%", padding: "22px 0", background: "#1a0a2a", border: "3px solid #6a2aaa", borderRadius: 12, color: "#cc88ff", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>
+        🟣 座席変更
+      </button>
+
+      {/* 座席変更モーダル */}
+      {showMoveTable && (
+        <div onClick={() => setShowMoveTable(false)} style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#1a0a2a", border: "2px solid #6a2aaa", borderRadius: 14, width: "100%", maxWidth: 400, maxHeight: "85vh", overflow: "auto", padding: 20 }}>
+            <div style={{ color: "#cc88ff", fontWeight: 900, fontSize: 18, marginBottom: 16 }}>🟣 座席変更</div>
+
+            {moveStep === 1 && (
+              <>
+                <div style={{ color: "#f0e6d0", marginBottom: 12, fontWeight: 700 }}>移動元のテーブルを選んでください</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
+                  {TABLES.map(t => (
+                    <button key={t} onClick={() => { setMoveFrom(t); setMoveStep(2); }}
+                      style={{ padding: "12px 0", background: "#251a0a", border: "1px solid #6a2aaa", borderRadius: 8, color: "#cc88ff", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {moveStep === 2 && (
+              <>
+                <div style={{ color: "#f0e6d0", marginBottom: 4, fontWeight: 700 }}>移動先のテーブルを選んでください</div>
+                <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 12 }}>移動元: テーブル {moveFrom}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
+                  {TABLES.filter(t => String(t) !== String(moveFrom)).map(t => (
+                    <button key={t} onClick={() => { setMoveTo(t); setMoveStep(3); }}
+                      style={{ padding: "12px 0", background: "#251a0a", border: "1px solid #6a2aaa", borderRadius: 8, color: "#cc88ff", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setMoveStep(1)} style={{ marginTop: 12, width: "100%", padding: 10, background: "transparent", border: "1px solid #6a2aaa", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>← 戻る</button>
+              </>
+            )}
+
+            {moveStep === 3 && (
+              <>
+                <div style={{ color: "#f0e6d0", fontSize: 18, fontWeight: 900, marginBottom: 20, textAlign: "center" }}>
+                  テーブル {moveFrom} → テーブル {moveTo}<br/>
+                  <span style={{ fontSize: 14, color: "#8a7050", fontWeight: 400 }}>この操作は元に戻せません</span>
+                </div>
+                <button onClick={executeMoveTable} disabled={moveLoading}
+                  style={{ width: "100%", padding: 18, background: moveLoading ? "#3d2c14" : "#6a2aaa", border: "none", borderRadius: 10, color: "#fff", fontWeight: 900, fontSize: 18, cursor: "pointer", marginBottom: 10 }}>
+                  {moveLoading ? "移動中..." : "✅ 移動する"}
+                </button>
+                <button onClick={() => setMoveStep(2)} style={{ width: "100%", padding: 12, background: "transparent", border: "1px solid #6a2aaa", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>← 戻る</button>
+              </>
+            )}
+
+            <button onClick={() => setShowMoveTable(false)} style={{ marginTop: 12, width: "100%", padding: "10px 0", background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 14, cursor: "pointer" }}>閉じる</button>
+          </div>
+        </div>
+      )}
 
       {/* 未提供パネル */}
       {showUnserved && (() => {
