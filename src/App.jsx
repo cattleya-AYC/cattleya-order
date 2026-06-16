@@ -115,6 +115,7 @@ export default function App() {
   const [showUnserved, setShowUnserved] = useState(false);
   const [takeout, setTakeout] = useState(false);
   const [unservedOrders, setUnservedOrders] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
   const [unservedTable, setUnservedTable] = useState(null);
   const [showMoveTable, setShowMoveTable] = useState(false);
   const [moveStep, setMoveStep] = useState(1);
@@ -147,6 +148,11 @@ export default function App() {
     );
   };
 
+  const fetchAllOrders = async () => {
+    const { data } = await supabase.from("orders").select("table_no, status").in("status", ["pending", "served"]);
+    setAllOrders(data || []);
+  };
+
   const fetchUnserved = async () => {
     const { data } = await supabase
       .from("orders")
@@ -156,9 +162,12 @@ export default function App() {
     setUnservedOrders((data || []).filter(o => !o.item_name.startsWith("【人数")));
   };
 
+  // 起動時にallOrdersを取得
+  useEffect(() => { fetchAllOrders(); }, []);
+
   // 30秒ごとに未提供リストを自動更新（10分超チェック用）
   useEffect(() => {
-    const iv = setInterval(() => { fetchUnserved(); }, 30000);
+    const iv = setInterval(() => { fetchUnserved(); fetchAllOrders(); }, 30000);
     return () => clearInterval(iv);
   }, []);
 
@@ -231,13 +240,14 @@ export default function App() {
       `}</style>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
         {TABLES.map((t) => {
-          const occ = unservedOrders.some(o => String(o.table_no) === String(t));
+          const occ = allOrders.some(o => String(o.table_no) === String(t));
           return (
             <button key={t}
               className={occ ? "tbl-occ" : ""}
               onClick={() => { setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setActiveCat("コーヒー"); setConfirming(false); setTakeout(false); }}
-              style={{ padding: "12px 0", background: occ ? "#2a1c0a" : "#251a0a", border: `2px solid ${occ ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: occ ? "#c9952a" : "#8a7050", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
+              style={{ padding: "10px 0 8px", background: occ ? "#2a1c0a" : "#251a0a", border: `2px solid ${occ ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: occ ? "#c9952a" : "#8a7050", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
               {t}
+              {occ && <div style={{ fontSize: 9, color: "#8a7050", marginTop: 2 }}>着席中</div>}
             </button>
           );
         })}
@@ -300,7 +310,7 @@ export default function App() {
                 <div style={{ color: "#f0e6d0", marginBottom: 12, fontWeight: 700 }}>移動元のテーブルを選んでください</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
                   {TABLES.map(t => {
-                    const occ = unservedOrders.some(o => String(o.table_no) === String(t));
+                    const occ = allOrders.some(o => String(o.table_no) === String(t));
                     return (
                       <button key={t}
                         className={occ ? "tbl-occ" : ""}
