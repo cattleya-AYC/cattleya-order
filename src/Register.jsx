@@ -839,6 +839,7 @@ export default function Register() {
   const [cashCheckOther, setCashCheckOther] = useState("");
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [todaySalesFromDB, setTodaySalesFromDB] = useState([]);
+  const [peopleZero, setPeopleZero] = useState(false);
   const [todayTobaccoFromDB, setTodayTobaccoFromDB] = useState([]);
   const [monthlyTobaccoFromDB, setMonthlyTobaccoFromDB] = useState([]);
   const [setCount, setSetCount] = useState(0);
@@ -931,7 +932,9 @@ export default function Register() {
   const selectedDiscount = selectedSubtotal - selectedTotal;
   const selectedPeople = selected ? tablePeopleStr(selected) : "-";
 
-  const _finalAmt = Math.round(selectedSubtotal - (setCount * 150) - (couponApplied ? couponDiscount : 0));
+  const _setDiscAmt = setCount * 150;
+  const _coupDiscAmt = couponApplied ? couponDiscount : 0;
+  const _finalAmt = Math.round(selectedTotal - _setDiscAmt - _coupDiscAmt);
   const change = receivedAmount ? Math.round(parseInt(receivedAmount) - _finalAmt) : null;
   const tobaccoChange = tobaccoReceived && tobaccoConfirming
     ? parseInt(tobaccoReceived) - tobaccoConfirming.price
@@ -960,7 +963,7 @@ export default function Register() {
       setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); return;
     }
     const chg = payMethod === "現金" ? change : null;
-    const people = tablePeople(t);
+    const people = peopleZero ? 0 : tablePeople(t);
 
     // setCount 分の値引きをSupabaseに反映してから会計
     const existingDiscounts = tableOrders(t).filter(o => o.price < 0);
@@ -994,7 +997,7 @@ export default function Register() {
     setHistory((prev) => [record, ...prev]);
     setLastCheckout(record);
     setCheckoutInfo({ table: t, amount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null, items: tableOrderItems });
-    setSelected(null); setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); setCheckoutDone(true); setCheckingOut(false);
+    setSelected(null); setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); setCheckoutDone(true); setCheckingOut(false); setPeopleZero(false);
     speakAmount(amount);
     // クーポン使用記録
     if (couponApplied && couponType && couponNo) {
@@ -1823,8 +1826,12 @@ export default function Register() {
               {selected && selectedOrders.length > 0 && (
                 <div style={{ padding: "14px 16px", background: "#181008", borderTop: "1px solid #3d2c14" }}>
                   <button onClick={() => setConfirming(true)}
-                    style={{ width: "100%", padding: 20, background: "#c9952a", border: "none", borderRadius: 12, color: "#0d0905", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>
+                    style={{ width: "100%", padding: 20, background: "#c9952a", border: "none", borderRadius: 12, color: "#0d0905", fontSize: 22, fontWeight: 900, cursor: "pointer", marginBottom: 8 }}>
                     💴 会計する
+                  </button>
+                  <button onClick={() => { setConfirming(true); setPeopleZero(true); }}
+                    style={{ width: "100%", padding: 12, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 14, cursor: "pointer" }}>
+                    ➕ 追加注文（人数カウントなし）
                   </button>
                 </div>
               )}
