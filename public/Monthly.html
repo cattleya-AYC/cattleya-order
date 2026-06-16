@@ -36,8 +36,10 @@
 
 <div style="display:flex;gap:8px;margin-bottom:12px">
   <select id="yearPicker" style="flex:1;padding:12px;background:#251a0a;border:1px solid #3d2c14;border-radius:8px;color:#f0e6d0;font-size:16px;">
+    <option value="2026" selected>2026年</option><option value="2025" >2025年</option>
   </select>
   <select id="monthPicker" style="flex:1;padding:12px;background:#251a0a;border:1px solid #3d2c14;border-radius:8px;color:#f0e6d0;font-size:16px;">
+    <option value="01" >1月</option><option value="02" >2月</option><option value="03" >3月</option><option value="04" >4月</option><option value="05" >5月</option><option value="06" selected>6月</option><option value="07" >7月</option><option value="08" >8月</option><option value="09" >9月</option><option value="10" >10月</option><option value="11" >11月</option><option value="12" >12月</option>
   </select>
 </div>
 <button class="btn btn-reload" onclick="loadData()">🔄 更新する</button>
@@ -55,27 +57,7 @@ const supabase = window.supabase.createClient(
 
 let salesData = [];
 
-// DOMが読み込まれてからセレクトを初期化
-window.addEventListener('DOMContentLoaded', () => {
-  const now = new Date();
-  const yearSel = document.getElementById('yearPicker');
-  const monthSel = document.getElementById('monthPicker');
 
-  for (let y = now.getFullYear(); y >= 2025; y--) {
-    const opt = document.createElement('option');
-    opt.value = y;
-    opt.text = y + '年';
-    if (y === now.getFullYear()) opt.selected = true;
-    yearSel.appendChild(opt);
-  }
-  for (let m = 1; m <= 12; m++) {
-    const opt = document.createElement('option');
-    opt.value = String(m).padStart(2,'0');
-    opt.text = m + '月';
-    if (m === now.getMonth()+1) opt.selected = true;
-    monthSel.appendChild(opt);
-  }
-});
 
 async function loadData() {
   document.getElementById('mainContent').innerHTML = '<div class="loading">読み込み中...</div>';
