@@ -1174,23 +1174,22 @@ export default function Register() {
 
   const confirmCashCheck = async () => {
     const staffName = showOtherInput ? cashCheckOther : cashCheckStaff;
-    if (!staffName || !cashCheckResult) return;
+    if (!staffName || !cashCheckDiff) return;
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
     const systemCash = todayCashFromDB + 50000;
-    const diff = cashCheckResult === "same" ? 0 : parseInt(cashCheckDiff || "0");
-    const diffSigned = cashCheckResult === "short" ? -diff : cashCheckResult === "over" ? diff : 0;
-    const newLog = { time: now, staff: staffName, systemCash, salesCash: todayCashFromDB, result: cashCheckResult, diff: diffSigned };
+    const actualCash = parseInt(cashCheckDiff);
+    const diffSigned = actualCash - systemCash;
+    const result = diffSigned === 0 ? "same" : diffSigned < 0 ? "short" : "over";
+    const newLog = { time: now, staff: staffName, systemCash, salesCash: todayCashFromDB, result, diff: diffSigned, actual: actualCash };
     setCashCheckLogs((prev) => [newLog, ...prev]);
-    // Supabaseに保存（どのデバイスからも参照可能）
     await supabase.from("cashcheck_logs").insert({
       checked_at: new Date().toISOString(),
       log_date: new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0],
       staff: staffName,
       system_cash: systemCash,
-      result: cashCheckResult,
+      result,
       diff: diffSigned,
     });
-    // localStorageにも保存（後方互換）
     const nowDate = new Date();
     const mKey = `cattleya_cashcheck_${nowDate.getFullYear()}-${String(nowDate.getMonth()+1).padStart(2,"0")}`;
     const existing = JSON.parse(localStorage.getItem(mKey) || "[]");
@@ -1478,7 +1477,7 @@ export default function Register() {
           <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 20, width: "100%", maxWidth: 400 }}>
             <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 14 }}>💰 レジ金額確認</div>
 
-            {/* レジ内金額 */}
+            {/* あるべき金額 */}
             <div style={{ background: "#251a0a", borderRadius: 10, padding: 14, marginBottom: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ color: "#8a7050" }}>釣り銭（固定）</span>
@@ -1494,26 +1493,23 @@ export default function Register() {
               </div>
             </div>
 
-            {/* 照合結果 */}
-            <div style={{ color: "#f0e6d0", fontSize: 17, marginBottom: 8, fontWeight: 700 }}>実際のレジ内金額と一致していますか？</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 12 }}>
-              {[["same","✅ 同じ","#2a6a3a","#4aaa5a"],["short","⚠️ 不足","#6a2a2a","#c95a5a"],["over","💡 多い","#2a4a6a","#5a8aca"]].map(([key, label, bg, color]) => (
-                <button key={key} onClick={() => { setCashCheckResult(key); if (key === "same") setCashCheckDiff(""); }}
-                  style={{ padding: "16px 4px", background: cashCheckResult === key ? bg : "transparent", border: `2px solid ${cashCheckResult === key ? color : "#3d2c14"}`, borderRadius: 10, color: cashCheckResult === key ? "#fff" : "#c9952a", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* 差額入力 */}
-            {(cashCheckResult === "short" || cashCheckResult === "over") && (
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ color: "#8a7050", fontSize: 16, marginBottom: 6, fontWeight: 700 }}>差額（円）を入力してください</div>
-                <input type="number" value={cashCheckDiff} onChange={(e) => setCashCheckDiff(e.target.value)}
-                  placeholder="例：500"
-                  style={{ width: "100%", padding: "14px", background: "#251a0a", border: "1px solid #c9952a", borderRadius: 8, color: "#f0e6d0", fontSize: 20, fontWeight: 700, boxSizing: "border-box" }} />
-              </div>
-            )}
+            {/* 実際の金額入力 */}
+            <div style={{ color: "#f0e6d0", fontSize: 17, marginBottom: 8, fontWeight: 700 }}>実際のレジ内金額を入力</div>
+            <input type="number" value={cashCheckDiff} onChange={(e) => setCashCheckDiff(e.target.value)}
+              placeholder="例：138000"
+              style={{ width: "100%", padding: "16px", background: "#251a0a", border: "2px solid #c9952a", borderRadius: 8, color: "#f0e6d0", fontSize: 24, fontWeight: 700, boxSizing: "border-box", marginBottom: 8 }} />
+            {cashCheckDiff && (() => {
+              const actual = parseInt(cashCheckDiff);
+              const system = todayCashFromDB + 50000;
+              const diff = actual - system;
+              return (
+                <div style={{ background: diff === 0 ? "#0a2010" : diff < 0 ? "#2a0a0a" : "#0a1a2a", border: `1px solid ${diff === 0 ? "#4aaa5a" : diff < 0 ? "#c95a5a" : "#5a8aca"}`, borderRadius: 8, padding: "12px 16px", marginBottom: 14, textAlign: "center" }}>
+                  <span style={{ color: diff === 0 ? "#4aaa5a" : diff < 0 ? "#c95a5a" : "#5a8aca", fontSize: 20, fontWeight: 900 }}>
+                    {diff === 0 ? "✅ 一致！" : diff < 0 ? `⚠️ 不足　¥${Math.abs(diff).toLocaleString()}` : `💡 超過　¥${diff.toLocaleString()}`}
+                  </span>
+                </div>
+              );
+            })()}
 
             {/* 確認者 */}
             <div style={{ color: "#8a7050", fontSize: 17, marginBottom: 8, fontWeight: 700 }}>確認者</div>
@@ -1539,8 +1535,8 @@ export default function Register() {
               <button onClick={() => { setCashChecking(false); setCashCheckStaff(null); setCashCheckOther(""); setShowOtherInput(false); setCashCheckResult(null); setCashCheckDiff(""); }}
                 style={{ flex: 1, padding: 16, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 16, cursor: "pointer" }}>キャンセル</button>
               <button onClick={confirmCashCheck}
-                disabled={(!cashCheckStaff && !cashCheckOther) || !cashCheckResult || ((cashCheckResult === "short" || cashCheckResult === "over") && !cashCheckDiff)}
-                style={{ flex: 2, padding: 16, background: ((cashCheckStaff || cashCheckOther) && cashCheckResult) ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: ((cashCheckStaff || cashCheckOther) && cashCheckResult) ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 19, cursor: "pointer" }}>
+                disabled={(!cashCheckStaff && !cashCheckOther) || !cashCheckDiff}
+                style={{ flex: 2, padding: 16, background: ((cashCheckStaff || cashCheckOther) && cashCheckDiff) ? "#2a6a3a" : "#3d2c14", border: "none", borderRadius: 10, color: ((cashCheckStaff || cashCheckOther) && cashCheckDiff) ? "#fff" : "#8a7050", fontWeight: 700, fontSize: 19, cursor: "pointer" }}>
                 ✅ 確認完了
               </button>
             </div>
