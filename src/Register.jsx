@@ -1655,39 +1655,6 @@ export default function Register() {
         const diff1 = total1 - systemCash;
         const diff2 = total2 - systemCash;
 
-        const DenomInput = ({ denoms, setDenoms }) => (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {DENOMS.map(d => (
-              <div key={d.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ color: "#8a7050", fontSize: 13, width: 70, textAlign: "right" }}>{d.label}</div>
-                <input type="number" inputMode="numeric" value={denoms[d.key]}
-                  onChange={e => setDenoms(prev => ({ ...prev, [d.key]: e.target.value }))}
-                  placeholder="0"
-                  style={{ width: 70, padding: "8px 10px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#f0e6d0", fontSize: 16, textAlign: "right" }} />
-                <div style={{ color: "#8a7050", fontSize: 12 }}>枚</div>
-                <div style={{ color: "#c9952a", fontSize: 13, marginLeft: "auto" }}>
-                  {denoms[d.key] ? `¥${(parseInt(denoms[d.key]) * d.unit).toLocaleString()}` : ""}
-                </div>
-              </div>
-            ))}
-            <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #3d2c14", paddingTop: 10, marginTop: 4 }}>
-              <span style={{ color: "#f0e6d0", fontWeight: 700 }}>合計</span>
-              <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 22, fontWeight: 900 }}>¥{calcTotal(denoms).toLocaleString()}</span>
-            </div>
-          </div>
-        );
-
-        const StaffSelect = ({ value, setValue, exclude }) => (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-            {STAFF.filter(s => s !== exclude).map(s => (
-              <button key={s} onClick={() => setValue(s)}
-                style={{ padding: "14px 8px", background: value === s ? "#c9952a" : "transparent", border: `2px solid ${value === s ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: value === s ? "#0d0905" : "#c9952a", fontWeight: 900, fontSize: 16, cursor: "pointer" }}>
-                {s}
-              </button>
-            ))}
-          </div>
-        );
-
         return (
           <div style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", alignItems: "flex-start", justifyContent: "center", zIndex: 300, overflowY: "auto", padding: "16px 0 40px" }}>
             <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, width: "95%", maxWidth: 420, padding: 20 }}>
@@ -1713,16 +1680,16 @@ export default function Register() {
               <div style={{ color: "#c9952a", fontWeight: 700, marginBottom: 8 }}>
                 {is10 ? "確認者" : "1人目の確認者"}
               </div>
-              <StaffSelect value={ccStaff1} setValue={setCcStaff1} exclude={null} />
-              <DenomInput denoms={ccDenoms1} setDenoms={setCcDenoms1} />
+              <CCStaffSelect value={ccStaff1} setValue={setCcStaff1} exclude={null} STAFF={STAFF} />
+              <CCDenomInput denoms={ccDenoms1} setDenoms={setCcDenoms1} DENOMS={DENOMS} calcTotal={calcTotal} />
 
               {/* フェーズ2（13/17/20時のみ） */}
               {!is10 && cashCheckPhase >= 2 && (
                 <>
                   <div style={{ borderTop: "1px solid #3d2c14", margin: "16px 0" }} />
                   <div style={{ color: "#5a8aca", fontWeight: 700, marginBottom: 8 }}>2人目の確認者（{ccStaff1}以外）</div>
-                  <StaffSelect value={ccStaff2} setValue={setCcStaff2} exclude={ccStaff1} />
-                  <DenomInput denoms={ccDenoms2} setDenoms={setCcDenoms2} />
+                  <CCStaffSelect value={ccStaff2} setValue={setCcStaff2} exclude={ccStaff1} STAFF={STAFF} />
+                  <CCDenomInput denoms={ccDenoms2} setDenoms={setCcDenoms2} DENOMS={DENOMS} calcTotal={calcTotal} />
 
                   {/* 比較結果 */}
                   {allFilled2 && (
@@ -1747,18 +1714,38 @@ export default function Register() {
               {/* ボタン */}
               <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
                 {!is10 && cashCheckPhase === 1 && (
-                  <button onClick={() => { setCashCheckPhase(2); }}
-                    disabled={!allFilled1}
-                    style={{ flex: 1, padding: 14, background: allFilled1 ? "#2a4a6a" : "#3d2c14", border: "none", borderRadius: 10, color: allFilled1 ? "#5a8aca" : "#8a7050", fontWeight: 700, fontSize: 15, cursor: allFilled1 ? "pointer" : "not-allowed" }}>
-                    次の人に確認依頼 →
+                  <>
+                    <button onClick={closeCashCheck}
+                      style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
+                      戻る
+                    </button>
+                    <button onClick={() => { setCashCheckPhase(2); }}
+                      disabled={!allFilled1}
+                      style={{ flex: 2, padding: 14, background: allFilled1 ? "#2a4a6a" : "#3d2c14", border: "none", borderRadius: 10, color: allFilled1 ? "#5a8aca" : "#8a7050", fontWeight: 700, fontSize: 15, cursor: allFilled1 ? "pointer" : "not-allowed" }}>
+                      次の人に確認依頼 →
+                    </button>
+                  </>
+                )}
+                {is10 && cashCheckPhase === 1 && (
+                  <button onClick={closeCashCheck}
+                    style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
+                    戻る
+                  </button>
+                )}
+                {!is10 && cashCheckPhase >= 2 && (
+                  <button onClick={() => { setCashCheckPhase(1); }}
+                    style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #5a8aca", borderRadius: 10, color: "#5a8aca", cursor: "pointer" }}>
+                    ← 1人目に戻る
                   </button>
                 )}
                 {(is10 || cashCheckPhase >= 2) && (
                   <>
+                    {is10 && (
                     <button onClick={closeCashCheck}
                       style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>
                       数え直す
                     </button>
+                    )}
                     <button
                       disabled={is10 ? !allFilled1 : !allFilled2}
                       onClick={async () => {
@@ -2135,6 +2122,51 @@ export default function Register() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ===== レジ確認用 金種入力コンポーネント（外部定義でフォーカス維持） =====
+function CCDenomInput({ denoms, setDenoms, DENOMS, calcTotal }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {DENOMS.map(d => (
+        <div key={d.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ color: "#8a7050", fontSize: 13, width: 70, textAlign: "right" }}>{d.label}</div>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={denoms[d.key]}
+            onChange={e => {
+              const v = e.target.value.replace(/[^0-9]/g, "").slice(0, 3);
+              setDenoms(prev => ({ ...prev, [d.key]: v }));
+            }}
+            placeholder="0"
+            style={{ width: 80, padding: "10px 12px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 8, color: "#f0e6d0", fontSize: 18, textAlign: "right" }}
+          />
+          <div style={{ color: "#8a7050", fontSize: 12 }}>枚</div>
+          <div style={{ color: "#c9952a", fontSize: 13, marginLeft: "auto" }}>
+            {denoms[d.key] ? `¥${(parseInt(denoms[d.key]) * d.unit).toLocaleString()}` : ""}
+          </div>
+        </div>
+      ))}
+      <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #3d2c14", paddingTop: 10, marginTop: 4 }}>
+        <span style={{ color: "#f0e6d0", fontWeight: 700 }}>合計</span>
+        <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 22, fontWeight: 900 }}>¥{calcTotal(denoms).toLocaleString()}</span>
+      </div>
+    </div>
+  );
+}
+
+function CCStaffSelect({ value, setValue, exclude, STAFF }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+      {STAFF.filter(s => s !== exclude).map(s => (
+        <button key={s} onClick={() => setValue(s)}
+          style={{ padding: "14px 8px", background: value === s ? "#c9952a" : "transparent", border: `2px solid ${value === s ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: value === s ? "#0d0905" : "#c9952a", fontWeight: 900, fontSize: 16, cursor: "pointer" }}>
+          {s}
+        </button>
+      ))}
     </div>
   );
 }
