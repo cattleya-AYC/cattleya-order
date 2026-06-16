@@ -841,6 +841,7 @@ export default function Register() {
   const [todaySalesFromDB, setTodaySalesFromDB] = useState([]);
   const [todayTobaccoFromDB, setTodayTobaccoFromDB] = useState([]);
   const [monthlyTobaccoFromDB, setMonthlyTobaccoFromDB] = useState([]);
+  const [setCount, setSetCount] = useState(0);
 
   useEffect(() => {
     fetchOrders();
@@ -899,6 +900,15 @@ export default function Register() {
   };
 
   const occupiedTables = TABLES.filter((t) => tableOrders(t).length > 0);
+  const [addOrderToast, setAddOrderToast] = useState(null);
+
+  const handleTableSelect = (t) => {
+    if (tableOrders(t).length > 0) {
+      setSelected(t);
+      setAddOrderToast(t);
+      setTimeout(() => setAddOrderToast(null), 3000);
+    }
+  };
   const todaySales = todaySalesFromDB.reduce((s, h) => s + h.amount, 0);
   const todayTobaccoTotal = todayTobaccoFromDB.reduce((a, s) => a + s.price, 0);
   const todayCashFromDB = todaySalesFromDB.filter(s => s.pay_method === "現金").reduce((a, s) => a + s.amount, 0);
@@ -921,7 +931,8 @@ export default function Register() {
   const selectedDiscount = selectedSubtotal - selectedTotal;
   const selectedPeople = selected ? tablePeopleStr(selected) : "-";
 
-  const change = receivedAmount ? parseInt(receivedAmount) - selectedTotal : null;
+  const _finalAmt = Math.round(selectedSubtotal - (setCount * 150) - (couponApplied ? couponDiscount : 0));
+  const change = receivedAmount ? Math.round(parseInt(receivedAmount) - _finalAmt) : null;
   const tobaccoChange = tobaccoReceived && tobaccoConfirming
     ? parseInt(tobaccoReceived) - tobaccoConfirming.price
     : null;
@@ -1101,8 +1112,6 @@ export default function Register() {
   ];
   const isFood = (name) => FOOD_SWEET_ITEMS.some(f => name.includes(f));
 
-  // セット数state（会計モーダル用）
-  const [setCount, setSetCount] = useState(0);
 
   // 会計モーダルを開いたとき、人数 or 0 を初期値にセット
   useEffect(() => {
@@ -1733,13 +1742,32 @@ export default function Register() {
           {!selected ? (
             <div style={{ padding: 14, overflow: "auto" }}>
               <div style={{ fontSize: 16, color: "#8a7050", marginBottom: 14 }}>🧾 テーブルを選択してください</div>
+              {addOrderToast && (
+                <div style={{ background: "#2a4a6a", border: "2px solid #5a8aca", borderRadius: 10, padding: "12px 16px", marginBottom: 14, textAlign: "center", fontSize: 16, color: "#fff", fontWeight: 700 }}>
+                  ➕ テーブル {addOrderToast} に追加注文です
+                </div>
+              )}
+              <style>{`
+                @keyframes pulse-border {
+                  0%, 100% { box-shadow: 0 0 0 0 rgba(201,149,42,0.7); border-color: #c9952a; }
+                  50% { box-shadow: 0 0 0 6px rgba(201,149,42,0); border-color: #ffcc66; }
+                }
+                .table-occupied {
+                  animation: pulse-border 2s ease-in-out infinite;
+                }
+              `}</style>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))", gap: 10 }}>
                 {TABLES.map((t) => {
                   const occ = tableOrders(t).length > 0;
+                  const people = tablePeople(t);
                   return (
-                    <div key={t} onClick={() => occ && setSelected(t)}
-                      style={{ padding: "18px 4px", borderRadius: 10, border: `2px solid ${occ ? "#c9952a" : "#3d2c14"}`, background: occ ? "#2a1c0a" : "#0d0905", color: occ ? "#c9952a" : "#3d2c14", textAlign: "center", fontSize: 20, fontWeight: 900, cursor: occ ? "pointer" : "default" }}>
+                    <div key={t} onClick={() => occ && handleTableSelect(t)}
+                      className={occ ? "table-occupied" : ""}
+                      style={{ padding: "14px 4px 10px", borderRadius: 10, border: `2px solid ${occ ? "#c9952a" : "#3d2c14"}`, background: occ ? "#2a1c0a" : "#0d0905", color: occ ? "#c9952a" : "#3d2c14", textAlign: "center", fontSize: 20, fontWeight: 900, cursor: occ ? "pointer" : "default", position: "relative" }}>
                       {t}
+                      {occ && people > 0 && (
+                        <div style={{ fontSize: 11, color: "#8a7050", marginTop: 2 }}>{people}名</div>
+                      )}
                     </div>
                   );
                 })}
