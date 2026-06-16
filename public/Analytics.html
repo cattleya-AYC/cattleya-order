@@ -272,6 +272,7 @@
 <div class="tabs">
   <div class="tab active" onclick="switchTab('paycas')" id="tab-paycas">💳 ペイキャス</div>
   <div class="tab" onclick="switchTab('visit')" id="tab-visit">👥 来店者</div>
+  <div class="tab" onclick="switchTab('summary')" id="tab-summary">📊 途中集計</div>
 </div>
 
 <div class="content" id="content-paycas">
@@ -279,6 +280,10 @@
 </div>
 
 <div class="content" id="content-visit" style="display:none">
+  <div class="loading">読み込み中...</div>
+</div>
+
+<div class="content" id="content-summary" style="display:none">
   <div class="loading">読み込み中...</div>
 </div>
 
@@ -301,8 +306,10 @@ function switchTab(tab) {
   currentTab = tab;
   document.getElementById('tab-paycas').className = 'tab' + (tab === 'paycas' ? ' active' : '');
   document.getElementById('tab-visit').className = 'tab' + (tab === 'visit' ? ' active' : '');
+  document.getElementById('tab-summary').className = 'tab' + (tab === 'summary' ? ' active' : '');
   document.getElementById('content-paycas').style.display = tab === 'paycas' ? '' : 'none';
   document.getElementById('content-visit').style.display = tab === 'visit' ? '' : 'none';
+  document.getElementById('content-summary').style.display = tab === 'summary' ? '' : 'none';
 }
 
 async function loadAll() {
@@ -311,6 +318,7 @@ async function loadAll() {
 
   document.getElementById('content-paycas').innerHTML = '<div class="loading">読み込み中...</div>';
   document.getElementById('content-visit').innerHTML = '<div class="loading">読み込み中...</div>';
+  document.getElementById('content-summary').innerHTML = '<div class="loading">読み込み中...</div>';
 
   const [{ data: sales }, { data: items }] = await Promise.all([
     sb.from("sales").select("*").eq("sale_date", selectedDate).order("sale_time", { ascending: true }),
@@ -322,6 +330,7 @@ async function loadAll() {
 
   renderPaycas();
   renderVisit();
+  renderSummary();
 }
 
 function renderPaycas() {
@@ -495,6 +504,125 @@ function renderVisit() {
   });
 
   document.getElementById('content-visit').innerHTML = html;
+}
+
+
+function renderSummary() {
+  const cashSales = salesData.filter(s => s.pay_method === '現金');
+  const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス');
+  const cashTotal = cashSales.reduce((a, s) => a + s.amount, 0);
+  const paycasTotal = paycasSales.reduce((a, s) => a + s.amount, 0);
+  const grandTotal = salesData.reduce((a, s) => a + s.amount, 0);
+  const totalCount = salesData.length;
+  const totalPeople = salesData.reduce((a, s) => a + (s.people_count || 0), 0);
+  const cashCount = cashSales.length;
+  const paycasCount = paycasSales.length;
+
+  // 時間帯別
+  const groups = {};
+  salesData.forEach(s => {
+    const h = (s.sale_time || '').split(':')[0] || '不明';
+    if (!groups[h]) groups[h] = { count: 0, amount: 0 };
+    groups[h].count++;
+    groups[h].amount += s.amount;
+  });
+
+  const now = new Date();
+  const timeStr = now.getFullYear() + '年' + (now.getMonth()+1) + '月' + now.getDate() + '日　'
+    + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+  let html = '';
+
+  // 印刷ボタン
+  html += `
+  <div style="margin-bottom:14px">
+    <button onclick="printSummary()" style="width:100%;padding:16px;background:#c9952a;border:none;border-radius:12px;color:#0d0905;font-size:18px;font-weight:900;cursor:pointer;">
+      🖨 レシート印刷（PassPRNT）
+    </button>
+  </div>`;
+
+  // サマリー
+  html += `
+  <div class="summary-card">
+    <div class="label">集計時刻：${timeStr}</div>
+    <div class="amount" style="margin-top:8px">¥${grandTotal.toLocaleString()}</div>
+    <div style="margin-top:12px">
+      <div class="summary-row"><span class="slabel">現金（${cashCount}件）</span><span class="sval">¥${cashTotal.toLocaleString()}</span></div>
+      <div class="summary-row"><span class="slabel">ペイキャス（${paycasCount}件）</span><span class="sval">¥${paycasTotal.toLocaleString()}</span></div>
+      <div class="summary-row"><span class="slabel">来客組数</span><span class="sval">${totalCount}組</span></div>
+      <div class="summary-row"><span class="slabel">来客人数</span><span class="sval">${totalPeople}名</span></div>
+    </div>
+  </div>`;
+
+  // 時間帯別
+  html += `<div class="summary-card"><div class="label" style="margin-bottom:10px">時間帯別売上</div>`;
+  Object.entries(groups).sort().forEach(([h, g]) => {
+    html += `<div class="summary-row">
+      <span class="slabel">${h}:00〜${Number(h)+1}:00</span>
+      <span style="color:#8a7050;font-size:12px">${g.count}件</span>
+      <span class="sval">¥${g.amount.toLocaleString()}</span>
+    </div>`;
+  });
+  html += '</div>';
+
+  document.getElementById('content-summary').innerHTML = html;
+}
+
+function printSummary() {
+  const cashSales = salesData.filter(s => s.pay_method === '現金');
+  const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス');
+  const cashTotal = cashSales.reduce((a, s) => a + s.amount, 0);
+  const paycasTotal = paycasSales.reduce((a, s) => a + s.amount, 0);
+  const grandTotal = salesData.reduce((a, s) => a + s.amount, 0);
+  const totalCount = salesData.length;
+  const totalPeople = salesData.reduce((a, s) => a + (s.people_count || 0), 0);
+  const cashCount = cashSales.length;
+  const paycasCount = paycasSales.length;
+
+  const groups = {};
+  salesData.forEach(s => {
+    const h = (s.sale_time || '').split(':')[0] || '不明';
+    if (!groups[h]) groups[h] = { count: 0, amount: 0 };
+    groups[h].count++;
+    groups[h].amount += s.amount;
+  });
+
+  const now = new Date();
+  const timeStr = now.getFullYear() + '年' + (now.getMonth()+1) + '月' + now.getDate() + '日 '
+    + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+  const hourRows = Object.entries(groups).sort().map(([h, g]) =>
+    `<tr><td>${h}:00〜${Number(h)+1}:00</td><td style="text-align:right">${g.count}件</td><td style="text-align:right">¥${g.amount.toLocaleString()}</td></tr>`
+  ).join('');
+
+  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
+    body{font-family:'Hiragino Mincho ProN',serif;width:384px;margin:0;padding:4px 6px;font-size:26px;font-weight:700;color:#000;}
+    .title{text-align:center;font-size:26px;font-weight:900;margin:4px 0 2px;}
+    .sub{text-align:center;font-size:22px;margin-bottom:6px;}
+    .hr{border:none;border-top:1px solid #000;margin:6px 0;}
+    table{width:100%;border-collapse:collapse;}
+    td{padding:5px 2px;font-size:24px;font-weight:700;}
+    .total{font-size:30px;font-weight:900;}
+  </style></head><body>
+    <div class="title">ラウンジ カトレア</div>
+    <div class="sub">途中集計</div>
+    <div style="text-align:right;font-size:20px">${timeStr}</div>
+    <hr class="hr"/>
+    <table>${hourRows}</table>
+    <hr class="hr"/>
+    <table>
+      <tr class="total"><td>総売上</td><td style="text-align:right">¥${grandTotal.toLocaleString()}</td></tr>
+      <tr><td>現金（${cashCount}件）</td><td style="text-align:right">¥${cashTotal.toLocaleString()}</td></tr>
+      <tr><td>ペイキャス（${paycasCount}件）</td><td style="text-align:right">¥${paycasTotal.toLocaleString()}</td></tr>
+      <tr><td>来客組数</td><td style="text-align:right">${totalCount}組</td></tr>
+      <tr><td>来客人数</td><td style="text-align:right">${totalPeople}名</td></tr>
+    </table>
+    <hr class="hr"/>
+    <div style="text-align:center;font-size:22px">ありがとうございました</div>
+  </body></html>`;
+
+  const url = 'starpassprnt://v1/print/nopreview?back=' + encodeURIComponent(location.href) + '&html=' + encodeURIComponent(html);
+  window.location.href = url;
 }
 
 // 初回読込
