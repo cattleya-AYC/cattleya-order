@@ -1727,6 +1727,12 @@ export default function Register() {
                 </button>
               );
             })()}
+
+            {/* 更新ボタン */}
+            <button onClick={() => fetchOrders()}
+              style={{ padding: "64px 4px", background: "#1a2a1a", border: "3px solid #4aaa5a", borderRadius: 10, color: "#4aaa5a", fontSize: 18, fontWeight: 900, cursor: "pointer", marginTop: 6 }}>
+              🔄<br/>更新
+            </button>
           </div>
 
           {/* 会計済み履歴 */}
