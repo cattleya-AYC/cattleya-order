@@ -1236,9 +1236,12 @@ export default function Register() {
         </div>
       </div>
       <button onClick={() => { setCheckoutDone(false); setCheckoutInfo(null); }}
-        style={{ width: "100%", maxWidth: 360, padding: 16, background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
-        次の会計へ
+        style={{ width: "100%", maxWidth: 360, padding: 24, background: "#2a6a3a", border: "3px solid #4aaa5a", borderRadius: 14, color: "#fff", fontSize: 26, fontWeight: 900, cursor: "pointer" }}>
+        🔓 ドロアを閉めました
       </button>
+      <div style={{ color: "#8a7050", fontSize: 13, marginTop: 12, textAlign: "center" }}>
+        このボタンを押すまで画面は変わりません
+      </div>
     </div>
   );
 
