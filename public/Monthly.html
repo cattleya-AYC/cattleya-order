@@ -26,6 +26,13 @@
   .day-date { color:#f0e6d0; font-size:15px; font-weight:700; }
   .day-total { color:#c9952a; font-size:15px; font-weight:700; }
   .day-detail { display:flex; gap:8px; font-size:12px; color:#8a7050; flex-wrap:wrap; }
+  .day-detail2 { display:flex; flex-direction:column; gap:4px; margin-top:6px; }
+  .detail-row { display:flex; align-items:center; gap:6px; font-size:13px; }
+  .dl { color:#8a7050; width:80px; flex-shrink:0; }
+  .dv { color:#f0e6d0; width:80px; flex-shrink:0; }
+  .darrow { color:#8a7050; }
+  .dfloor { color:#3aaa8a; font-weight:700; }
+  .dcut { color:#c95a5a; font-size:11px; }
   .loading { text-align:center; color:#8a7050; padding:40px; }
   .error { text-align:center; color:#c95a5a; padding:20px; }
 </style>
@@ -56,6 +63,7 @@
 </div>
 <button class="btn btn-reload" onclick="loadData()">🔄 更新する</button>
 <button class="btn btn-gold" onclick="printA4()">プリントする🖨</button>
+<button class="btn" style="background:#1a3a1a;border:2px solid #3aaa8a;color:#3aaa8a;" onclick="printBank()">銀行入金額🏦</button>
 <button class="btn btn-blue" onclick="sendEmail()">メールを送る✉️</button>
 
 <div id="mainContent"></div>
@@ -114,13 +122,14 @@ function render(year, month) {
   const byDate = {};
   salesData.forEach(s => {
     const d = s.sale_date;
-    if (!byDate[d]) byDate[d] = { cash:0, pay:0, total:0, count:0, people:0, cashMorning:0 };
+    if (!byDate[d]) byDate[d] = { cash:0, pay:0, total:0, count:0, people:0, cashMorning:0, cashEvening:0 };
     byDate[d].total += s.amount;
     byDate[d].count++;
     byDate[d].people += s.people_count||0;
     if (s.pay_method === '現金') {
       byDate[d].cash += s.amount;
       if ((s.sale_time||'') < '15:00') byDate[d].cashMorning += s.amount;
+      else byDate[d].cashEvening += s.amount;
     } else byDate[d].pay += s.amount;
   });
 
@@ -131,17 +140,119 @@ function render(year, month) {
   html += '<div class="row"><span class="rl">来客組数</span><span class="rv">' + totalCount + '組</span></div>';
   html += '<div class="row"><span class="rl">来客人数</span><span class="rv">' + totalPeople + '名</span></div></div>';
 
+  let totalCut = 0;
   html += '<div class="card"><div class="card-title">日別売上</div>';
   Object.entries(byDate).sort().forEach(([date, d]) => {
     const day = parseInt(date.split('-')[2]);
+    const morningFloor = Math.floor(d.cashMorning / 1000) * 1000;
+    const eveningFloor = Math.floor(d.cashEvening / 1000) * 1000;
+    const morningCut = d.cashMorning - morningFloor;
+    const eveningCut = d.cashEvening - eveningFloor;
+    totalCut += morningCut + eveningCut;
     html += '<div class="day-row">';
     html += '<div class="day-title"><span class="day-date">' + day + '日</span><span class="day-total">¥' + d.total.toLocaleString() + '</span></div>';
-    html += '<div class="day-detail"><span>現金 ¥' + d.cash.toLocaleString() + '</span><span style="color:#5aaa8a">〜15時 ¥' + d.cashMorning.toLocaleString() + '</span><span>ペイキャス ¥' + d.pay.toLocaleString() + '</span><span>' + d.count + '組</span><span>' + d.people + '名</span></div>';
-    html += '</div>';
+    html += '<div class="day-detail2">';
+    html += '<div class="detail-row"><span class="dl">〜15時現金</span><span class="dv">¥' + d.cashMorning.toLocaleString() + '</span><span class="darrow">→</span><span class="dfloor">入金 ¥' + morningFloor.toLocaleString() + '</span><span class="dcut">(-¥' + morningCut.toLocaleString() + ')</span></div>';
+    html += '<div class="detail-row"><span class="dl">15時〜現金</span><span class="dv">¥' + d.cashEvening.toLocaleString() + '</span><span class="darrow">→</span><span class="dfloor">入金 ¥' + eveningFloor.toLocaleString() + '</span><span class="dcut">(-¥' + eveningCut.toLocaleString() + ')</span></div>';
+    html += '<div class="detail-row"><span class="dl">ペイキャス</span><span class="dv">¥' + d.pay.toLocaleString() + '</span></div>';
+    html += '<div class="detail-row"><span class="dl">来客</span><span class="dv">' + d.count + '組　' + d.people + '名</span></div>';
+    html += '</div></div>';
   });
+  html += '<div style="margin-top:14px;padding:12px;background:#1a0a0a;border-radius:8px;border:1px solid #c95a5a;text-align:center">';
+  html += '<div style="color:#8a7050;font-size:12px;margin-bottom:4px">月間切り捨て合計</div>';
+  html += '<div style="color:#c95a5a;font-size:24px;font-weight:900">¥' + totalCut.toLocaleString() + '</div>';
+  html += '</div>';
   html += '</div>';
 
   document.getElementById('mainContent').innerHTML = html;
+}
+
+function printBank() {
+  if (salesData.length === 0) { alert('先に更新するを押してください'); return; }
+  const year = document.getElementById('yearPicker').value;
+  const month = parseInt(document.getElementById('monthPicker').value);
+
+  const byDate = {};
+  salesData.forEach(s => {
+    const d = s.sale_date;
+    if (!byDate[d]) byDate[d] = { cashMorning:0, cashEvening:0, pay:0, total:0 };
+    byDate[d].total += s.amount;
+    if (s.pay_method === '現金') {
+      if ((s.sale_time||'') < '15:00') byDate[d].cashMorning += s.amount;
+      else byDate[d].cashEvening += s.amount;
+    } else byDate[d].pay += s.amount;
+  });
+
+  let totalCut = 0;
+  let totalMorning = 0;
+  let totalEvening = 0;
+  let totalPay = 0;
+
+  const rows = Object.entries(byDate).sort().map(([date, d]) => {
+    const day = parseInt(date.split('-')[2]);
+    const mFloor = Math.floor(d.cashMorning / 1000) * 1000;
+    const eFloor = Math.floor(d.cashEvening / 1000) * 1000;
+    const cut = (d.cashMorning - mFloor) + (d.cashEvening - eFloor);
+    totalCut += cut;
+    totalMorning += mFloor;
+    totalEvening += eFloor;
+    totalPay += d.pay;
+    return '<tr>' +
+      '<td>' + day + '日</td>' +
+      '<td style="text-align:right">¥' + d.cashMorning.toLocaleString() + '</td>' +
+      '<td style="text-align:right;color:#1a7a5a;font-weight:700">¥' + mFloor.toLocaleString() + '</td>' +
+      '<td style="text-align:right">¥' + d.cashEvening.toLocaleString() + '</td>' +
+      '<td style="text-align:right;color:#1a7a5a;font-weight:700">¥' + eFloor.toLocaleString() + '</td>' +
+      '<td style="text-align:right;color:#c00">-¥' + cut.toLocaleString() + '</td>' +
+      '</tr>';
+  }).join('');
+
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
+<style>
+  @page { size: A4 portrait; margin: 15mm; }
+  body { font-family: 'Hiragino Mincho ProN', serif; font-size: 11px; color: #000; }
+  h2 { font-size: 16px; text-align: center; margin-bottom: 4px; }
+  .sub { text-align: center; font-size: 10px; color: #555; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  th { background: #222; color: #fff; padding: 7px 8px; font-size: 10px; text-align: right; }
+  th:first-child { text-align: left; }
+  td { padding: 6px 8px; border-bottom: 1px solid #eee; font-size: 11px; }
+  td:first-child { text-align: left; }
+  .total-row td { background: #f0f0f0; font-weight: 900; border-top: 2px solid #999; }
+  .cut-box { background: #fff0f0; border: 2px solid #c00; border-radius: 6px; padding: 12px; text-align: center; margin-top: 8px; }
+  .cut-label { font-size: 12px; color: #666; margin-bottom: 4px; }
+  .cut-value { font-size: 22px; font-weight: 900; color: #c00; }
+</style></head><body>
+  <h2>Lounge Cattleya　${year}年${month}月　銀行入金額</h2>
+  <div class="sub">出力日：${new Date().toLocaleString('ja-JP')}</div>
+  <table>
+    <thead><tr>
+      <th>日付</th>
+      <th style="text-align:right">〜15時現金</th>
+      <th style="text-align:right">入金額</th>
+      <th style="text-align:right">15時〜現金</th>
+      <th style="text-align:right">入金額</th>
+      <th style="text-align:right">切捨</th>
+    </tr></thead>
+    <tbody>${rows}
+      <tr class="total-row">
+        <td>合計</td>
+        <td style="text-align:right">-</td>
+        <td style="text-align:right;color:#1a7a5a">¥${totalMorning.toLocaleString()}</td>
+        <td style="text-align:right">-</td>
+        <td style="text-align:right;color:#1a7a5a">¥${totalEvening.toLocaleString()}</td>
+        <td style="text-align:right;color:#c00">-¥${totalCut.toLocaleString()}</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="cut-box">
+    <div class="cut-label">月間切り捨て合計</div>
+    <div class="cut-value">¥${totalCut.toLocaleString()}</div>
+  </div>
+</body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 400);
 }
 
 function printA4() {
