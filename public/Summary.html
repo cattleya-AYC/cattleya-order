@@ -44,7 +44,7 @@
     letter-spacing: 2px;
   }
   .total-amount {
-    font-size: 48px;
+    font-size: 64px;
     font-weight: 900;
     color: #c9952a;
     font-family: serif;
@@ -55,9 +55,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
+    padding: 10px 0;
     border-bottom: 1px solid #3d2c1433;
-    font-size: 15px;
+    font-size: 26px;
   }
   .row:last-child { border-bottom: none; }
   .row .rl { color: #8a7050; }
@@ -68,14 +68,108 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 7px 0;
+    padding: 9px 0;
     border-bottom: 1px solid #3d2c1433;
-    font-size: 14px;
+    font-size: 26px;
   }
   .hour-row:last-child { border-bottom: none; }
   .hour-row .hl { color: #8a7050; }
-  .hour-row .hc { color: #8a7050; font-size: 12px; }
+  .hour-row .hc { color: #8a7050; font-size: 22px; }
   .hour-row .hr { color: #c9952a; font-weight: 700; }
+
+  /* ペイキャスIC/QR確認カード */
+  .paycas-check-card {
+    background: #0d1a0d;
+    border: 2px solid #2a5a2a;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .paycas-check-title {
+    font-size: 15px;
+    color: #5aaa5a;
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+  }
+  .paycas-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #2a5a2a44;
+  }
+  .paycas-row:last-child { border-bottom: none; }
+  .paycas-row label { color: #5aaa5a; font-size: 18px; }
+  .paycas-row input {
+    background: #0a120a;
+    border: 1px solid #2a5a2a;
+    border-radius: 8px;
+    color: #a0e0a0;
+    font-size: 22px;
+    font-weight: 700;
+    font-family: serif;
+    padding: 8px 12px;
+    width: 170px;
+    text-align: right;
+  }
+  .paycas-diff {
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
+  }
+  .paycas-diff.ok { background: #0d2a0d; color: #5aaa5a; border: 1px solid #2a5a2a; }
+  .paycas-diff.ng { background: #2a0d0d; color: #e05a5a; border: 1px solid #5a2a2a; }
+  .paycas-diff.neutral { background: #1a1a1a; color: #8a7050; border: 1px solid #3d2c14; }
+
+  /* 不具合報告 */
+  .btn-bug {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 10px;
+    background: #2a1a0d;
+    border: 1px solid #8a4a1a;
+    border-radius: 12px;
+    color: #c97a3a;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+  }
+  .bug-panel {
+    display: none;
+    background: #1a1008;
+    border: 1px solid #8a4a1a;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .bug-panel textarea {
+    width: 100%;
+    min-height: 120px;
+    background: #0d0905;
+    border: 1px solid #3d2c14;
+    border-radius: 8px;
+    color: #f0e6d0;
+    font-size: 16px;
+    padding: 10px;
+    margin-bottom: 10px;
+    resize: vertical;
+  }
+  .btn-bug-send {
+    width: 100%;
+    padding: 12px;
+    background: #8a4a1a;
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+  }
 
   .btn-email {
     display: block;
@@ -92,15 +186,17 @@
   }
   .btn-print {
     width: 100%;
-    padding: 20px;
+    padding: 18px 10px;
     background: #c9952a;
     border: none;
     border-radius: 12px;
     color: #0d0905;
-    font-size: 22px;
+    font-size: clamp(18px, 6vw, 28px);
     font-weight: 900;
     cursor: pointer;
     margin-bottom: 10px;
+    white-space: nowrap;
+    overflow: hidden;
   }
   .btn-reload {
     width: 100%;
@@ -111,7 +207,7 @@
     color: #8a7050;
     font-size: 16px;
     cursor: pointer;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
   }
   .loading { text-align: center; color: #8a7050; padding: 60px; font-size: 16px; }
 </style>
@@ -177,11 +273,35 @@ function render() {
 
   let html = '';
 
-  // 印刷・更新ボタン
+  // ペイキャスIC/QR確認カード
+  const dbPaycas = paycasTotal;
+  html += `
+  <div class="paycas-check-card">
+    <div class="paycas-check-title">💳 ペイキャス実績確認</div>
+    <div class="paycas-row">
+      <label>IC 利用金額</label>
+      <input type="number" id="paycas-ic" placeholder="0" oninput="checkPaycas()" />
+    </div>
+    <div class="paycas-row">
+      <label>QR 利用金額</label>
+      <input type="number" id="paycas-qr" placeholder="0" oninput="checkPaycas()" />
+    </div>
+    <div class="paycas-diff neutral" id="paycas-diff">
+      データ合計 ¥${dbPaycas.toLocaleString()} ／ IC+QR を入力してください
+    </div>
+  </div>`;
+
+  // 印刷・更新・メール・不具合報告ボタン
   html += `
   <button class="btn-print" onclick="printSummary()">🖨 レシート印刷</button>
   <button class="btn-reload" onclick="loadData()">🔄 最新データに更新</button>
-  <button class="btn-email" onclick="sendEmail()">✉️ メール送信</button>`;
+  <button class="btn-email" onclick="sendEmail()">✉️ メール送信</button>
+  <button class="btn-bug" onclick="toggleBug()">🐛 不具合報告</button>
+  <div class="bug-panel" id="bug-panel">
+    <div style="color:#c97a3a;font-size:15px;margin-bottom:10px;">具体的に詳細を書いてください</div>
+    <textarea id="bug-text" placeholder="例：○○時頃、○○の操作をしたら△△になった"></textarea>
+    <button class="btn-bug-send" onclick="sendBugReport()">📧 不具合を報告する</button>
+  </div>`;
 
   // メイン集計
   html += `
@@ -215,6 +335,43 @@ function render() {
   html += '</div>';
 
   document.getElementById('mainContent').innerHTML = html;
+}
+
+function checkPaycas() {
+  const ic = parseInt(document.getElementById('paycas-ic').value) || 0;
+  const qr = parseInt(document.getElementById('paycas-qr').value) || 0;
+  const inputTotal = ic + qr;
+  const dbTotal = salesData.filter(s => s.pay_method === 'ペイキャス').reduce((a, s) => a + s.amount, 0);
+  const diff = inputTotal - dbTotal;
+  const el = document.getElementById('paycas-diff');
+  if (!el) return;
+  if (ic === 0 && qr === 0) {
+    el.className = 'paycas-diff neutral';
+    el.textContent = `データ合計 ¥${dbTotal.toLocaleString()} ／ IC+QR を入力してください`;
+  } else if (diff === 0) {
+    el.className = 'paycas-diff ok';
+    el.textContent = `✅ 一致！ IC+QR ¥${inputTotal.toLocaleString()} ＝ データ ¥${dbTotal.toLocaleString()}`;
+  } else {
+    el.className = 'paycas-diff ng';
+    const sign = diff > 0 ? '+' : '';
+    el.textContent = `⚠️ 差額 ${sign}¥${diff.toLocaleString()}（IC+QR ¥${inputTotal.toLocaleString()} ／ データ ¥${dbTotal.toLocaleString()}）`;
+  }
+}
+
+function toggleBug() {
+  const panel = document.getElementById('bug-panel');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+}
+
+function sendBugReport() {
+  const text = (document.getElementById('bug-text').value || '').trim();
+  if (!text) { alert('内容を入力してください'); return; }
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const subject = encodeURIComponent(`[カトレア不具合報告] ${dateStr}`);
+  const body = encodeURIComponent(`【不具合報告】\n日時：${dateStr}\n\n${text}\n\n---\nSummary.html より送信`);
+  window.location.href = `mailto:mari247k@gmail.com?subject=${subject}&body=${body}`;
 }
 
 function sendEmail() {
