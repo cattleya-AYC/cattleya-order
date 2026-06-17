@@ -478,6 +478,7 @@ export default function App() {
 
   if (sent) return (
     <div style={{ padding: 24, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      {showCorrectModal && <CorrectModal />}
       <div style={{ fontSize: 72, marginBottom: 8 }}>✅</div>
       <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>キッチンに送りました</div>
       <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 32 }}>テーブル {selectedTable}・{people}名</div>
@@ -680,7 +681,6 @@ export default function App() {
   return (
     <div style={{ background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column" }}>
       {confirming && <ConfirmModal />}
-      {showCorrectModal && <CorrectModal />}
 
       <div style={{ padding: "10px 16px", background: "#1c1208", borderBottom: "1px solid #3d2c14", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
