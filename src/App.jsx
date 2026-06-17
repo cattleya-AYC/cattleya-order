@@ -122,14 +122,12 @@ export default function App() {
   const [moveFrom, setMoveFrom] = useState(null);
   const [moveTo, setMoveTo] = useState(null);
   const [moveLoading, setMoveLoading] = useState(false);
-
-  // ── 30秒修正機能 ──
-  const [lastSentIds, setLastSentIds] = useState([]); // 直前に送信したorderのid群
+  const [lastSentIds, setLastSentIds] = useState([]);
   const [lastSentTable, setLastSentTable] = useState(null);
   const [lastSentCart, setLastSentCart] = useState([]);
-  const [countdown, setCountdown] = useState(0); // 残り秒数
+  const [countdown, setCountdown] = useState(0);
   const [showCorrectModal, setShowCorrectModal] = useState(false);
-  const [correctMode, setCorrectMode] = useState(null); // null | "tableChange" | "menuChange"
+  const [correctMode, setCorrectMode] = useState(null);
   const correctTimerRef = useRef(null);
   const [correctTableTarget, setCorrectTableTarget] = useState(null);
   const [correctTableLoading, setCorrectTableLoading] = useState(false);
@@ -219,8 +217,7 @@ export default function App() {
       });
       setConfirming(false);
       setSent(true);
-
-      // 直前送信IDを取得して30秒修正タイマー開始
+      // 直前送信IDを取得して30秒タイマー開始
       const { data: justSent } = await supabase.from("orders")
         .select("id").eq("table_no", String(selectedTable))
         .eq("status", "pending").order("created_at", { ascending: false }).limit(cart.length);
@@ -235,7 +232,6 @@ export default function App() {
           return prev - 1;
         });
       }, 1000);
-
       setCart([]);
       fetchUnserved();
     } catch (e) {
@@ -254,6 +250,52 @@ export default function App() {
     if (!o.created_at) return false;
     return (now - new Date(o.created_at)) > 10 * 60 * 1000;
   });
+
+  // ── 30秒修正ロジック ──
+  const doTableChange = async () => {
+    if (!correctTableTarget || correctTableLoading) return;
+    setCorrectTableLoading(true);
+    for (const id of lastSentIds) {
+      await supabase.from("orders").update({ table_no: String(correctTableTarget) }).eq("id", id);
+    }
+    await supabase.from("orders")
+      .update({ table_no: String(correctTableTarget) })
+      .eq("table_no", String(lastSentTable)).eq("status", "info");
+    setCorrectTableLoading(false);
+    setShowCorrectModal(false);
+    setCountdown(0);
+    clearInterval(correctTimerRef.current);
+    alert(`✅ テーブル${lastSentTable}→テーブル${correctTableTarget}に変更しました`);
+    fetchAllOrders();
+  };
+
+  const doCancel = async () => {
+    if (!window.confirm("直前の注文を取り消しますか？")) return;
+    for (const id of lastSentIds) {
+      await supabase.from("orders").delete().eq("id", id);
+    }
+    setShowCorrectModal(false);
+    setCountdown(0);
+    clearInterval(correctTimerRef.current);
+    setSent(false);
+    setScreen("table");
+    alert("✅ 注文を取り消しました");
+    fetchAllOrders();
+  };
+
+  const doMenuChange = async () => {
+    for (const id of lastSentIds) {
+      await supabase.from("orders").delete().eq("id", id);
+    }
+    setCart(lastSentCart);
+    setSelectedTable(lastSentTable);
+    setShowCorrectModal(false);
+    setCountdown(0);
+    clearInterval(correctTimerRef.current);
+    setSent(false);
+    setScreen("order");
+    fetchAllOrders();
+  };
 
   if (screen === "table") return (
     <div style={{ padding: 16, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0" }}>
@@ -478,7 +520,62 @@ export default function App() {
 
   if (sent) return (
     <div style={{ padding: 24, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-      {showCorrectModal && <CorrectModal />}
+
+      {/* 30秒修正モーダル */}
+      {showCorrectModal && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000ee", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 16 }}>
+          <div style={{ background: "#1a0808", border: "2px solid #c95a5a", borderRadius: 14, padding: 24, width: "100%", maxWidth: 380 }}>
+            <div style={{ color: "#ff8888", fontSize: 20, fontWeight: 900, marginBottom: 6, textAlign: "center" }}>✏️ 注文の修正</div>
+            <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 20, textAlign: "center" }}>テーブル {lastSentTable} の直前の注文</div>
+
+            {correctMode === null && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <button onClick={() => setShowCorrectModal(false)}
+                  style={{ padding: "18px 0", background: "#0a2010", border: "2px solid #4aaa5a", borderRadius: 12, color: "#4aaa5a", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
+                  ✅ 変更なし
+                </button>
+                <button onClick={doCancel}
+                  style={{ padding: "18px 0", background: "#2a0a0a", border: "2px solid #c95a5a", borderRadius: 12, color: "#ff8888", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
+                  🗑 取消
+                </button>
+                <button onClick={() => { setCorrectMode("tableChange"); setCorrectTableTarget(null); }}
+                  style={{ padding: "18px 0", background: "#0a1a2a", border: "2px solid #5a8aca", borderRadius: 12, color: "#88bbff", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
+                  🔄 テーブル変更
+                </button>
+                <button onClick={doMenuChange}
+                  style={{ padding: "18px 0", background: "#1a1008", border: "2px solid #c9952a", borderRadius: 12, color: "#c9952a", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
+                  📝 メニュー変更
+                </button>
+              </div>
+            )}
+
+            {correctMode === "tableChange" && (
+              <>
+                <div style={{ color: "#88bbff", fontSize: 15, fontWeight: 700, marginBottom: 12 }}>変更先のテーブルを選んでください</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 14 }}>
+                  {TABLES.filter(t => String(t) !== String(lastSentTable)).map(t => (
+                    <button key={t} onClick={() => setCorrectTableTarget(t)}
+                      style={{ padding: "12px 0", background: correctTableTarget === t ? "#2a4a8a" : "#251a0a", border: `2px solid ${correctTableTarget === t ? "#5a8aca" : "#3d2c14"}`, borderRadius: 8, color: correctTableTarget === t ? "#fff" : "#88bbff", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                {correctTableTarget && (
+                  <button onClick={doTableChange} disabled={correctTableLoading}
+                    style={{ width: "100%", padding: "16px 0", background: "#2a4a8a", border: "none", borderRadius: 10, color: "#fff", fontSize: 18, fontWeight: 900, cursor: "pointer", marginBottom: 10 }}>
+                    {correctTableLoading ? "変更中..." : `✅ テーブル${correctTableTarget}に変更する`}
+                  </button>
+                )}
+                <button onClick={() => setCorrectMode(null)}
+                  style={{ width: "100%", padding: 12, background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>
+                  ← 戻る
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <div style={{ fontSize: 72, marginBottom: 8 }}>✅</div>
       <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>キッチンに送りました</div>
       <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 32 }}>テーブル {selectedTable}・{people}名</div>
@@ -497,7 +594,6 @@ export default function App() {
         オーダー画面に戻る
       </button>
 
-      {/* 30秒修正ボタン */}
       {countdown > 0 && (
         <div style={{ marginTop: 20, width: "100%", maxWidth: 360 }}>
           <div style={{ textAlign: "center", color: "#c95a5a", fontSize: 14, marginBottom: 8, fontWeight: 700 }}>
@@ -511,114 +607,6 @@ export default function App() {
       )}
     </div>
   );
-
-  // ── 30秒修正モーダル ──
-  const CorrectModal = () => {
-    // テーブル変更実行
-    const doTableChange = async () => {
-      if (!correctTableTarget || correctTableLoading) return;
-      setCorrectTableLoading(true);
-      // 直前送信のorderのtable_noを変更
-      for (const id of lastSentIds) {
-        await supabase.from("orders").update({ table_no: String(correctTableTarget) }).eq("id", id);
-      }
-      // infoレコード（人数）も変更
-      await supabase.from("orders")
-        .update({ table_no: String(correctTableTarget) })
-        .eq("table_no", String(lastSentTable)).eq("status", "info");
-      setCorrectTableLoading(false);
-      setShowCorrectModal(false);
-      setCountdown(0);
-      clearInterval(correctTimerRef.current);
-      setSelectedTable(correctTableTarget);
-      alert(`✅ テーブル${lastSentTable}→テーブル${correctTableTarget}に変更しました`);
-      fetchAllOrders();
-    };
-
-    // 取消実行
-    const doCancel = async () => {
-      if (!window.confirm("直前の注文を取り消しますか？")) return;
-      for (const id of lastSentIds) {
-        await supabase.from("orders").delete().eq("id", id);
-      }
-      setShowCorrectModal(false);
-      setCountdown(0);
-      clearInterval(correctTimerRef.current);
-      alert("✅ 注文を取り消しました");
-      fetchAllOrders();
-    };
-
-    // メニュー変更：カートに戻してorder画面へ
-    const doMenuChange = async () => {
-      // DBから削除
-      for (const id of lastSentIds) {
-        await supabase.from("orders").delete().eq("id", id);
-      }
-      // cartを復元してorder画面へ
-      setCart(lastSentCart);
-      setSelectedTable(lastSentTable);
-      setShowCorrectModal(false);
-      setCountdown(0);
-      clearInterval(correctTimerRef.current);
-      setSent(false);
-      setScreen("order");
-      fetchAllOrders();
-    };
-
-    return (
-      <div style={{ position: "fixed", inset: 0, background: "#000000ee", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 16 }}>
-        <div style={{ background: "#1a0808", border: "2px solid #c95a5a", borderRadius: 14, padding: 24, width: "100%", maxWidth: 380 }}>
-          <div style={{ color: "#ff8888", fontSize: 20, fontWeight: 900, marginBottom: 6, textAlign: "center" }}>✏️ 注文の修正</div>
-          <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 20, textAlign: "center" }}>テーブル {lastSentTable} の直前の注文</div>
-
-          {correctMode === null && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <button onClick={() => setShowCorrectModal(false)}
-                style={{ padding: "18px 0", background: "#0a2010", border: "2px solid #4aaa5a", borderRadius: 12, color: "#4aaa5a", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
-                ✅ 変更なし
-              </button>
-              <button onClick={doCancel}
-                style={{ padding: "18px 0", background: "#2a0a0a", border: "2px solid #c95a5a", borderRadius: 12, color: "#ff8888", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
-                🗑 取消
-              </button>
-              <button onClick={() => setCorrectMode("tableChange")}
-                style={{ padding: "18px 0", background: "#0a1a2a", border: "2px solid #5a8aca", borderRadius: 12, color: "#88bbff", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
-                🔄 テーブル変更
-              </button>
-              <button onClick={doMenuChange}
-                style={{ padding: "18px 0", background: "#1a1008", border: "2px solid #c9952a", borderRadius: 12, color: "#c9952a", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
-                📝 メニュー変更
-              </button>
-            </div>
-          )}
-
-          {correctMode === "tableChange" && (
-            <>
-              <div style={{ color: "#88bbff", fontSize: 15, fontWeight: 700, marginBottom: 12 }}>変更先のテーブルを選んでください</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 14 }}>
-                {TABLES.filter(t => String(t) !== String(lastSentTable)).map(t => (
-                  <button key={t} onClick={() => setCorrectTableTarget(t)}
-                    style={{ padding: "12px 0", background: correctTableTarget === t ? "#2a4a8a" : "#251a0a", border: `2px solid ${correctTableTarget === t ? "#5a8aca" : "#3d2c14"}`, borderRadius: 8, color: correctTableTarget === t ? "#fff" : "#88bbff", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
-                    {t}
-                  </button>
-                ))}
-              </div>
-              {correctTableTarget && (
-                <button onClick={doTableChange} disabled={correctTableLoading}
-                  style={{ width: "100%", padding: "16px 0", background: "#2a4a8a", border: "none", borderRadius: 10, color: "#fff", fontSize: 18, fontWeight: 900, cursor: "pointer", marginBottom: 10 }}>
-                  {correctTableLoading ? "変更中..." : `✅ テーブル${correctTableTarget}に変更する`}
-                </button>
-              )}
-              <button onClick={() => setCorrectMode(null)}
-                style={{ width: "100%", padding: 12, background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>
-                ← 戻る
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   const FOOD_SWEET_ITEMS = [
     "トースト", "ピザトースト", "ミックスサンド", "ハムサンド", "野菜サンド",
