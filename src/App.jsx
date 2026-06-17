@@ -206,7 +206,7 @@ export default function App() {
       for (const item of cart) {
         await supabase.from("orders").insert({
           table_no: String(selectedTable),
-          item_name: item.kitchenName || item.name,
+          item_name: item.name,
           price: item.price,
           qty: item.qty,
           status: "pending",

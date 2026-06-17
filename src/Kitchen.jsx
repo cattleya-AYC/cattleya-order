@@ -214,7 +214,6 @@ export default function Kitchen() {
           <div style={{ fontSize: 60, marginBottom: 16 }}>✅</div>
           <div style={{ color: "#555", fontSize: 22, marginBottom: 40 }}>調理待ちの注文はありません</div>
 
-          {/* 朝9時以降・音声OFFのとき → でかいリマインダーボタン */}
           {isMorning && !soundOn && (
             <div style={{ width: "100%", maxWidth: 500, textAlign: "center" }}>
               <div style={{ color: "#ffcc44", fontSize: 20, fontWeight: 900, marginBottom: 20 }}>
@@ -237,7 +236,6 @@ export default function Kitchen() {
             </div>
           )}
 
-          {/* 音声ONのとき → 通常の待機表示 */}
           {soundOn && (
             <div style={{ color: "#4aaa5a", fontSize: 18, fontWeight: 700 }}>
               🔔 音声ON・注文を待っています
@@ -259,7 +257,7 @@ export default function Kitchen() {
                 </div>
                 {items.map(o => (
                   <div key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 44, padding: "10px 0", borderBottom: "1px solid #2a2d33" }}>
-                    <span style={{ flex: 1 }}>{o.item_name}</span>
+                    <span style={{ flex: 1 }}>{o.item_name.startsWith("モーニング変更追加料金") ? "モーニング（飲み物注文済み）" : o.item_name}</span>
                     <span style={{ color: "#c9952a", fontWeight: 900, marginLeft: 12, fontSize: 44 }}>×{o.qty}</span>
                   </div>
                 ))}
