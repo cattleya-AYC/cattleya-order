@@ -672,7 +672,7 @@ export default function App() {
 
       <div style={{ padding: "10px 16px", background: "#1c1208", borderBottom: "1px solid #3d2c14", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 900, fontSize: 28 }}>T{selectedTable}</span>
+          <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 900, fontSize: 28 }}>{selectedTable}</span>
           <span style={{ color: "#8a7050", marginLeft: 8, fontSize: 16 }}>{people}名</span>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
