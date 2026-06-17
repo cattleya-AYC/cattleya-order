@@ -156,8 +156,29 @@ export default function Kitchen() {
     return ta.localeCompare(tb);
   });
 
+  // 朝9時以降かどうか
+  const nowHour = new Date().getHours();
+  const isMorning = nowHour >= 9;
+
   return (
     <div style={{ minHeight: "100vh", background: "#0d0f12", color: "#fff", fontFamily: "'Hiragino Kaku Gothic ProN', sans-serif", padding: 12 }}>
+      <style>{`
+        @keyframes pulse-orange {
+          0%   { box-shadow: 0 0 0 0 rgba(201,149,42,0.9); transform: scale(1); }
+          50%  { box-shadow: 0 0 0 24px rgba(201,149,42,0); transform: scale(1.04); }
+          100% { box-shadow: 0 0 0 0 rgba(201,149,42,0); transform: scale(1); }
+        }
+        @keyframes pulse-green {
+          0%   { box-shadow: 0 0 0 0 rgba(74,170,90,0.8); transform: scale(1); }
+          50%  { box-shadow: 0 0 0 20px rgba(74,170,90,0); transform: scale(1.03); }
+          100% { box-shadow: 0 0 0 0 rgba(74,170,90,0); transform: scale(1); }
+        }
+        @keyframes big-pulse {
+          0%   { box-shadow: 0 0 0 0 rgba(201,149,42,1); transform: scale(1); }
+          50%  { box-shadow: 0 0 0 40px rgba(201,149,42,0); transform: scale(1.06); }
+          100% { box-shadow: 0 0 0 0 rgba(201,149,42,0); transform: scale(1); }
+        }
+      `}</style>
 
       {/* ヘッダー */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, borderBottom: "2px solid #2a3a2a", paddingBottom: 10 }}>
@@ -167,22 +188,19 @@ export default function Kitchen() {
           {!soundOn ? (
             <div style={{ textAlign: "center" }}>
               <button onClick={() => { setSoundOn(true); speak("音声をオンにしました"); }}
-                style={{ padding: "14px 24px", background: "#c9952a", border: "none", borderRadius: 10, color: "#0d0905", fontWeight: 900, fontSize: 18, cursor: "pointer", animation: "pulse 1.5s infinite" }}>
-                🔔 最初に必ずタップ！
+                style={{ padding: "20px 32px", background: "#c9952a", border: "4px solid #ffcc44", borderRadius: 14, color: "#0d0905", fontWeight: 900, fontSize: 22, cursor: "pointer", animation: "pulse-orange 1.2s infinite" }}>
+                🔔 必ずタップ！
               </button>
-              <div style={{ color: "#c9952a", fontSize: 11, marginTop: 4 }}>タップで音声ONになります</div>
+              <div style={{ color: "#ffcc44", fontSize: 13, marginTop: 6, fontWeight: 700 }}>音声がOFFです！</div>
             </div>
           ) : (
             <button onClick={() => {
               const synth = window.speechSynthesis;
               if (synth) { synth.cancel(); }
               setSoundOn(false);
-              setTimeout(() => {
-                setSoundOn(true);
-                speak("音声を再起動しました");
-              }, 500);
-            }} style={{ padding: "10px 18px", background: "#1a2a1a", border: "1px solid #4aaa5a", borderRadius: 8, color: "#4aaa5a", fontSize: 15, cursor: "pointer" }}>
-              🔔 音声ON（止まったらタップ）
+              setTimeout(() => { setSoundOn(true); speak("音声を再起動しました"); }, 500);
+            }} style={{ padding: "16px 24px", background: "#1a3a1a", border: "3px solid #4aaa5a", borderRadius: 12, color: "#4aaa5a", fontSize: 18, fontWeight: 900, cursor: "pointer", animation: "pulse-green 2s infinite" }}>
+              🔔 音声ON ✓
             </button>
           )}
         </div>
@@ -192,9 +210,39 @@ export default function Kitchen() {
       {loading ? (
         <div style={{ textAlign: "center", color: "#666", padding: 60, fontSize: 20 }}>読み込み中…</div>
       ) : tables.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 80 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "70vh" }}>
           <div style={{ fontSize: 60, marginBottom: 16 }}>✅</div>
-          <div style={{ color: "#555", fontSize: 22 }}>調理待ちの注文はありません</div>
+          <div style={{ color: "#555", fontSize: 22, marginBottom: 40 }}>調理待ちの注文はありません</div>
+
+          {/* 朝9時以降・音声OFFのとき → でかいリマインダーボタン */}
+          {isMorning && !soundOn && (
+            <div style={{ width: "100%", maxWidth: 500, textAlign: "center" }}>
+              <div style={{ color: "#ffcc44", fontSize: 20, fontWeight: 900, marginBottom: 20 }}>
+                ⚠️ 音声がOFFになっています！
+              </div>
+              <button onClick={() => { setSoundOn(true); speak("音声をオンにしました"); }}
+                style={{
+                  width: "100%", padding: "48px 0",
+                  background: "#c9952a", border: "6px solid #ffcc44",
+                  borderRadius: 24, color: "#0d0905",
+                  fontSize: 42, fontWeight: 900, cursor: "pointer",
+                  animation: "big-pulse 1.2s infinite",
+                  lineHeight: 1.3
+                }}>
+                🔔<br/>ここを押してください！
+              </button>
+              <div style={{ color: "#888", fontSize: 16, marginTop: 16 }}>
+                押すと音声がONになります
+              </div>
+            </div>
+          )}
+
+          {/* 音声ONのとき → 通常の待機表示 */}
+          {soundOn && (
+            <div style={{ color: "#4aaa5a", fontSize: 18, fontWeight: 700 }}>
+              🔔 音声ON・注文を待っています
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
