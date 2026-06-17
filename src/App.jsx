@@ -98,10 +98,10 @@ const MENU = {
     { id: 82, name: "バドワイザー", price: 800 },
   ],
   モーニング変更: [
-    { id: 101, name: "モーニング変更追加料金（アイスコーヒー）", price: 220, kitchenName: "モーニング（飲み物注文済み）" },
-    { id: 102, name: "モーニング変更追加料金（アイスティ）", price: 220, kitchenName: "モーニング（飲み物注文済み）" },
-    { id: 103, name: "モーニング変更追加料金（コーヒーHOT）", price: 240, kitchenName: "モーニング（飲み物注文済み）" },
-    { id: 104, name: "モーニング変更追加料金（紅茶HOT）", price: 240, kitchenName: "モーニング（飲み物注文済み）" },
+    { id: 101, name: "モーニング変更追加料金", price: 220, kitchenName: "モーニング（飲み物注文済み）", label: "アイスコーヒー → モーニング　220円" },
+    { id: 102, name: "モーニング変更追加料金", price: 220, kitchenName: "モーニング（飲み物注文済み）", label: "アイスティ → モーニング　220円" },
+    { id: 103, name: "モーニング変更追加料金", price: 240, kitchenName: "モーニング（飲み物注文済み）", label: "コーヒー（HOT）→ モーニング　240円" },
+    { id: 104, name: "モーニング変更追加料金", price: 240, kitchenName: "モーニング（飲み物注文済み）", label: "紅茶（HOT）→ モーニング　240円" },
   ],
 };
 
@@ -734,7 +734,7 @@ export default function App() {
             <div key={item.id}
               style={{ display: "flex", alignItems: "center", padding: "11px 14px", background: isDiscount ? "#0a1508" : "#201508", border: `1px solid ${qty > 0 ? "#6a4d15" : isDiscount ? "#1a4020" : "#352510"}`, borderRadius: 10, marginBottom: 6 }}>
               <div style={{ flex: 1, cursor: "pointer" }} onClick={() => addItem(item)}>
-                <div style={{ color: isDiscount ? "#4aaa5a" : "#f0e6d0", fontSize: 28, fontWeight: 700, lineHeight: 1.3 }}>{item.name}</div>
+                <div style={{ color: isDiscount ? "#4aaa5a" : "#f0e6d0", fontSize: 28, fontWeight: 700, lineHeight: 1.3 }}>{item.label || item.name}</div>
                 <div style={{ color: isDiscount ? "#4aaa5a" : "#8a7050", fontSize: 13, marginTop: 2 }}>
                   {isDiscount ? `-¥${Math.abs(item.price)}` : `¥${item.price.toLocaleString()}`}
                 </div>
