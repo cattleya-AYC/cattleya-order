@@ -97,10 +97,16 @@ const MENU = {
     { id: 81, name: "オールド（水割り）", price: 790 },
     { id: 82, name: "バドワイザー", price: 800 },
   ],
+  モーニング変更: [
+    { id: 101, name: "モーニング変更追加料金（アイスコーヒー）", price: 220, kitchenName: "モーニング（飲み物注文済み）" },
+    { id: 102, name: "モーニング変更追加料金（アイスティ）", price: 220, kitchenName: "モーニング（飲み物注文済み）" },
+    { id: 103, name: "モーニング変更追加料金（コーヒーHOT）", price: 240, kitchenName: "モーニング（飲み物注文済み）" },
+    { id: 104, name: "モーニング変更追加料金（紅茶HOT）", price: 240, kitchenName: "モーニング（飲み物注文済み）" },
+  ],
 };
 
 const TABLES = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"];
-const PEOPLE = [1,2,3,4,5,6,7,8,9,10];
+const PEOPLE = [0,1,2,3,4,5,6,7,8,9,10];
 
 export default function App() {
   const [screen, setScreen] = useState("table");
@@ -200,7 +206,7 @@ export default function App() {
       for (const item of cart) {
         await supabase.from("orders").insert({
           table_no: String(selectedTable),
-          item_name: item.name,
+          item_name: item.kitchenName || item.name,
           price: item.price,
           qty: item.qty,
           status: "pending",
@@ -510,8 +516,8 @@ export default function App() {
           style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 15, cursor: "pointer" }}>
           ← 戻る
         </button>
-        <button onClick={() => setScreen("order")} disabled={!people}
-          style={{ flex: 2, padding: 14, background: people ? "#c9952a" : "#3d2c14", border: "none", borderRadius: 10, color: people ? "#0f0a05" : "#8a7050", fontSize: 16, fontWeight: 700, cursor: people ? "pointer" : "not-allowed" }}>
+        <button onClick={() => setScreen("order")} disabled={people === null}
+          style={{ flex: 2, padding: 14, background: people !== null ? "#c9952a" : "#3d2c14", border: "none", borderRadius: 10, color: people !== null ? "#0f0a05" : "#8a7050", fontSize: 16, fontWeight: 700, cursor: people !== null ? "pointer" : "not-allowed" }}>
           注文入力へ →
         </button>
       </div>
@@ -709,10 +715,13 @@ export default function App() {
       )}
 
       <div style={{ display: "flex", borderBottom: "1px solid #3d2c14", background: "#1c1208", overflowX: "auto" }}>
-        {Object.keys(MENU).map((cat) => (
+        {Object.keys(MENU).filter(cat => {
+          if (cat === "モーニング変更") return new Date().getHours() < 11;
+          return true;
+        }).map((cat) => (
           <button key={cat} onClick={() => setActiveCat(cat)}
-            style={{ padding: "14px 16px", border: "none", background: "none", color: activeCat === cat ? "#c9952a" : "#8a7050", borderBottom: activeCat === cat ? "3px solid #c9952a" : "3px solid transparent", cursor: "pointer", fontSize: 20, whiteSpace: "nowrap", flexShrink: 0, fontWeight: 700 }}>
-            {cat}
+            style={{ padding: "14px 16px", border: "none", background: cat === "モーニング変更" ? (activeCat === cat ? "#2a1a3a" : "#1a0a2a") : "none", color: cat === "モーニング変更" ? (activeCat === cat ? "#cc88ff" : "#884acc") : (activeCat === cat ? "#c9952a" : "#8a7050"), borderBottom: activeCat === cat ? `3px solid ${cat === "モーニング変更" ? "#cc88ff" : "#c9952a"}` : "3px solid transparent", cursor: "pointer", fontSize: 20, whiteSpace: "nowrap", flexShrink: 0, fontWeight: 700 }}>
+            {cat === "モーニング変更" ? "🌅 変更" : cat}
           </button>
         ))}
       </div>
