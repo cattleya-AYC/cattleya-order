@@ -1586,17 +1586,7 @@ export default function Register() {
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
           <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "90vh", overflow: "auto" }}>
             <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 20, marginBottom: 4 }}>テーブル {selected} 会計</div>
-            <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 8 }}>{selectedPeople}名</div>
-
-            {/* 注文確認メッセージ */}
-            <div style={{ background: "#2a1008", border: "2px solid #c95a2a", borderRadius: 10, padding: "10px 14px", marginBottom: 12, textAlign: "center" }}>
-              <div style={{ color: "#ffaa44", fontSize: 16, fontWeight: 900, marginBottom: 6 }}>⚠️ 必ずご注文内容を確認してください</div>
-              <div style={{ color: "#f0e6d0", fontSize: 15, lineHeight: 1.6 }}>
-                {selectedOrders.filter(o => o.price > 0).map(o => o.item_name).join("、")}
-                <span style={{ color: "#ffaa44" }}>、でよろしかったでしょうか？</span>
-              </div>
-            </div>
-
+            <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 12 }}>{selectedPeople}名</div>
             <div style={{ borderTop: "1px solid #3d2c14", paddingTop: 12, marginBottom: 12 }}>
               {selectedOrders.map((o, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", fontSize: 13, borderBottom: "1px solid #3d2c1433" }}>
@@ -1612,6 +1602,10 @@ export default function Register() {
                   )}
                 </div>
               ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ color: "#8a7050", fontSize: 14 }}>小計（値引き前）</span>
+              <span style={{ fontFamily: "serif", fontSize: 20, fontWeight: 700, color: "#f0e6d0" }}>¥{selectedSubtotal.toLocaleString()}</span>
             </div>
             <div style={{ background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 10, padding: "10px 14px", marginBottom: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1707,10 +1701,6 @@ export default function Register() {
                   {r}
                 </button>
               ))}
-            </div>
-            {/* 会計ボタン上のメッセージ */}
-            <div style={{ background: "#0a2010", border: "2px solid #2a6a3a", borderRadius: 10, padding: "10px 14px", marginBottom: 12, textAlign: "center" }}>
-              <div style={{ color: "#4aaa5a", fontSize: 15, fontWeight: 900 }}>✅ 確認できたら押してください</div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); }}
@@ -1865,9 +1855,12 @@ export default function Register() {
                         ))}
                       </tbody>
                     </table>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16, padding: "14px 12px", background: "#1a1008", borderRadius: 8 }}>
-                      <span style={{ color: "#8a7050" }}>お会計合計</span>
-                      <span style={{ fontFamily: "serif", fontSize: 34, fontWeight: 900, color: "#c9952a" }}>¥{selectedTotal.toLocaleString()}</span>
+                    <div style={{ marginTop: 16, padding: "14px 12px", background: "#2a1008", border: "2px solid #c95a2a", borderRadius: 8 }}>
+                      <div style={{ color: "#ffaa44", fontSize: 15, fontWeight: 900, marginBottom: 6, textAlign: "center" }}>⚠️ 必ずご注文内容を確認してください</div>
+                      <div style={{ color: "#f0e6d0", fontSize: 14, lineHeight: 1.8, textAlign: "center" }}>
+                        {selectedOrders.filter(o => o.price > 0).map(o => o.item_name).join("、")}
+                        <span style={{ color: "#ffaa44" }}>、でよろしかったでしょうか？</span>
+                      </div>
                     </div>
                   </>
                 )}
@@ -1875,6 +1868,7 @@ export default function Register() {
 
               {selected && selectedOrders.length > 0 && (
                 <div style={{ padding: "14px 16px", background: "#181008", borderTop: "1px solid #3d2c14" }}>
+                  <div style={{ color: "#4aaa5a", fontSize: 14, fontWeight: 700, textAlign: "center", marginBottom: 8 }}>✅ 確認できたら押してください</div>
                   <button onClick={() => setConfirming(true)}
                     style={{ width: "100%", padding: 20, background: "#c9952a", border: "none", borderRadius: 12, color: "#0d0905", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>
                     💴 会計する
