@@ -1224,52 +1224,48 @@ export default function Register() {
   const now = new Date();
 
   if (checkoutDone && checkoutInfo) return (
-    <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", padding: "40px 24px 32px" }}>
+    <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 24px 32px", gap: 24 }}>
 
-      {/* 上部：金額超でかく */}
-      <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
-
-        {/* お会計 */}
-        <div style={{ width: "100%", textAlign: "center" }}>
-          <div style={{ color: "#8a7050", fontSize: 20, marginBottom: 4 }}>お会計</div>
-          <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 72, fontWeight: 900, lineHeight: 1 }}>¥{checkoutInfo.amount.toLocaleString()}</div>
-        </div>
-
-        {/* お預かり・おつり（現金のとき） */}
-        {checkoutInfo.received && (
-          <>
-            <div style={{ width: "100%", textAlign: "center", borderTop: "1px solid #3d2c14", paddingTop: 20 }}>
-              <div style={{ color: "#8a7050", fontSize: 20, marginBottom: 4 }}>お預かり</div>
-              <div style={{ color: "#f0e6d0", fontFamily: "serif", fontSize: 56, fontWeight: 900, lineHeight: 1 }}>¥{checkoutInfo.received.toLocaleString()}</div>
-            </div>
-            {checkoutInfo.change !== null && (
-              <div style={{ width: "100%", textAlign: "center", background: "#0a2010", border: "3px solid #4aaa5a", borderRadius: 16, padding: "20px 0" }}>
-                <div style={{ color: "#4aaa5a", fontSize: 22, marginBottom: 4, fontWeight: 700 }}>おつり</div>
-                <div style={{ color: "#4aaa5a", fontFamily: "serif", fontSize: 80, fontWeight: 900, lineHeight: 1 }}>¥{checkoutInfo.change.toLocaleString()}</div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* ペイキャスのとき */}
-        {!checkoutInfo.received && (
-          <div style={{ width: "100%", textAlign: "center", background: "#0a1a2a", border: "3px solid #5a8aca", borderRadius: 16, padding: "20px 0" }}>
-            <div style={{ color: "#5a8aca", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>ペイキャス</div>
-            <div style={{ color: "#88bbff", fontFamily: "serif", fontSize: 72, fontWeight: 900, lineHeight: 1 }}>¥{checkoutInfo.amount.toLocaleString()}</div>
-          </div>
-        )}
+      {/* お会計 */}
+      <div style={{ width: "100%", maxWidth: 420, textAlign: "center" }}>
+        <div style={{ color: "#8a7050", fontSize: 20, marginBottom: 4 }}>お会計</div>
+        <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 72, fontWeight: 900, lineHeight: 1 }}>¥{checkoutInfo.amount.toLocaleString()}</div>
       </div>
 
-      {/* 下部：完了マーク小さく＋ボタンでかく */}
-      <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#8a7050", fontSize: 15 }}>
-          <span style={{ fontSize: 28 }}>✅</span>
-          <span>会計完了　テーブル {checkoutInfo.table}</span>
+      {/* お預かり・おつり（現金のとき） */}
+      {checkoutInfo.received && (
+        <>
+          <div style={{ width: "100%", maxWidth: 420, textAlign: "center", borderTop: "1px solid #3d2c14", paddingTop: 20 }}>
+            <div style={{ color: "#8a7050", fontSize: 20, marginBottom: 4 }}>お預かり</div>
+            <div style={{ color: "#f0e6d0", fontFamily: "serif", fontSize: 56, fontWeight: 900, lineHeight: 1 }}>¥{checkoutInfo.received.toLocaleString()}</div>
+          </div>
+          {checkoutInfo.change !== null && (
+            <div style={{ width: "100%", maxWidth: 420, textAlign: "center", background: "#0a2010", border: "3px solid #4aaa5a", borderRadius: 16, padding: "20px 0" }}>
+              <div style={{ color: "#4aaa5a", fontSize: 22, marginBottom: 4, fontWeight: 700 }}>おつり</div>
+              <div style={{ color: "#4aaa5a", fontFamily: "serif", fontSize: 80, fontWeight: 900, lineHeight: 1 }}>¥{checkoutInfo.change.toLocaleString()}</div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ペイキャスのとき */}
+      {!checkoutInfo.received && (
+        <div style={{ width: "100%", maxWidth: 420, textAlign: "center", background: "#0a1a2a", border: "3px solid #5a8aca", borderRadius: 16, padding: "20px 0" }}>
+          <div style={{ color: "#5a8aca", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>ペイキャス</div>
+          <div style={{ color: "#88bbff", fontFamily: "serif", fontSize: 72, fontWeight: 900, lineHeight: 1 }}>¥{checkoutInfo.amount.toLocaleString()}</div>
         </div>
-        <button onClick={() => { setCheckoutDone(false); setCheckoutInfo(null); }}
-          style={{ width: "100%", padding: 28, background: "#2a6a3a", border: "3px solid #4aaa5a", borderRadius: 16, color: "#fff", fontSize: 30, fontWeight: 900, cursor: "pointer" }}>
-          🔓 ドロアを閉めました
-        </button>
+      )}
+
+      {/* ドロアボタン：金額のすぐ下 */}
+      <button onClick={() => { setCheckoutDone(false); setCheckoutInfo(null); }}
+        style={{ width: "100%", maxWidth: 420, padding: 28, background: "#2a6a3a", border: "3px solid #4aaa5a", borderRadius: 16, color: "#fff", fontSize: 30, fontWeight: 900, cursor: "pointer" }}>
+        🔓 ドロアを閉めました
+      </button>
+
+      {/* 完了マーク：一番下に小さく */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#8a7050", fontSize: 15 }}>
+        <span style={{ fontSize: 28 }}>✅</span>
+        <span>会計完了　テーブル {checkoutInfo.table}</span>
       </div>
     </div>
   );
