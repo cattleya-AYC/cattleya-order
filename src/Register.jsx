@@ -850,14 +850,16 @@ export default function Register() {
     fetchTodayTobacco();
     fetchMonthlyTobacco();
     // PassPRNTから戻ったとき会計情報を復元
-    const restored = sessionStorage.getItem("checkoutRestore");
+    const restored = localStorage.getItem("checkoutRestore");
     if (restored) {
-      try {
-        const info = JSON.parse(restored);
-        setCheckoutInfo(info);
-        setCheckoutDone(true);
-      } catch(e) {}
-      sessionStorage.removeItem("checkoutRestore");
+      localStorage.removeItem("checkoutRestore");
+      setTimeout(() => {
+        try {
+          const info = JSON.parse(restored);
+          setCheckoutInfo(info);
+          setCheckoutDone(true);
+        } catch(e) {}
+      }, 300);
     }
     // リアルタイム購読
     const subscription = supabase.channel("orders")
@@ -1050,7 +1052,7 @@ export default function Register() {
       const passprntUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(location.origin + location.pathname) + "&html=" + encodeURIComponent(printHtml);
       setTimeout(() => {
         // 会計情報をsessionStorageに保存してからPassPRNTへ
-        sessionStorage.setItem("checkoutRestore", JSON.stringify({
+        localStorage.setItem("checkoutRestore", JSON.stringify({
           table: t, amount, pay: payMethod, receipt: receiptType,
           change: chg, received: receivedAmount ? parseInt(receivedAmount) : null
         }));
