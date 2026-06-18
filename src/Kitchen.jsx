@@ -52,8 +52,10 @@ export default function Kitchen() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [soundOn, setSoundOn] = useState(false);
+  const [soundDead, setSoundDead] = useState(false);
   const [, setTick] = useState(0);
   const prevIds = useRef(new Set());
+  const lastSpokeRef = useRef(Date.now()); // 最後に音が鳴った時刻
 
   const fetchOrders = async () => {
     const { data } = await supabase
@@ -82,7 +84,7 @@ export default function Kitchen() {
         }, {});
         const itemText = Object.entries(counts).map(([name, qty]) => `${name} ${qty}点`).join("、");
         const msg = `注文が入りました。${itemText}`;
-        setTimeout(() => speak(msg), i * 3000);
+        setTimeout(() => { speak(msg); lastSpokeRef.current = Date.now(); }, i * 3000);
       });
     }
     prevIds.current = curIds;
@@ -138,6 +140,20 @@ export default function Kitchen() {
     };
   }, [soundOn]);
 
+  // 30秒ごとに「最後に音が鳴ってから10分以上経過しているか」チェック
+  useEffect(() => {
+    if (!soundOn) { setSoundDead(false); return; }
+    const check = setInterval(() => {
+      const elapsed = Date.now() - lastSpokeRef.current;
+      if (elapsed > 10 * 60 * 1000) {
+        setSoundDead(true);
+      } else {
+        setSoundDead(false);
+      }
+    }, 30000);
+    return () => clearInterval(check);
+  }, [soundOn]);
+
   // 経過時間の表示更新
   useEffect(() => {
     const iv = setInterval(() => setTick(t => t + 1), 30000);
@@ -162,6 +178,30 @@ export default function Kitchen() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#0d0f12", color: "#fff", fontFamily: "'Hiragino Kaku Gothic ProN', sans-serif", padding: 12 }}>
+
+      {/* 音声が止まったとき全画面強制タップ */}
+      {soundOn && soundDead && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000ee", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 999, padding: 24 }}>
+          <div style={{ color: "#ff8844", fontSize: 28, fontWeight: 900, marginBottom: 24, textAlign: "center" }}>
+            ⚠️ 音声が止まっています！
+          </div>
+          <button onClick={() => {
+            const synth = window.speechSynthesis;
+            if (synth) synth.cancel();
+            lastSpokeRef.current = Date.now();
+            setSoundDead(false);
+            setTimeout(() => speak("音声を再起動しました"), 300);
+          }} style={{
+            width: "100%", maxWidth: 500, padding: "56px 0",
+            background: "#c95a2a", border: "6px solid #ff8844",
+            borderRadius: 24, color: "#fff",
+            fontSize: 36, fontWeight: 900, cursor: "pointer",
+            animation: "big-pulse 1.2s infinite", lineHeight: 1.4
+          }}>
+            🔔<br/>ここをタップ！
+          </button>
+        </div>
+      )}
       <style>{`
         @keyframes pulse-orange {
           0%   { box-shadow: 0 0 0 0 rgba(201,149,42,0.9); transform: scale(1); }
@@ -187,21 +227,14 @@ export default function Kitchen() {
           <span style={{ fontSize: 16, color: "#888" }}>{tables.length}テーブル 調理中</span>
           {!soundOn ? (
             <div style={{ textAlign: "center" }}>
-              <button onClick={() => { setSoundOn(true); speak("音声をオンにしました"); }}
+              <button onClick={() => { setSoundOn(true); setSoundDead(false); lastSpokeRef.current = Date.now(); speak("音声をオンにしました"); }}
                 style={{ padding: "20px 32px", background: "#c9952a", border: "4px solid #ffcc44", borderRadius: 14, color: "#0d0905", fontWeight: 900, fontSize: 22, cursor: "pointer", animation: "pulse-orange 1.2s infinite" }}>
                 🔔 必ずタップ！
               </button>
               <div style={{ color: "#ffcc44", fontSize: 13, marginTop: 6, fontWeight: 700 }}>音声がOFFです！</div>
             </div>
           ) : (
-            <button onClick={() => {
-              const synth = window.speechSynthesis;
-              if (synth) { synth.cancel(); }
-              setSoundOn(false);
-              setTimeout(() => { setSoundOn(true); speak("音声を再起動しました"); }, 500);
-            }} style={{ padding: "16px 24px", background: "#1a3a1a", border: "3px solid #4aaa5a", borderRadius: 12, color: "#4aaa5a", fontSize: 18, fontWeight: 900, cursor: "pointer", animation: "pulse-green 2s infinite" }}>
-              🔔 音声ON ✓
-            </button>
+            <div style={{ color: "#4aaa5a", fontSize: 14, fontWeight: 700 }}>🔔 音声ON</div>
           )}
         </div>
       </div>
