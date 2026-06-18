@@ -234,7 +234,15 @@ export default function Kitchen() {
               <div style={{ color: "#ffcc44", fontSize: 13, marginTop: 6, fontWeight: 700 }}>音声がOFFです！</div>
             </div>
           ) : (
-            <div style={{ color: "#4aaa5a", fontSize: 14, fontWeight: 700 }}>🔔 音声ON</div>
+            <button onClick={() => {
+              const synth = window.speechSynthesis;
+              if (synth) synth.cancel();
+              lastSpokeRef.current = Date.now();
+              setSoundDead(false);
+              setTimeout(() => { speak("音声を再起動しました"); }, 300);
+            }} style={{ padding: "16px 24px", background: "#1a3a1a", border: "3px solid #4aaa5a", borderRadius: 12, color: "#4aaa5a", fontSize: 18, fontWeight: 900, cursor: "pointer", animation: "pulse-green 2s infinite" }}>
+              🔔 音声ON<br/><span style={{ fontSize: 12, fontWeight: 400 }}>止まったらタップ</span>
+            </button>
           )}
         </div>
       </div>
