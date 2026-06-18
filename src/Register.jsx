@@ -849,6 +849,16 @@ export default function Register() {
     fetchTodaySales();
     fetchTodayTobacco();
     fetchMonthlyTobacco();
+    // PassPRNTから戻ったとき会計情報を復元
+    const restored = sessionStorage.getItem("checkoutRestore");
+    if (restored) {
+      try {
+        const info = JSON.parse(restored);
+        setCheckoutInfo(info);
+        setCheckoutDone(true);
+      } catch(e) {}
+      sessionStorage.removeItem("checkoutRestore");
+    }
     // リアルタイム購読
     const subscription = supabase.channel("orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => { fetchOrders(); })
@@ -1038,7 +1048,14 @@ export default function Register() {
         printHtml = html.replace("</body></html>", `<div style="margin-top:8px;border-top:3px dashed #000;padding-top:8px;margin-top:10px">${couponBody}</div></body></html>`);
       }
       const passprntUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(location.origin + location.pathname) + "&html=" + encodeURIComponent(printHtml);
-      setTimeout(() => { window.location.href = passprntUrl; }, 1200);
+      setTimeout(() => {
+        // 会計情報をsessionStorageに保存してからPassPRNTへ
+        sessionStorage.setItem("checkoutRestore", JSON.stringify({
+          table: t, amount, pay: payMethod, receipt: receiptType,
+          change: chg, received: receivedAmount ? parseInt(receivedAmount) : null
+        }));
+        window.location.href = passprntUrl;
+      }, 1200);
     }
   };
 
