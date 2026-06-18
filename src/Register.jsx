@@ -1222,42 +1222,52 @@ export default function Register() {
   const now = new Date();
 
   if (checkoutDone && checkoutInfo) return (
-    <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
-      <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 22, marginBottom: 8 }}>会計完了</div>
-      <div style={{ color: "#8a7050", marginBottom: 24 }}>テーブル {checkoutInfo.table}</div>
-      <div style={{ background: "#181008", borderRadius: 12, padding: 24, width: "100%", maxWidth: 360, marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <span style={{ color: "#8a7050", fontSize: 18 }}>お会計</span>
-          <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 38, fontWeight: 900 }}>¥{checkoutInfo.amount.toLocaleString()}</span>
+    <div style={{ background: "#0d0905", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", padding: "40px 24px 32px" }}>
+
+      {/* 上部：金額超でかく */}
+      <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
+
+        {/* お会計 */}
+        <div style={{ width: "100%", textAlign: "center" }}>
+          <div style={{ color: "#8a7050", fontSize: 20, marginBottom: 4 }}>お会計</div>
+          <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 72, fontWeight: 900, lineHeight: 1 }}>¥{checkoutInfo.amount.toLocaleString()}</div>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-          <span style={{ color: "#8a7050" }}>支払い</span>
-          <span style={{ color: "#f0e6d0" }}>{checkoutInfo.pay}</span>
-        </div>
+
+        {/* お預かり・おつり（現金のとき） */}
         {checkoutInfo.received && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <span style={{ color: "#8a7050", fontSize: 18 }}>お預かり</span>
-            <span style={{ color: "#f0e6d0", fontFamily: "serif", fontSize: 32, fontWeight: 700 }}>¥{checkoutInfo.received.toLocaleString()}</span>
+          <>
+            <div style={{ width: "100%", textAlign: "center", borderTop: "1px solid #3d2c14", paddingTop: 20 }}>
+              <div style={{ color: "#8a7050", fontSize: 20, marginBottom: 4 }}>お預かり</div>
+              <div style={{ color: "#f0e6d0", fontFamily: "serif", fontSize: 56, fontWeight: 900, lineHeight: 1 }}>¥{checkoutInfo.received.toLocaleString()}</div>
+            </div>
+            {checkoutInfo.change !== null && (
+              <div style={{ width: "100%", textAlign: "center", background: "#0a2010", border: "3px solid #4aaa5a", borderRadius: 16, padding: "20px 0" }}>
+                <div style={{ color: "#4aaa5a", fontSize: 22, marginBottom: 4, fontWeight: 700 }}>おつり</div>
+                <div style={{ color: "#4aaa5a", fontFamily: "serif", fontSize: 80, fontWeight: 900, lineHeight: 1 }}>¥{checkoutInfo.change.toLocaleString()}</div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ペイキャスのとき */}
+        {!checkoutInfo.received && (
+          <div style={{ width: "100%", textAlign: "center", background: "#0a1a2a", border: "3px solid #5a8aca", borderRadius: 16, padding: "20px 0" }}>
+            <div style={{ color: "#5a8aca", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>ペイキャス</div>
+            <div style={{ color: "#88bbff", fontFamily: "serif", fontSize: 72, fontWeight: 900, lineHeight: 1 }}>¥{checkoutInfo.amount.toLocaleString()}</div>
           </div>
         )}
-        {checkoutInfo.change !== null && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderTop: "2px solid #4aaa5a", marginTop: 8 }}>
-            <span style={{ color: "#4aaa5a", fontSize: 22, fontWeight: 700 }}>おつり</span>
-            <span style={{ color: "#4aaa5a", fontFamily: "serif", fontSize: 60, fontWeight: 900 }}>¥{checkoutInfo.change.toLocaleString()}</span>
-          </div>
-        )}
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-          <span style={{ color: "#8a7050" }}>書類</span>
-          <span style={{ color: "#f0e6d0" }}>{checkoutInfo.receipt}</span>
-        </div>
       </div>
-      <button onClick={() => { setCheckoutDone(false); setCheckoutInfo(null); }}
-        style={{ width: "100%", maxWidth: 360, padding: 24, background: "#2a6a3a", border: "3px solid #4aaa5a", borderRadius: 14, color: "#fff", fontSize: 26, fontWeight: 900, cursor: "pointer" }}>
-        🔓 ドロアを閉めました
-      </button>
-      <div style={{ color: "#8a7050", fontSize: 13, marginTop: 12, textAlign: "center" }}>
-        このボタンを押すまで画面は変わりません
+
+      {/* 下部：完了マーク小さく＋ボタンでかく */}
+      <div style={{ width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#8a7050", fontSize: 15 }}>
+          <span style={{ fontSize: 28 }}>✅</span>
+          <span>会計完了　テーブル {checkoutInfo.table}</span>
+        </div>
+        <button onClick={() => { setCheckoutDone(false); setCheckoutInfo(null); }}
+          style={{ width: "100%", padding: 28, background: "#2a6a3a", border: "3px solid #4aaa5a", borderRadius: 16, color: "#fff", fontSize: 30, fontWeight: 900, cursor: "pointer" }}>
+          🔓 ドロアを閉めました
+        </button>
       </div>
     </div>
   );
@@ -1574,7 +1584,17 @@ export default function Register() {
         <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
           <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "90vh", overflow: "auto" }}>
             <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 20, marginBottom: 4 }}>テーブル {selected} 会計</div>
-            <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 12 }}>{selectedPeople}名</div>
+            <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 8 }}>{selectedPeople}名</div>
+
+            {/* 注文確認メッセージ */}
+            <div style={{ background: "#2a1008", border: "2px solid #c95a2a", borderRadius: 10, padding: "10px 14px", marginBottom: 12, textAlign: "center" }}>
+              <div style={{ color: "#ffaa44", fontSize: 16, fontWeight: 900, marginBottom: 6 }}>⚠️ 必ずご注文内容を確認してください</div>
+              <div style={{ color: "#f0e6d0", fontSize: 15, lineHeight: 1.6 }}>
+                {selectedOrders.filter(o => o.price > 0).map(o => o.item_name).join("、")}
+                <span style={{ color: "#ffaa44" }}>、でよろしかったでしょうか？</span>
+              </div>
+            </div>
+
             <div style={{ borderTop: "1px solid #3d2c14", paddingTop: 12, marginBottom: 12 }}>
               {selectedOrders.map((o, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", fontSize: 13, borderBottom: "1px solid #3d2c1433" }}>
@@ -1590,10 +1610,6 @@ export default function Register() {
                   )}
                 </div>
               ))}
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <span style={{ color: "#8a7050", fontSize: 14 }}>小計（値引き前）</span>
-              <span style={{ fontFamily: "serif", fontSize: 20, fontWeight: 700, color: "#f0e6d0" }}>¥{selectedSubtotal.toLocaleString()}</span>
             </div>
             <div style={{ background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 10, padding: "10px 14px", marginBottom: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1689,6 +1705,10 @@ export default function Register() {
                   {r}
                 </button>
               ))}
+            </div>
+            {/* 会計ボタン上のメッセージ */}
+            <div style={{ background: "#0a2010", border: "2px solid #2a6a3a", borderRadius: 10, padding: "10px 14px", marginBottom: 12, textAlign: "center" }}>
+              <div style={{ color: "#4aaa5a", fontSize: 15, fontWeight: 900 }}>✅ 確認できたら押してください</div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); }}
