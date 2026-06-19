@@ -280,18 +280,36 @@ function render() {
 
   let html = '';
 
+  const todayStr = (() => {
+    const now = new Date();
+    return now.getFullYear() + '年' + (now.getMonth()+1) + '月' + now.getDate() + '日';
+  })();
+
+  // 一番上に日付超でかく
+  html += `<div style="text-align:center;font-size:48px;font-weight:900;color:#c9952a;font-family:serif;margin-bottom:10px;">${todayStr}</div>`;
+
   // 一番上に更新ボタン
   html += `<button class="btn-reload" onclick="loadData()" style="margin-bottom:14px;">🔄 最新データに更新</button>`;
 
-  // 15時集計・閉店時集計ボタン
+  // 15時集計・閉店時集計ボタン＋現金額
   html += `
   <div style="display:flex;gap:10px;margin-bottom:14px;">
-    <button onclick="printCash15()" style="flex:1;padding:20px 0;background:#1a2a1a;border:2px solid #4aaa5a;border-radius:12px;color:#4aaa5a;font-size:20px;font-weight:900;cursor:pointer;">
-      🖨 15時集計
-    </button>
-    <button onclick="printCashClose()" style="flex:1;padding:20px 0;background:#1a0a0a;border:2px solid #c95a5a;border-radius:12px;color:#c95a5a;font-size:20px;font-weight:900;cursor:pointer;">
-      🖨 閉店時集計
-    </button>
+    <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+      <button onclick="printCash15()" style="padding:20px 0;background:#1a2a1a;border:2px solid #4aaa5a;border-radius:12px;color:#4aaa5a;font-size:20px;font-weight:900;cursor:pointer;">
+        🖨 15時集計
+      </button>
+      <div style="text-align:center;color:#a0e0a0;font-size:26px;font-weight:900;font-family:serif;padding:6px 0;background:#0a1a0a;border-radius:8px;">
+        ¥${cashMorning.toLocaleString()}
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+      <button onclick="printCashClose()" style="padding:20px 0;background:#1a0a0a;border:2px solid #c95a5a;border-radius:12px;color:#c95a5a;font-size:20px;font-weight:900;cursor:pointer;">
+        🖨 閉店時集計
+      </button>
+      <div style="text-align:center;color:#ff8888;font-size:26px;font-weight:900;font-family:serif;padding:6px 0;background:#1a0a0a;border-radius:8px;">
+        ¥${cashEvening.toLocaleString()}
+      </div>
+    </div>
   </div>`;
 
   // ペイキャスIC/QR確認カード
