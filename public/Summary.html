@@ -198,16 +198,23 @@
     white-space: nowrap;
     overflow: hidden;
   }
+  @keyframes blink-reload {
+    0%   { border-color: #c9952a; color: #c9952a; box-shadow: 0 0 0 0 rgba(201,149,42,0.7); }
+    50%  { border-color: #ffcc44; color: #ffcc44; box-shadow: 0 0 0 10px rgba(201,149,42,0); }
+    100% { border-color: #c9952a; color: #c9952a; box-shadow: 0 0 0 0 rgba(201,149,42,0); }
+  }
   .btn-reload {
     width: 100%;
     padding: 14px;
-    background: transparent;
-    border: 1px solid #3d2c14;
+    background: #1a1208;
+    border: 2px solid #c9952a;
     border-radius: 10px;
-    color: #8a7050;
-    font-size: 16px;
+    color: #c9952a;
+    font-size: 18px;
+    font-weight: 900;
     cursor: pointer;
     margin-bottom: 10px;
+    animation: blink-reload 1.5s infinite;
   }
   .loading { text-align: center; color: #8a7050; padding: 60px; font-size: 16px; }
 </style>
@@ -388,7 +395,7 @@ function printCashReceipt(label) {
   const dateStr = now.getFullYear() + '年' + (now.getMonth()+1) + '月' + now.getDate() + '日';
   const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
   const isClose = label === '閉店時集計';
-  const amount = isClose ? cashTotal : cashMorning;
+  const amount = isClose ? cashTotal - cashMorning : cashMorning;
 
   const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
     body{font-family:'Hiragino Mincho ProN',serif;width:384px;margin:0;padding:8px 10px;color:#000;}
@@ -404,7 +411,10 @@ function printCashReceipt(label) {
     <hr class="hr"/>
     <div class="label">${label}</div>
     <div class="amount">¥${amount.toLocaleString()}</div>
-    ${isClose ? `<div class="sub">15時　¥${cashMorning.toLocaleString()}</div>` : ''}
+    ${isClose ? `
+      <div class="sub">15時　¥${cashMorning.toLocaleString()}</div>
+      <div class="sub" style="font-size:16px;color:#888;">1日現金合計　¥${cashTotal.toLocaleString()}</div>
+    ` : ''}
   </body></html>`;
 
   const url = 'starpassprnt://v1/print/nopreview?back=' + encodeURIComponent(location.href) + '&html=' + encodeURIComponent(html);
