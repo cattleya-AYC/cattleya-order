@@ -32,6 +32,8 @@ const MENU = {
     { id: 26, name: "アイスウーロン茶", price: 650 },
     { id: 27, name: "こんぶ茶（HOT）", price: 650 },
     { id: 28, name: "梅こん茶（HOT）", price: 650 },
+    { id: 29, name: "ストレートティ（HOT）", price: 650 },
+    { id: 30, name: "アイスストレートティ", price: 670 },
   ],
   ジュース: [
     { id: 31, name: "ミルク（HOT）", price: 650 },
@@ -92,6 +94,8 @@ const MENU = {
     { id: 97, name: "アイスミルクティー（おかわり）", price: 300 },
     { id: 98, name: "アイスウーロン（おかわり）", price: 300 },
     { id: 99, name: "烏龍茶（おかわり）", price: 300 },
+    { id: 100, name: "ストレートティー（おかわり）", price: 300 },
+    { id: 105, name: "アイスストレートティー（おかわり）", price: 300 },
   ],
   アルコール: [
     { id: 81, name: "オールド（水割り）", price: 790 },
