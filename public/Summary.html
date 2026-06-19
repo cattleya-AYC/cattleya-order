@@ -285,14 +285,67 @@ function render() {
     return now.getFullYear() + '年' + (now.getMonth()+1) + '月' + now.getDate() + '日';
   })();
 
-  // 一番上に日付超でかく
+  // 日付超でかく
   html += `<div style="text-align:center;font-size:48px;font-weight:900;color:#c9952a;font-family:serif;margin-bottom:10px;">${todayStr}</div>`;
 
-  // 一番上に更新ボタン
-  html += `<button class="btn-reload" onclick="loadData()" style="margin-bottom:14px;">🔄 最新データに更新</button>`;
-
-  // 15時集計・閉店時集計ボタン＋現金額
+  // ① 更新ボタン
   html += `
+  <div style="color:#8a7050;font-size:13px;font-weight:700;margin-bottom:4px;">① まず最新データに更新</div>
+  <button class="btn-reload" onclick="loadData()" style="margin-bottom:18px;">🔄 最新データに更新</button>`;
+
+  // ② ③ ペイキャスIC/QR確認カード
+  const dbPaycas = paycasTotal;
+  const savedIc = window._paycasIc || 0;
+  const savedQr = window._paycasQr || 0;
+  const savedTotal = savedIc + savedQr;
+  const savedDiff = savedTotal > 0 ? savedTotal - dbPaycas : null;
+  const hasDiff = savedDiff !== null && savedDiff !== 0;
+
+  html += `
+  <div class="paycas-check-card">
+    <div class="paycas-check-title">💳 ペイキャス実績確認</div>
+    <div style="color:#8a7050;font-size:13px;font-weight:700;margin-bottom:8px;">② IC・QRを入力</div>
+    <div style="display:flex;gap:12px;margin-bottom:12px;">
+      <div style="flex:1;text-align:center;">
+        <div style="color:#5aaa5a;font-size:28px;font-weight:900;margin-bottom:6px;">IC</div>
+        <input type="number" id="paycas-ic" placeholder="0" value="${savedIc || ''}" oninput="checkPaycas()" style="width:100%;background:#0a120a;border:1px solid #2a5a2a;border-radius:8px;color:#a0e0a0;font-size:26px;font-weight:700;font-family:serif;padding:10px;text-align:right;box-sizing:border-box;" />
+      </div>
+      <div style="flex:1;text-align:center;">
+        <div style="color:#5aaa5a;font-size:28px;font-weight:900;margin-bottom:6px;">QR</div>
+        <input type="number" id="paycas-qr" placeholder="0" value="${savedQr || ''}" oninput="checkPaycas()" style="width:100%;background:#0a120a;border:1px solid #2a5a2a;border-radius:8px;color:#a0e0a0;font-size:26px;font-weight:700;font-family:serif;padding:10px;text-align:right;box-sizing:border-box;" />
+      </div>
+    </div>
+    <div style="color:#8a7050;font-size:13px;font-weight:700;margin-bottom:6px;">③ チェック＆登録</div>
+    <button id="paycas-save-btn" onclick="savePaycas()" style="width:100%;padding:14px;background:#1a3a1a;border:2px solid #4aaa5a;border-radius:10px;color:#4aaa5a;font-size:18px;font-weight:900;cursor:pointer;margin-bottom:12px;">✅ 差額チェック＆登録</button>
+    <div style="border-top:1px solid #2a5a2a44;padding-top:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+        <span style="color:#8a7050;font-size:16px;">機械集計（IC+QR）</span>
+        <span style="color:#a0e0a0;font-size:26px;font-weight:900;font-family:serif;">¥${savedTotal > 0 ? savedTotal.toLocaleString() : '---'}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+        <span style="color:#8a7050;font-size:16px;">データ合計</span>
+        <span style="color:#a0e0a0;font-size:26px;font-weight:900;font-family:serif;">¥${dbPaycas.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #2a5a2a44;margin-top:6px;">
+        <span style="color:#8a7050;font-size:16px;">差額</span>
+        <span style="font-size:28px;font-weight:900;font-family:serif;color:${savedDiff === null ? '#8a7050' : !hasDiff ? '#4aaa5a' : '#c95a5a'};">
+          ${savedDiff === null ? '---' : !hasDiff ? '✅ 一致' : (savedDiff > 0 ? '+' : '') + '¥' + savedDiff.toLocaleString()}
+        </span>
+      </div>
+      ${hasDiff ? `
+      <div style="background:#2a1008;border:1px solid #c95a5a44;border-radius:8px;padding:10px;margin-top:4px;color:#ffaa88;font-size:13px;line-height:1.8;margin-bottom:10px;">
+        ${savedDiff > 0 ? '⚠️ 機械集計がDBより多い。ペイキャスを現金で登録している可能性があります。' : '⚠️ DBのペイキャスが機械集計より多い。現金をペイキャスで登録している可能性があります。'}
+      </div>
+      <div style="color:#8a7050;font-size:13px;font-weight:700;margin-bottom:6px;">④ データ調整（差額がある場合）</div>
+      <button onclick="adjustPaycas(${savedDiff})" style="width:100%;padding:16px;background:#2a0808;border:3px solid #c95a5a;border-radius:10px;color:#ff8888;font-size:18px;font-weight:900;cursor:pointer;animation:blink-reload 1s infinite;">
+        🔧 ¥${Math.abs(savedDiff).toLocaleString()} を自動調整する
+      </button>` : ''}
+    </div>
+  </div>`;
+
+  // ⑤ 15時集計・閉店時集計ボタン＋現金額
+  html += `
+  <div style="color:#8a7050;font-size:13px;font-weight:700;margin-bottom:6px;">${hasDiff ? '⑤' : '④'} 現金集計印刷</div>
   <div style="display:flex;gap:10px;margin-bottom:14px;">
     <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
       <button onclick="printCash15()" style="padding:20px 0;background:#1a2a1a;border:2px solid #4aaa5a;border-radius:12px;color:#4aaa5a;font-size:20px;font-weight:900;cursor:pointer;">
@@ -310,45 +363,6 @@ function render() {
         ¥${cashEvening.toLocaleString()}
       </div>
     </div>
-  </div>`;
-
-  // ペイキャスIC/QR確認カード
-  const dbPaycas = paycasTotal;
-  const savedIc = window._paycasIc || 0;
-  const savedQr = window._paycasQr || 0;
-  const savedTotal = savedIc + savedQr;
-  const savedDiff = savedTotal > 0 ? savedTotal - dbPaycas : null;
-  html += `
-  <div class="paycas-check-card">
-    <div class="paycas-check-title">💳 ペイキャス実績確認</div>
-    <div style="display:flex;gap:12px;margin-bottom:12px;">
-      <div style="flex:1;text-align:center;">
-        <div style="color:#5aaa5a;font-size:28px;font-weight:900;margin-bottom:6px;">IC</div>
-        <input type="number" id="paycas-ic" placeholder="0" value="${savedIc || ''}" oninput="checkPaycas()" style="width:100%;background:#0a120a;border:1px solid #2a5a2a;border-radius:8px;color:#a0e0a0;font-size:26px;font-weight:700;font-family:serif;padding:10px;text-align:right;box-sizing:border-box;" />
-      </div>
-      <div style="flex:1;text-align:center;">
-        <div style="color:#5aaa5a;font-size:28px;font-weight:900;margin-bottom:6px;">QR</div>
-        <input type="number" id="paycas-qr" placeholder="0" value="${savedQr || ''}" oninput="checkPaycas()" style="width:100%;background:#0a120a;border:1px solid #2a5a2a;border-radius:8px;color:#a0e0a0;font-size:26px;font-weight:700;font-family:serif;padding:10px;text-align:right;box-sizing:border-box;" />
-      </div>
-    </div>
-    <button onclick="savePaycas()" style="width:100%;padding:14px;background:#1a3a1a;border:2px solid #4aaa5a;border-radius:10px;color:#4aaa5a;font-size:18px;font-weight:900;cursor:pointer;margin-bottom:12px;">💾 登録</button>
-    <div style="border-top:1px solid #2a5a2a44;padding-top:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
-        <span style="color:#8a7050;font-size:16px;">機械集計（IC+QR）</span>
-        <span style="color:#a0e0a0;font-size:26px;font-weight:900;font-family:serif;">¥${savedTotal > 0 ? savedTotal.toLocaleString() : '---'}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
-        <span style="color:#8a7050;font-size:16px;">データ合計</span>
-        <span style="color:#a0e0a0;font-size:26px;font-weight:900;font-family:serif;">¥${dbPaycas.toLocaleString()}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #2a5a2a44;margin-top:6px;">
-        <span style="color:#8a7050;font-size:16px;">差額</span>
-        <span style="font-size:28px;font-weight:900;font-family:serif;color:${savedDiff === null ? '#8a7050' : savedDiff === 0 ? '#4aaa5a' : '#c95a5a'};">
-          ${savedDiff === null ? '---' : savedDiff === 0 ? '✅ 一致' : (savedDiff > 0 ? '+' : '') + '¥' + savedDiff.toLocaleString()}
-        </span>
-      </div>
-    </div>
-    <div class="paycas-diff neutral" id="paycas-diff" style="display:none;"></div>
   </div>`;
 
   // 時間別売上印刷・メール・不具合報告ボタン
@@ -401,7 +415,24 @@ function savePaycas() {
   const qr = parseInt(document.getElementById('paycas-qr').value) || 0;
   window._paycasIc = ic;
   window._paycasQr = qr;
-  render();
+  // Supabaseに保存
+  const today = new Date().toLocaleDateString('sv-SE', {timeZone:'Asia/Tokyo'});
+  sb.from('paycas_daily').upsert({ sale_date: today, ic_amount: ic, qr_amount: qr }).then(() => {
+    const btn = document.getElementById('paycas-save-btn');
+    if (btn) {
+      btn.textContent = '🎉 チェック＆登録 完了しました！';
+      btn.style.background = '#2a6a3a';
+      btn.style.borderColor = '#4aff8a';
+      btn.style.color = '#4aff8a';
+      setTimeout(() => {
+        btn.textContent = '✅ 差額チェック＆登録';
+        btn.style.background = '#1a3a1a';
+        btn.style.borderColor = '#4aaa5a';
+        btn.style.color = '#4aaa5a';
+      }, 3000);
+    }
+    render();
+  });
 }
 
 function printCashReceipt(label) {
@@ -442,15 +473,24 @@ function printCashReceipt(label) {
 function printCash15() { printCashReceipt('15時集計'); }
 function printCashClose() { printCashReceipt('閉店時集計'); }
 
-function checkPaycas() {
-  // 入力中はwindow変数を一時更新して差額表示を更新
-  const ic = parseInt(document.getElementById('paycas-ic')?.value) || 0;
-  const qr = parseInt(document.getElementById('paycas-qr')?.value) || 0;
-  const inputTotal = ic + qr;
-  const dbTotal = salesData.filter(s => s.pay_method === 'ペイキャス').reduce((a, s) => a + s.amount, 0);
-  const diff = inputTotal - dbTotal;
-  // 差額だけリアルタイム更新（renderは呼ばない）
+function adjustPaycas(diff) {
+  const absDiff = Math.abs(diff);
+  const msg = diff > 0
+    ? `機械集計がDBより¥${absDiff.toLocaleString()}多いです。\n現金を¥${absDiff.toLocaleString()}減らし、ペイキャスを¥${absDiff.toLocaleString()}増やします。\nよろしいですか？`
+    : `DBのペイキャスが機械集計より¥${absDiff.toLocaleString()}多いです。\n現金を¥${absDiff.toLocaleString()}増やし、ペイキャスを¥${absDiff.toLocaleString()}減らします。\nよろしいですか？`;
+  if (!confirm(msg)) return;
+  const today = new Date().toLocaleDateString('sv-SE', {timeZone:'Asia/Tokyo'});
+  const now = new Date().toLocaleTimeString('sv-SE', {timeZone:'Asia/Tokyo'}).substring(0,5);
+  Promise.all([
+    sb.from('sales').insert({ table_no: '調整', amount: diff > 0 ? absDiff : -absDiff, pay_method: 'ペイキャス', sale_date: today, sale_time: now, people_count: 0 }),
+    sb.from('sales').insert({ table_no: '調整', amount: diff > 0 ? -absDiff : absDiff, pay_method: '現金', sale_date: today, sale_time: now, people_count: 0 })
+  ]).then(() => {
+    alert('✅ 調整完了しました！');
+    loadData();
+  });
 }
+
+function checkPaycas() {}
 
 function toggleBug() {
   const panel = document.getElementById('bug-panel');
