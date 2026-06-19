@@ -635,19 +635,32 @@ export default function App() {
     return (
     <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
       <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "80vh", overflow: "auto" }}>
-        <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>注文確認</div>
-        <div style={{ color: "#c9952a", fontSize: 32, fontWeight: 900, marginBottom: 12, fontFamily: "serif" }}>テーブル {selectedTable}　<span style={{ fontSize: 18, color: "#8a7050" }}>{people}名</span></div>
+
+        {/* テーブル番号超でかく */}
+        <div style={{ textAlign: "center", marginBottom: 12 }}>
+          <div style={{ color: "#8a7050", fontSize: 14, marginBottom: 4 }}>テーブル番号</div>
+          <div style={{ display: "inline-block", background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 64, borderRadius: 14, padding: "8px 28px", border: "4px solid #ff6666" }}>
+            {selectedTable}
+          </div>
+          <div style={{ color: "#8a7050", fontSize: 14, marginTop: 4 }}>{people}名</div>
+        </div>
+
         <button onClick={() => setTakeout(t => !t)} style={{ width: "100%", padding: "10px 0", marginBottom: 12, background: takeout ? "#1a3a1a" : "#1c1208", border: `2px solid ${takeout ? "#4aaa5a" : "#3d2c14"}`, borderRadius: 8, color: takeout ? "#4aaa5a" : "#8a7050", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
           {takeout ? "🛍 持ち帰り（税8%）✓" : "🛍 持ち帰りにする（税8%）"}
         </button>
-        <div style={{ background: "#2a1a0a", border: "2px solid #c9952a", borderRadius: 10, padding: "12px 14px", marginBottom: 14, textAlign: "center" }}>
-          <div style={{ color: "#fff", fontWeight: 900, fontSize: 24 }}>⚠️ 必ず復唱‼️</div>
+
+        {/* 復唱点滅 */}
+        <style>{`@keyframes blink-warn { 0%,100%{background:#2a1a0a;border-color:#c9952a;} 50%{background:#4a2a0a;border-color:#ffcc44;} }`}</style>
+        <div style={{ border: "3px solid #c9952a", borderRadius: 10, padding: "12px 14px", marginBottom: 14, textAlign: "center", animation: "blink-warn 1s infinite" }}>
+          <div style={{ color: "#ffcc44", fontWeight: 900, fontSize: 26 }}>⚠️ 必ず復唱‼️</div>
         </div>
+
+        {/* メニュー大きく */}
         <div style={{ borderTop: "1px solid #3d2c14", paddingTop: 12, marginBottom: 12 }}>
           {cart.map((item, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #3d2c1433" }}>
-              <span style={{ color: "#f0e6d0", fontSize: 24, fontWeight: 700 }}>{item.name} ×{item.qty}</span>
-              <span style={{ color: "#8a7050", fontFamily: "serif", fontSize: 12 }}>¥{(item.price * item.qty).toLocaleString()}</span>
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #3d2c1433" }}>
+              <span style={{ color: "#f0e6d0", fontSize: 28, fontWeight: 900 }}>{item.label || item.name}</span>
+              <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 900 }}>×{item.qty}</span>
             </div>
           ))}
           {autoDiscount > 0 && (
