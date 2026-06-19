@@ -955,7 +955,7 @@ export default function Register() {
     ? parseInt(tobaccoReceived) - tobaccoConfirming.price
     : null;
 
-  const canCheckout = payMethod && receiptType && (
+  const canCheckout = payMethod && (
     payMethod === "ペイキャス" || (receivedAmount && change !== null && change >= 0)
   );
   const canTobaccoCheckout = tobaccoReceiptType && tobaccoReceived && tobaccoChange !== null && tobaccoChange >= 0;
@@ -979,6 +979,7 @@ export default function Register() {
     }
     const chg = payMethod === "現金" ? change : null;
     const people = peopleZero ? 0 : tablePeople(t);
+    const receiptType = "レシート"; // 常に自動レシート印刷
 
     // setCount 分の値引きをSupabaseに反映してから会計
     const existingDiscounts = tableOrders(t).filter(o => o.price < 0);
@@ -1260,6 +1261,17 @@ export default function Register() {
       <button onClick={() => { setCheckoutDone(false); setCheckoutInfo(null); }}
         style={{ width: "100%", maxWidth: 420, padding: 28, background: "#2a6a3a", border: "3px solid #4aaa5a", borderRadius: 16, color: "#fff", fontSize: 30, fontWeight: 900, cursor: "pointer" }}>
         🔓 ドロアを閉めました
+      </button>
+
+      {/* 領収書ボタン */}
+      <button onClick={() => {
+        if (!checkoutInfo) return;
+        const html = buildReceiptHTML({ ...checkoutInfo, receipt: "領収書" });
+        const url = 'starpassprnt://v1/print/nopreview?back=' + encodeURIComponent(location.href) + '&html=' + encodeURIComponent(html);
+        localStorage.setItem("checkoutRestore", JSON.stringify(checkoutInfo));
+        window.location.href = url;
+      }} style={{ width: "100%", maxWidth: 420, padding: 18, background: "#1a1a3a", border: "2px solid #5a5ac9", borderRadius: 14, color: "#9a9af0", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>
+        📄 領収書を出す
       </button>
 
       {/* 完了マーク：一番下に小さく */}
@@ -1689,15 +1701,6 @@ export default function Register() {
                 <Keypad value={receivedAmount} onChange={setReceivedAmount} />
               </div>
             )}
-            <div style={{ color: "#8a7050", fontSize: 17, marginBottom: 8, fontWeight: 700 }}>書類</div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-              {["レシート", "領収書", "なし"].map((r) => (
-                <button key={r} onClick={() => setReceiptType(r)}
-                  style={{ flex: 1, padding: 16, background: receiptType === r ? "#c9952a" : "transparent", border: `2px solid ${receiptType === r ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: receiptType === r ? "#0d0905" : "#c9952a", fontSize: 17, fontWeight: 900, cursor: "pointer" }}>
-                  {r}
-                </button>
-              ))}
-            </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); }}
                 style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", cursor: "pointer" }}>戻る</button>
