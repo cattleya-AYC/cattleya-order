@@ -132,6 +132,7 @@ export default function App() {
   const [moveFrom, setMoveFrom] = useState(null);
   const [moveTo, setMoveTo] = useState(null);
   const [moveLoading, setMoveLoading] = useState(false);
+  const [confirmAddTable, setConfirmAddTable] = useState(null); // 追加注文確認中のテーブル番号
   const [lastSentIds, setLastSentIds] = useState([]);
   const [lastSentTable, setLastSentTable] = useState(null);
   const [lastSentCart, setLastSentCart] = useState([]);
@@ -326,13 +327,50 @@ export default function App() {
         }
         .tbl-occ { animation: pulse-gold 2s ease-in-out infinite; }
       `}</style>
+
+      {/* 着席中テーブル追加注文確認モーダル */}
+      {confirmAddTable && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000ee", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 24 }}>
+          <div style={{ background: "#1a1208", border: "3px solid #c9952a", borderRadius: 16, padding: 28, width: "100%", maxWidth: 360, textAlign: "center" }}>
+            <div style={{ fontSize: 56, marginBottom: 8 }}>⚠️</div>
+            <div style={{ color: "#c9952a", fontSize: 20, fontWeight: 900, marginBottom: 8 }}>テーブル {confirmAddTable} は着席中です</div>
+            <div style={{ color: "#f0e6d0", fontSize: 16, marginBottom: 24 }}>追加注文でよろしいですか？</div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button onClick={() => setConfirmAddTable(null)}
+                style={{ flex: 1, padding: 16, background: "transparent", border: "2px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
+                いいえ
+              </button>
+              <button onClick={() => {
+                const t = confirmAddTable;
+                setConfirmAddTable(null);
+                setSelectedTable(t);
+                setScreen("people");
+                setPeople(null);
+                setCart([]);
+                setActiveCat("コーヒー");
+                setConfirming(false);
+                setTakeout(false);
+              }} style={{ flex: 1, padding: 16, background: "#c9952a", border: "none", borderRadius: 10, color: "#0f0a05", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
+                はい
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
         {TABLES.map((t) => {
           const occ = allOrders.some(o => String(o.table_no) === String(t));
           return (
             <button key={t}
               className={occ ? "tbl-occ" : ""}
-              onClick={() => { setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setActiveCat("コーヒー"); setConfirming(false); setTakeout(false); }}
+              onClick={() => {
+                if (occ) {
+                  setConfirmAddTable(t);
+                } else {
+                  setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setActiveCat("コーヒー"); setConfirming(false); setTakeout(false);
+                }
+              }}
               style={{ padding: "10px 0 8px", background: occ ? "#2a1c0a" : "#251a0a", border: `2px solid ${occ ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: occ ? "#c9952a" : "#8a7050", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
               {t}
               {occ && <div style={{ fontSize: 9, color: "#8a7050", marginTop: 2 }}>着席中</div>}
@@ -652,6 +690,7 @@ export default function App() {
         {/* 復唱点滅 */}
         <style>{`@keyframes blink-warn { 0%,100%{background:#2a1a0a;border-color:#c9952a;} 50%{background:#4a2a0a;border-color:#ffcc44;} }`}</style>
         <div style={{ border: "3px solid #c9952a", borderRadius: 10, padding: "12px 14px", marginBottom: 14, textAlign: "center", animation: "blink-warn 1s infinite" }}>
+          <div style={{ color: "#f0e6d0", fontWeight: 700, fontSize: 18, marginBottom: 6 }}>オーダーはあっていますか？</div>
           <div style={{ color: "#ffcc44", fontWeight: 900, fontSize: 26 }}>⚠️ 必ず復唱‼️</div>
         </div>
 
