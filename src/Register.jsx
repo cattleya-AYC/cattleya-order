@@ -1737,8 +1737,8 @@ export default function Register() {
 
             {/* カウントアプリリンク */}
             <button onClick={() => window.open("https://cattleya-order.vercel.app/Cash.html", "_blank")}
-              style={{ padding: "12px 4px", background: "#2a1a0a", border: "2px solid #c9952a", borderRadius: 10, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-              <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/kaunto.PNG" style={{ width: 140, height: 52, borderRadius: 8, objectFit: "cover" }} />
+              style={{ padding: "0", background: "#f9a8b8", border: "2px solid #c9952a", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
+              <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/kaunto.PNG" style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }} />
             </button>
 
             {(() => {
