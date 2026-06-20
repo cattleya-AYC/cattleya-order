@@ -210,7 +210,31 @@
   <div class="tab" onclick="switchTab('history')" id="tab-history">📋 記録履歴</div>
 </div>
 
-<div class="content" id="content-count">
+<!-- ページ1：名前選択 -->
+<div class="content" id="page-staff">
+  <div style="text-align:center;padding:24px 0 16px;">
+    <div style="font-size:22px;font-weight:900;color:#c9952a;margin-bottom:6px;">担当者を選んでください</div>
+    <div style="font-size:14px;color:#8a7050;">選択後にカウント画面に進みます</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;">
+    <button onclick="chooseStaff('店長')" style="padding:28px 0;background:transparent;border:2px solid #3d2c14;border-radius:12px;color:#8a7050;font-size:22px;font-weight:900;cursor:pointer;" id="sp-店長">佐々木店長</button>
+    <button onclick="chooseStaff('宮川')" style="padding:28px 0;background:transparent;border:2px solid #3d2c14;border-radius:12px;color:#8a7050;font-size:22px;font-weight:900;cursor:pointer;" id="sp-宮川">宮川</button>
+    <button onclick="chooseStaff('井淵')" style="padding:28px 0;background:transparent;border:2px solid #3d2c14;border-radius:12px;color:#8a7050;font-size:22px;font-weight:900;cursor:pointer;" id="sp-井淵">井淵</button>
+    <button onclick="chooseStaff('末永')" style="padding:28px 0;background:transparent;border:2px solid #3d2c14;border-radius:12px;color:#8a7050;font-size:22px;font-weight:900;cursor:pointer;" id="sp-末永">末永</button>
+  </div>
+</div>
+
+<!-- ページ2：現金カウント -->
+<div class="content" id="page-count" style="display:none;">
+
+  <!-- 担当者表示 -->
+  <div style="display:flex;justify-content:space-between;align-items:center;background:#1a1208;border:1px solid #3d2c14;border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+    <span style="color:#8a7050;font-size:14px;">担当者</span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="color:#c9952a;font-size:20px;font-weight:900;" id="selectedStaffLabel">—</span>
+      <button onclick="backToStaff()" style="padding:6px 12px;background:transparent;border:1px solid #3d2c14;border-radius:6px;color:#8a7050;font-size:13px;cursor:pointer;">変更</button>
+    </div>
+  </div>
 
   <div class="section-title">お　札</div>
 
@@ -329,30 +353,7 @@
     </div>
   </div>
 
-  <!-- 入力者選択 -->
-  <div style="margin-bottom:14px">
-    <div style="font-size:13px;color:#8a7050;margin-bottom:8px">入　力　者</div>
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
-      <button id="staff-店長" onclick="selectStaff('店長')"
-        style="padding:14px;background:transparent;border:2px solid #3d2c14;border-radius:10px;color:#8a7050;font-size:16px;font-weight:700;cursor:pointer">
-        佐々木店長
-      </button>
-      <button id="staff-宮川" onclick="selectStaff('宮川')"
-        style="padding:14px;background:transparent;border:2px solid #3d2c14;border-radius:10px;color:#8a7050;font-size:16px;font-weight:700;cursor:pointer">
-        宮川
-      </button>
-      <button id="staff-井淵" onclick="selectStaff('井淵')"
-        style="padding:14px;background:transparent;border:2px solid #3d2c14;border-radius:10px;color:#8a7050;font-size:16px;font-weight:700;cursor:pointer">
-        井淵
-      </button>
-      <button id="staff-末永" onclick="selectStaff('末永')"
-        style="padding:14px;background:transparent;border:2px solid #3d2c14;border-radius:10px;color:#8a7050;font-size:16px;font-weight:700;cursor:pointer">
-        末永
-      </button>
-    </div>
-  </div>
-
-  <button class="btn-save" onclick="saveRecord()">💾 記録を保存</button>
+  <button class="btn-save" onclick="saveRecord()">✅ チェック終了</button>
   <button class="btn-clear" onclick="clearAll()">🗑 クリア</button>
 
 </div>
@@ -381,9 +382,42 @@ setInterval(updateTime, 10000);
 function switchTab(tab) {
   document.getElementById('tab-count').className = 'tab' + (tab === 'count' ? ' active' : '');
   document.getElementById('tab-history').className = 'tab' + (tab === 'history' ? ' active' : '');
-  document.getElementById('content-count').style.display = tab === 'count' ? '' : 'none';
-  document.getElementById('content-history').style.display = tab === 'history' ? '' : 'none';
-  if (tab === 'history') loadHistory();
+  if (tab === 'count') {
+    document.getElementById('page-staff').style.display = window._selectedStaff ? 'none' : '';
+    document.getElementById('page-count').style.display = window._selectedStaff ? '' : 'none';
+    document.getElementById('content-history').style.display = 'none';
+  } else {
+    document.getElementById('page-staff').style.display = 'none';
+    document.getElementById('page-count').style.display = 'none';
+    document.getElementById('content-history').style.display = '';
+    loadHistory();
+  }
+}
+
+function chooseStaff(name) {
+  window._selectedStaff = name;
+  ['店長','宮川','井淵','末永'].forEach(s => {
+    const btn = document.getElementById('sp-' + s);
+    if (btn) {
+      btn.style.background = s === name ? '#c9952a' : 'transparent';
+      btn.style.borderColor = s === name ? '#c9952a' : '#3d2c14';
+      btn.style.color = s === name ? '#0d0905' : '#8a7050';
+    }
+  });
+  setTimeout(() => {
+    document.getElementById('page-staff').style.display = 'none';
+    document.getElementById('page-count').style.display = '';
+    document.getElementById('selectedStaffLabel').textContent = name;
+  }, 300);
+}
+
+function backToStaff() {
+  document.getElementById('page-staff').style.display = '';
+  document.getElementById('page-count').style.display = 'none';
+}
+
+function selectStaff(name) {
+  window._selectedStaff = name;
 }
 
 function getValues() {
@@ -433,22 +467,6 @@ function calc() {
 
 window._deposited = false;
 window._selectedStaff = null;
-
-function selectStaff(name) {
-  window._selectedStaff = name;
-  ['店長','宮川','井淵','末永'].forEach(s => {
-    const btn = document.getElementById('staff-' + s);
-    if (s === name) {
-      btn.style.background = '#c9952a';
-      btn.style.borderColor = '#c9952a';
-      btn.style.color = '#0d0905';
-    } else {
-      btn.style.background = 'transparent';
-      btn.style.borderColor = '#3d2c14';
-      btn.style.color = '#8a7050';
-    }
-  });
-} // 15時分入金済みフラグ
 
 function setDeposit(deposited) {
   window._deposited = deposited;
