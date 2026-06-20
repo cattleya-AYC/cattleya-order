@@ -684,7 +684,7 @@ export default function App() {
 
     return (
     <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-      <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "80vh", overflow: "auto" }}>
+      <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "92vh", overflow: "auto" }}>
 
         {/* テーブル番号超でかく */}
         <div style={{ textAlign: "center", marginBottom: 12 }}>
