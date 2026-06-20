@@ -263,6 +263,63 @@ export default function App() {
   });
 
   // ── 30秒修正ロジック ──
+  const CorrectModal = () => (
+    <div style={{ position: "fixed", inset: 0, background: "#000000ee", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 16 }}>
+      <div style={{ background: "#1a0808", border: "2px solid #c95a5a", borderRadius: 14, padding: 24, width: "100%", maxWidth: 380 }}>
+        <div style={{ color: "#ff8888", fontSize: 20, fontWeight: 900, marginBottom: 12, textAlign: "center" }}>✏️ 注文の修正</div>
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <div style={{ display: "inline-block", background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 56, borderRadius: 12, padding: "6px 24px", border: "4px solid #ff6666" }}>
+            {lastSentTable}
+          </div>
+          <div style={{ color: "#8a7050", fontSize: 13, marginTop: 6 }}>の直前の注文</div>
+        </div>
+        {correctMode === null && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <button onClick={() => setShowCorrectModal(false)}
+              style={{ padding: "18px 0", background: "#0a2010", border: "2px solid #4aaa5a", borderRadius: 12, color: "#4aaa5a", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
+              ✅ 変更なし
+            </button>
+            <button onClick={doCancel}
+              style={{ padding: "18px 0", background: "#2a0a0a", border: "2px solid #c95a5a", borderRadius: 12, color: "#ff8888", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
+              🗑 取消
+            </button>
+            <button onClick={() => { setCorrectMode("tableChange"); setCorrectTableTarget(null); }}
+              style={{ padding: "18px 0", background: "#0a1a2a", border: "2px solid #5a8aca", borderRadius: 12, color: "#88bbff", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
+              🔄 テーブル変更
+            </button>
+            <button onClick={doMenuChange}
+              style={{ padding: "18px 0", background: "#1a1008", border: "2px solid #c9952a", borderRadius: 12, color: "#c9952a", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
+              📝 メニュー変更
+            </button>
+          </div>
+        )}
+        {correctMode === "tableChange" && (
+          <>
+            <div style={{ color: "#88bbff", fontSize: 15, fontWeight: 700, marginBottom: 12 }}>変更先のテーブルを選んでください</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 14 }}>
+              {TABLES.filter(t => String(t) !== String(lastSentTable)).map(t => (
+                <button key={t} onClick={() => setCorrectTableTarget(t)}
+                  style={{ padding: "12px 0", background: correctTableTarget === t ? "#2a4a8a" : "#251a0a", border: `2px solid ${correctTableTarget === t ? "#5a8aca" : "#3d2c14"}`, borderRadius: 8, color: correctTableTarget === t ? "#fff" : "#88bbff", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+            {correctTableTarget && (
+              <button onClick={doTableChange} disabled={correctTableLoading}
+                style={{ width: "100%", padding: "16px 0", background: "#2a4a8a", border: "none", borderRadius: 10, color: "#fff", fontSize: 18, fontWeight: 900, cursor: "pointer", marginBottom: 10 }}>
+                {correctTableLoading ? "変更中..." : `✅ テーブル${correctTableTarget}に変更する`}
+              </button>
+            )}
+            <button onClick={() => setCorrectMode(null)}
+              style={{ width: "100%", padding: 12, background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>
+              ← 戻る
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
   const doTableChange = async () => {
     if (!correctTableTarget || correctTableLoading) return;
     setCorrectTableLoading(true);
@@ -318,6 +375,7 @@ export default function App() {
         }
         .pulse-btn { animation: pulse-red 1.2s infinite; }
       `}</style>
+      {showCorrectModal && <CorrectModal />}
       <h1 style={{ color: "#c9952a", marginBottom: 16, fontFamily: "serif" }}>Lounge Cattleya</h1>
       <p style={{ color: "#8a7050", marginBottom: 12 }}>テーブルを選択</p>
       <style>{`
@@ -587,66 +645,7 @@ export default function App() {
 
   if (sent) return (
     <div style={{ padding: 24, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-
-      {/* 30秒修正モーダル */}
-      {showCorrectModal && (
-        <div style={{ position: "fixed", inset: 0, background: "#000000ee", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 16 }}>
-          <div style={{ background: "#1a0808", border: "2px solid #c95a5a", borderRadius: 14, padding: 24, width: "100%", maxWidth: 380 }}>
-            <div style={{ color: "#ff8888", fontSize: 20, fontWeight: 900, marginBottom: 12, textAlign: "center" }}>✏️ 注文の修正</div>
-            <div style={{ textAlign: "center", marginBottom: 16 }}>
-              <div style={{ display: "inline-block", background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 56, borderRadius: 12, padding: "6px 24px", border: "4px solid #ff6666" }}>
-                {lastSentTable}
-              </div>
-              <div style={{ color: "#8a7050", fontSize: 13, marginTop: 6 }}>の直前の注文</div>
-            </div>
-
-            {correctMode === null && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <button onClick={() => setShowCorrectModal(false)}
-                  style={{ padding: "18px 0", background: "#0a2010", border: "2px solid #4aaa5a", borderRadius: 12, color: "#4aaa5a", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
-                  ✅ 変更なし
-                </button>
-                <button onClick={doCancel}
-                  style={{ padding: "18px 0", background: "#2a0a0a", border: "2px solid #c95a5a", borderRadius: 12, color: "#ff8888", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
-                  🗑 取消
-                </button>
-                <button onClick={() => { setCorrectMode("tableChange"); setCorrectTableTarget(null); }}
-                  style={{ padding: "18px 0", background: "#0a1a2a", border: "2px solid #5a8aca", borderRadius: 12, color: "#88bbff", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
-                  🔄 テーブル変更
-                </button>
-                <button onClick={doMenuChange}
-                  style={{ padding: "18px 0", background: "#1a1008", border: "2px solid #c9952a", borderRadius: 12, color: "#c9952a", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
-                  📝 メニュー変更
-                </button>
-              </div>
-            )}
-
-            {correctMode === "tableChange" && (
-              <>
-                <div style={{ color: "#88bbff", fontSize: 15, fontWeight: 700, marginBottom: 12 }}>変更先のテーブルを選んでください</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 14 }}>
-                  {TABLES.filter(t => String(t) !== String(lastSentTable)).map(t => (
-                    <button key={t} onClick={() => setCorrectTableTarget(t)}
-                      style={{ padding: "12px 0", background: correctTableTarget === t ? "#2a4a8a" : "#251a0a", border: `2px solid ${correctTableTarget === t ? "#5a8aca" : "#3d2c14"}`, borderRadius: 8, color: correctTableTarget === t ? "#fff" : "#88bbff", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
-                      {t}
-                    </button>
-                  ))}
-                </div>
-                {correctTableTarget && (
-                  <button onClick={doTableChange} disabled={correctTableLoading}
-                    style={{ width: "100%", padding: "16px 0", background: "#2a4a8a", border: "none", borderRadius: 10, color: "#fff", fontSize: 18, fontWeight: 900, cursor: "pointer", marginBottom: 10 }}>
-                    {correctTableLoading ? "変更中..." : `✅ テーブル${correctTableTarget}に変更する`}
-                  </button>
-                )}
-                <button onClick={() => setCorrectMode(null)}
-                  style={{ width: "100%", padding: 12, background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>
-                  ← 戻る
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {showCorrectModal && <CorrectModal />}
 
       <div style={{ fontSize: 72, marginBottom: 8 }}>✅</div>
       <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>キッチンに送りました</div>
