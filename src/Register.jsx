@@ -1830,9 +1830,9 @@ export default function Register() {
             <>
               {/* テーブル選択済み：注文詳細 */}
               <div style={{ padding: "12px 16px", background: "#181008", borderBottom: "1px solid #3d2c14", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <span style={{ fontFamily: "serif", fontSize: 26, color: "#c9952a", fontWeight: 700 }}>テーブル {selected}</span>
-                  <span style={{ color: "#8a7050", marginLeft: 12, fontSize: 17 }}>{selectedPeople}名</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 32, borderRadius: 8, padding: "4px 14px", border: "3px solid #ff6666" }}>{selected}</span>
+                  <span style={{ color: "#8a7050", fontSize: 15 }}>{selectedPeople}名</span>
                 </div>
                 <button onClick={() => setSelected(null)}
                   style={{ padding: "10px 16px", background: "#c9952a", border: "none", borderRadius: 8, color: "#0d0905", fontSize: 16, fontWeight: 900, cursor: "pointer" }}>
@@ -1848,17 +1848,17 @@ export default function Register() {
                     <table style={{ width: "100%", borderCollapse: "collapse" }}>
                       <thead>
                         <tr>
-                          <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 11, color: "#8a7050", borderBottom: "1px solid #3d2c14" }}>商品名</th>
-                          <th style={{ textAlign: "center", padding: "8px 12px", fontSize: 11, color: "#8a7050", borderBottom: "1px solid #3d2c14" }}>数量</th>
-                          <th style={{ textAlign: "right", padding: "8px 12px", fontSize: 11, color: "#8a7050", borderBottom: "1px solid #3d2c14" }}>金額</th>
+                          <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 13, color: "#8a7050", borderBottom: "1px solid #3d2c14" }}>商品名</th>
+                          <th style={{ textAlign: "center", padding: "8px 12px", fontSize: 13, color: "#8a7050", borderBottom: "1px solid #3d2c14" }}>数量</th>
+                          <th style={{ textAlign: "right", padding: "8px 12px", fontSize: 13, color: "#8a7050", borderBottom: "1px solid #3d2c14" }}>金額</th>
                         </tr>
                       </thead>
                       <tbody>
                         {selectedOrders.map((o, i) => (
                           <tr key={i}>
-                            <td style={{ padding: "14px 12px", fontSize: 18, color: o.price < 0 ? "#4aaa5a" : "#f0e6d0", borderBottom: "1px solid #3d2c1433" }}>{o.item_name}</td>
-                            <td style={{ padding: "14px 12px", textAlign: "center", color: "#8a7050", borderBottom: "1px solid #3d2c1433" }}>×{o.qty}</td>
-                            <td style={{ padding: "14px 12px", textAlign: "right", fontFamily: "serif", fontSize: 18, color: o.price < 0 ? "#4aaa5a" : "#c9952a", borderBottom: "1px solid #3d2c1433" }}>
+                            <td style={{ padding: "14px 12px", fontSize: 26, fontWeight: 700, color: o.price < 0 ? "#4aaa5a" : "#f0e6d0", borderBottom: "1px solid #3d2c1433" }}>{o.item_name}</td>
+                            <td style={{ padding: "14px 12px", textAlign: "center", color: "#c9952a", fontSize: 26, fontWeight: 900, borderBottom: "1px solid #3d2c1433" }}>×{o.qty}</td>
+                            <td style={{ padding: "14px 12px", textAlign: "right", fontFamily: "serif", fontSize: 22, color: o.price < 0 ? "#4aaa5a" : "#c9952a", borderBottom: "1px solid #3d2c1433" }}>
                               {o.price < 0 ? `-¥${Math.abs(o.price * o.qty).toLocaleString()}` : `¥${(o.price * o.qty).toLocaleString()}`}
                             </td>
                           </tr>
