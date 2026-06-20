@@ -686,13 +686,10 @@ export default function App() {
     <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
       <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "92vh", overflow: "auto" }}>
 
-        {/* テーブル番号超でかく */}
-        <div style={{ textAlign: "center", marginBottom: 12 }}>
-          <div style={{ color: "#8a7050", fontSize: 14, marginBottom: 4 }}>テーブル番号</div>
-          <div style={{ display: "inline-block", background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 64, borderRadius: 14, padding: "8px 28px", border: "4px solid #ff6666" }}>
-            {selectedTable}
-          </div>
-          <div style={{ color: "#8a7050", fontSize: 14, marginTop: 4 }}>{people}名</div>
+        {/* テーブル番号 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <span style={{ background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 36, borderRadius: 10, padding: "4px 16px", border: "3px solid #ff6666" }}>{selectedTable}</span>
+          <span style={{ color: "#8a7050", fontSize: 14 }}>{people}名</span>
         </div>
 
         <button onClick={() => setTakeout(t => !t)} style={{ width: "100%", padding: "10px 0", marginBottom: 12, background: takeout ? "#1a3a1a" : "#1c1208", border: `2px solid ${takeout ? "#4aaa5a" : "#3d2c14"}`, borderRadius: 8, color: takeout ? "#4aaa5a" : "#8a7050", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
