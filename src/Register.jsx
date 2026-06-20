@@ -1727,23 +1727,23 @@ export default function Register() {
           {/* 操作ボタン（大きめ） */}
           <div style={{ padding: "8px 8px", display: "flex", flexDirection: "column", gap: 6 }}>
             <button onClick={() => setMode("tobacco")}
-              style={{ padding: "16px 4px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
-              🚬 タバコ
+              style={{ padding: "0", background: "#1a2a1a", border: "none", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
+              <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/tabaco.PNG" style={{ width: "100%", height: 70, objectFit: "cover", display: "block" }} />
             </button>
             <button onClick={openDrawer}
-              style={{ padding: "16px 4px", background: "#0a1a18", border: "1px solid #1a4a3a", borderRadius: 10, color: "#3a9a8a", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
-              🔓 ドロア
+              style={{ padding: "0", background: "#1a2a1a", border: "none", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
+              <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/draw.PNG" style={{ width: "100%", height: 70, objectFit: "cover", display: "block" }} />
             </button>
 
             {/* カウントアプリリンク */}
             <button onClick={() => window.open("https://cattleya-order.vercel.app/Cash.html", "_blank")}
-              style={{ padding: "0", background: "#f9a8b8", border: "2px solid #c9952a", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
+              style={{ padding: "0", background: "#f9a8b8", border: "none", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
               <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/kaunto.PNG" style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }} />
             </button>
 
             {/* 集計アプリリンク */}
             <button onClick={() => window.open("https://cattleya-order.vercel.app/Summary.html", "_blank")}
-              style={{ padding: "0", background: "#0a1a2a", border: "2px solid #5a8aca", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
+              style={{ padding: "0", background: "#0a1a2a", border: "none", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
               <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/shukei2.PNG" style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }} />
             </button>
 
@@ -1751,16 +1751,17 @@ export default function Register() {
               const takeoutOcc = tableOrders("持ち帰り").length > 0;
               return (
                 <button onClick={() => setSelected("持ち帰り")}
-                  style={{ padding: "32px 4px", background: takeoutOcc ? "#0a2a1a" : "#0a1a2a", border: `2px solid ${takeoutOcc ? "#2aaa6a" : "#2a6aaa"}`, borderRadius: 10, color: takeoutOcc ? "#2aff8a" : "#5aaaff", fontSize: 14, fontWeight: 700, cursor: "pointer", marginTop: 4 }}>
-                  🛍 持ち帰り{takeoutOcc ? "　●" : ""}
+                  style={{ padding: "0", background: "#1a2a1a", border: takeoutOcc ? "3px solid #2aaa6a" : "none", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
+                  <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/takeout.PNG" style={{ width: "100%", height: 70, objectFit: "cover", display: "block" }} />
+                  {takeoutOcc && <div style={{ background: "#2aaa6a", color: "#fff", fontSize: 11, fontWeight: 900, textAlign: "center", padding: "2px 0" }}>● 注文あり</div>}
                 </button>
               );
             })()}
 
             {/* 更新ボタン */}
             <button onClick={() => fetchOrders()}
-              style={{ padding: "64px 4px", background: "#1a2a1a", border: "3px solid #4aaa5a", borderRadius: 10, color: "#4aaa5a", fontSize: 18, fontWeight: 900, cursor: "pointer", marginTop: 6 }}>
-              🔄<br/>更新
+              style={{ padding: "0", background: "#1a2a1a", border: "3px solid #4aaa5a", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
+              <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/koushin.GIF" style={{ width: "100%", height: 100, objectFit: "cover", display: "block" }} />
             </button>
 
             <button onClick={() => { setShowCoupon(true); setCouponError(""); }}
