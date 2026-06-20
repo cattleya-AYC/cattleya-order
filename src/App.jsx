@@ -235,7 +235,7 @@ export default function App() {
       setLastSentIds((justSent || []).map(o => o.id));
       setLastSentTable(selectedTable);
       setLastSentCart([...cart]);
-      setCountdown(30);
+      setCountdown(60);
       if (correctTimerRef.current) clearInterval(correctTimerRef.current);
       correctTimerRef.current = setInterval(() => {
         setCountdown(prev => {
@@ -626,9 +626,22 @@ export default function App() {
 
       <div style={{ fontSize: 72, marginBottom: 8 }}>✅</div>
       <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>キッチンに送りました</div>
-      <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 32 }}>テーブル {selectedTable}・{people}名</div>
+      <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 20 }}>テーブル {selectedTable}・{people}名</div>
 
-      <div style={{ background: "#1a120a", border: "1px solid #3d2c14", borderRadius: 14, padding: "20px 24px", marginBottom: 36, textAlign: "left", width: "100%", maxWidth: 360 }}>
+      {/* 修正ボタンを上に移動 */}
+      {countdown > 0 && (
+        <div style={{ width: "100%", maxWidth: 360, marginBottom: 20 }}>
+          <div style={{ textAlign: "center", color: "#c95a5a", fontSize: 22, marginBottom: 10, fontWeight: 900 }}>
+            ⏱ あと{countdown}秒間だけ修正できます
+          </div>
+          <button onClick={() => { setShowCorrectModal(true); setCorrectMode(null); setCorrectTableTarget(null); }}
+            style={{ width: "100%", padding: "22px 0", background: "#2a0a0a", border: "3px solid #c95a5a", borderRadius: 12, color: "#ff8888", fontSize: 24, fontWeight: 900, cursor: "pointer" }}>
+            ✏️ 注文を修正する
+          </button>
+        </div>
+      )}
+
+      <div style={{ background: "#1a120a", border: "1px solid #3d2c14", borderRadius: 14, padding: "20px 24px", marginBottom: 20, textAlign: "left", width: "100%", maxWidth: 360 }}>
         <div style={{ color: "#c9952a", fontWeight: 700, fontSize: 15, marginBottom: 14 }}>📋 ウェイトレスへ</div>
         <div style={{ color: "#f0e6d0", fontSize: 17, lineHeight: 2 }}>
           <div>① テーブルカードを厨房カウンターに準備してください。</div>
@@ -641,18 +654,6 @@ export default function App() {
         style={{ width: "100%", maxWidth: 360, padding: "22px 0", background: "#c9952a", border: "none", borderRadius: 14, color: "#0f0a05", fontWeight: 900, fontSize: 24, cursor: "pointer" }}>
         オーダー画面に戻る
       </button>
-
-      {countdown > 0 && (
-        <div style={{ marginTop: 20, width: "100%", maxWidth: 360 }}>
-          <div style={{ textAlign: "center", color: "#c95a5a", fontSize: 14, marginBottom: 8, fontWeight: 700 }}>
-            ⏱ あと{countdown}秒間だけ修正できます
-          </div>
-          <button onClick={() => { setShowCorrectModal(true); setCorrectMode(null); setCorrectTableTarget(null); }}
-            style={{ width: "100%", padding: "18px 0", background: "#2a0a0a", border: "2px solid #c95a5a", borderRadius: 12, color: "#ff8888", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
-            ✏️ 注文を修正する
-          </button>
-        </div>
-      )}
     </div>
   );
 
