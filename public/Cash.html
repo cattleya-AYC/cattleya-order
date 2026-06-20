@@ -562,9 +562,16 @@ async function saveRecord() {
     diff_amount: window._shouldCash !== undefined ? total - window._shouldCash : null,
   };
 
-  const { error } = await sb.from("cash_counts").insert(record);
+  const { error } = await sb.from("cashcheck_logs").insert({
+    checked_at: now.toISOString(),
+    log_date: date,
+    staff: window._selectedStaff || null,
+    system_cash: window._shouldCash || null,
+    result: window._shouldCash !== undefined ? (total === window._shouldCash ? "same" : total > window._shouldCash ? "over" : "short") : null,
+    diff: window._shouldCash !== undefined ? total - window._shouldCash : null,
+  });
   if (error) {
-    alert('保存エラー: ' + error.message + '\n\nテーブルが未作成の可能性があります。Supabaseで以下を実行してください:\nCREATE TABLE cash_counts (\n  id bigserial primary key,\n  counted_at timestamptz,\n  count_date date,\n  count_time text,\n  total_amount int,\n  v10000 int, v5000 int, v1000 int,\n  v500 int, v100 int, v50 int,\n  v10 int, v5 int, v1 int,\n  should_amount int,\n  diff_amount int\n);');
+    alert('保存エラー: ' + error.message);
   } else {
     alert('✅ 保存しました！\n合計：¥' + total.toLocaleString());
   }
