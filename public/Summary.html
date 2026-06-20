@@ -283,10 +283,11 @@ function render() {
 
   let html = '';
 
-  const todayStr = (() => {
-    const now = new Date();
-    return now.getFullYear() + '年' + (now.getMonth()+1) + '月' + now.getDate() + '日';
-  })();
+  // salesデータから最も古い日付を取得（昨日のデータが混じっていたら昨日の日付）
+  const dates = salesData.map(s => s.sale_date).filter(Boolean).sort();
+  const dataDate = dates.length > 0 ? dates[0] : new Date().toLocaleDateString('sv-SE', {timeZone:'Asia/Tokyo'});
+  const dateParts = dataDate.split('-');
+  const todayStr = `${dateParts[0]}年${parseInt(dateParts[1])}月${parseInt(dateParts[2])}日`;
 
   // 日付超でかく
   html += `<div style="text-align:center;font-size:48px;font-weight:900;color:#c9952a;font-family:serif;margin-bottom:10px;">${todayStr}</div>`;
