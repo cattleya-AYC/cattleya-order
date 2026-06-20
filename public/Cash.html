@@ -68,32 +68,36 @@
     gap: 12px;
   }
   .cash-label {
-    width: 80px;
-    font-size: 18px;
+    font-size: 26px;
     color: #c9952a;
-    font-weight: 700;
-    text-align: right;
+    font-weight: 900;
+    min-width: 110px;
   }
   .cash-unit {
-    font-size: 13px;
+    font-size: 18px;
     color: #8a7050;
-    width: 20px;
+    width: 16px;
   }
   .cash-input {
-    width: 80px;
+    width: 90px;
     background: #251a0a;
-    border: 1px solid #3d2c14;
+    border: 2px solid #3d2c14;
     border-radius: 8px;
     color: #f0e6d0;
-    padding: 10px 8px;
-    font-size: 20px;
-    font-weight: 700;
+    padding: 12px 8px;
+    font-size: 28px;
+    font-weight: 900;
     text-align: center;
     -webkit-appearance: none;
   }
   .cash-input:focus {
     outline: none;
     border-color: #c9952a;
+  }
+  .cash-suffix {
+    font-size: 20px;
+    color: #8a7050;
+    min-width: 24px;
   }
   .cash-subtotal {
     flex: 1;
@@ -211,60 +215,69 @@
   <div class="section-title">お　札</div>
 
   <div class="cash-row">
-    <div class="cash-label">¥10,000</div>
+    <div class="cash-label">1万円札</div>
     <div class="cash-unit">×</div>
     <input type="number" class="cash-input" id="v10000" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">枚</div>
     <div class="cash-subtotal" id="s10000">—</div>
   </div>
   <div class="cash-row">
-    <div class="cash-label">¥5,000</div>
+    <div class="cash-label">5千円札</div>
     <div class="cash-unit">×</div>
     <input type="number" class="cash-input" id="v5000" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">枚</div>
     <div class="cash-subtotal" id="s5000">—</div>
   </div>
   <div class="cash-row">
-    <div class="cash-label">¥1,000</div>
+    <div class="cash-label">千円札</div>
     <div class="cash-unit">×</div>
     <input type="number" class="cash-input" id="v1000" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">枚</div>
     <div class="cash-subtotal" id="s1000">—</div>
   </div>
 
   <div class="section-title">コ イ ン</div>
 
   <div class="cash-row">
-    <div class="cash-label">¥500</div>
+    <div class="cash-label">500円玉</div>
     <div class="cash-unit">×</div>
     <input type="number" class="cash-input" id="v500" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">個</div>
     <div class="cash-subtotal" id="s500">—</div>
   </div>
   <div class="cash-row">
-    <div class="cash-label">¥100</div>
+    <div class="cash-label">100円玉</div>
     <div class="cash-unit">×</div>
     <input type="number" class="cash-input" id="v100" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">個</div>
     <div class="cash-subtotal" id="s100">—</div>
   </div>
   <div class="cash-row">
-    <div class="cash-label">¥50</div>
+    <div class="cash-label">50円玉</div>
     <div class="cash-unit">×</div>
     <input type="number" class="cash-input" id="v50" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">個</div>
     <div class="cash-subtotal" id="s50">—</div>
   </div>
   <div class="cash-row">
-    <div class="cash-label">¥10</div>
+    <div class="cash-label">10円玉</div>
     <div class="cash-unit">×</div>
     <input type="number" class="cash-input" id="v10" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">個</div>
     <div class="cash-subtotal" id="s10">—</div>
   </div>
   <div class="cash-row">
-    <div class="cash-label">¥5</div>
+    <div class="cash-label">5円玉</div>
     <div class="cash-unit">×</div>
     <input type="number" class="cash-input" id="v5" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">個</div>
     <div class="cash-subtotal" id="s5">—</div>
   </div>
   <div class="cash-row">
-    <div class="cash-label">¥1</div>
+    <div class="cash-label">1円玉</div>
     <div class="cash-unit">×</div>
     <input type="number" class="cash-input" id="v1" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">個</div>
     <div class="cash-subtotal" id="s1">—</div>
   </div>
 
@@ -290,7 +303,19 @@
 
   <!-- レジあるべき金額との比較 -->
   <div class="compare-area" id="compareArea" style="display:none">
+    <div class="compare-row" id="row-morning" style="display:none">
+      <span class="cl">15時までの現金</span>
+      <span class="cv" id="morningAmount">—</span>
+    </div>
+    <div class="compare-row" id="row-evening" style="display:none">
+      <span class="cl">15時以降の現金</span>
+      <span class="cv" id="eveningAmount">—</span>
+    </div>
     <div class="compare-row">
+      <span class="cl">釣り銭（固定）</span>
+      <span class="cv">¥50,000</span>
+    </div>
+    <div class="compare-row" style="border-top:1px solid #3d2c14;margin-top:6px;padding-top:10px">
       <span class="cl" id="shouldLabel">レジあるべき金額</span>
       <span class="cv" id="shouldAmount">—</span>
     </div>
@@ -442,22 +467,32 @@ function updateShouldCash() {
   const now = new Date();
   const currentHour = now.getHours();
 
+  const cashMorning = data.filter(s => s.pay_method === '現金' && (s.sale_time || '') < '15:00').reduce((a, s) => a + s.amount, 0);
+  const cashAll = data.filter(s => s.pay_method === '現金').reduce((a, s) => a + s.amount, 0);
+  const cashEvening = cashAll - cashMorning;
+
   if (currentHour >= 15) {
     if (window._deposited) {
       // 入金済み：15時以降の現金のみ
-      const cashAfter15 = data.filter(s => s.pay_method === '現金' && (s.sale_time || '') >= '15:00').reduce((a, s) => a + s.amount, 0);
-      window._shouldCash = cashAfter15 + 50000;
-      window._shouldLabel = '釣り銭＋15時以降現金';
+      window._shouldCash = cashEvening + 50000;
+      window._shouldLabel = 'レジあるべき金額（15時以降＋釣り銭）';
+      document.getElementById('row-morning').style.display = '';
+      document.getElementById('row-evening').style.display = '';
+      document.getElementById('morningAmount').textContent = '¥' + cashMorning.toLocaleString() + '（入金済み）';
+      document.getElementById('eveningAmount').textContent = '¥' + cashEvening.toLocaleString();
     } else {
       // 未入金：全現金
-      const cashAll = data.filter(s => s.pay_method === '現金').reduce((a, s) => a + s.amount, 0);
       window._shouldCash = cashAll + 50000;
-      window._shouldLabel = '釣り銭＋全現金（未入金）';
+      window._shouldLabel = 'レジあるべき金額（全現金＋釣り銭）';
+      document.getElementById('row-morning').style.display = '';
+      document.getElementById('row-evening').style.display = 'none';
+      document.getElementById('morningAmount').textContent = '¥' + cashMorning.toLocaleString() + '（未入金）';
     }
   } else {
-    const cashAll = data.filter(s => s.pay_method === '現金').reduce((a, s) => a + s.amount, 0);
     window._shouldCash = cashAll + 50000;
-    window._shouldLabel = '釣り銭＋本日全現金';
+    window._shouldLabel = 'レジあるべき金額（全現金＋釣り銭）';
+    document.getElementById('row-morning').style.display = 'none';
+    document.getElementById('row-evening').style.display = 'none';
   }
   calc();
 }
