@@ -859,7 +859,7 @@ export default function Register() {
           setCheckoutInfo(info);
           setCheckoutDone(true);
         } catch(e) {}
-      }, 300);
+      }, 800);
     }
     // リアルタイム購読
     const subscription = supabase.channel("orders")
@@ -1726,26 +1726,21 @@ export default function Register() {
 
           {/* 操作ボタン（大きめ） */}
           <div style={{ padding: "8px 8px", display: "flex", flexDirection: "column", gap: 6 }}>
-            <button onClick={() => { setShowCoupon(true); setCouponError(""); }}
-              style={{ padding: "12px 4px", background: "#1a1a30", border: "1px solid #5a5ac9", borderRadius: 8, color: "#9a9af0", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-              🎟 クーポン
-            </button>
             <button onClick={() => setMode("tobacco")}
               style={{ padding: "16px 4px", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
               🚬 タバコ
-            </button>
-            <button onClick={() => setCashChecking(true)}
-              style={{ padding: "16px 4px", background: "#1a2510", border: "1px solid #2a6a3a", borderRadius: 10, color: "#4aaa5a", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
-              💰 レジ確認
             </button>
             <button onClick={openDrawer}
               style={{ padding: "16px 4px", background: "#0a1a18", border: "1px solid #1a4a3a", borderRadius: 10, color: "#3a9a8a", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
               🔓 ドロア
             </button>
-            <button onClick={() => { setShowPinModal(true); setPinInput(""); setPinError(false); }}
-              style={{ padding: "16px 4px", background: "#10182a", border: "1px solid #2a3a6a", borderRadius: 10, color: "#5a8aca", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
-              ⚙️ 管理
+
+            {/* カウントアプリリンク */}
+            <button onClick={() => window.open("https://cattleya-order.vercel.app/Cash.html", "_blank")}
+              style={{ padding: "12px 4px", background: "#2a1a0a", border: "2px solid #c9952a", borderRadius: 10, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/kaunto.PNG" style={{ width: 140, height: 52, borderRadius: 8, objectFit: "cover" }} />
             </button>
+
             {(() => {
               const takeoutOcc = tableOrders("持ち帰り").length > 0;
               return (
@@ -1760,6 +1755,15 @@ export default function Register() {
             <button onClick={() => fetchOrders()}
               style={{ padding: "64px 4px", background: "#1a2a1a", border: "3px solid #4aaa5a", borderRadius: 10, color: "#4aaa5a", fontSize: 18, fontWeight: 900, cursor: "pointer", marginTop: 6 }}>
               🔄<br/>更新
+            </button>
+
+            <button onClick={() => { setShowCoupon(true); setCouponError(""); }}
+              style={{ padding: "12px 4px", background: "#1a1a30", border: "1px solid #5a5ac9", borderRadius: 8, color: "#9a9af0", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              🎟 クーポン
+            </button>
+            <button onClick={() => { setShowPinModal(true); setPinInput(""); setPinError(false); }}
+              style={{ padding: "16px 4px", background: "#10182a", border: "1px solid #2a3a6a", borderRadius: 10, color: "#5a8aca", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
+              ⚙️ 管理
             </button>
           </div>
 
