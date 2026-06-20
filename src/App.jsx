@@ -399,6 +399,12 @@ export default function App() {
         );
       })()}
 
+      {/* 座席変更ボタン */}
+      <button onClick={() => { setShowMoveTable(true); setMoveStep(1); setMoveFrom(null); setMoveTo(null); }}
+        style={{ marginTop: 12, width: "100%", padding: "22px 0", background: "#1a0a2a", border: "3px solid #6a2aaa", borderRadius: 12, color: "#cc88ff", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>
+        🟣 座席変更
+      </button>
+
       {/* 持ち帰りボタン */}
       <button onClick={() => {
         setSelectedTable("持ち帰り");
@@ -417,12 +423,6 @@ export default function App() {
         fontSize: 22, fontWeight: 900, cursor: "pointer"
       }}>
         🛍 持ち帰り（税8%）
-      </button>
-
-      {/* 座席変更ボタン */}
-      <button onClick={() => { setShowMoveTable(true); setMoveStep(1); setMoveFrom(null); setMoveTo(null); }}
-        style={{ marginTop: 12, width: "100%", padding: "22px 0", background: "#1a0a2a", border: "3px solid #6a2aaa", borderRadius: 12, color: "#cc88ff", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>
-        🟣 座席変更
       </button>
 
       {/* 座席変更モーダル */}
@@ -504,12 +504,12 @@ export default function App() {
                 <div style={{ color: "#666", textAlign: "center", padding: 30 }}>未提供の注文はありません</div>
               ) : unservedTable === null ? (
                 /* テーブル一覧 */
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {tables.map(t => (
                     <button key={t} onClick={() => setUnservedTable(t)}
-                      style={{ padding: "14px 16px", background: "#1a1d22", border: "1px solid #2a3a6a", borderRadius: 10, color: "#fff", fontSize: 18, fontWeight: 700, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between" }}>
-                      <span>テーブル {t}</span>
-                      <span style={{ color: "#5a8aca", fontSize: 14 }}>{byTable[t].length}品 →</span>
+                      style={{ padding: "16px", background: "#1a1d22", border: "1px solid #2a3a6a", borderRadius: 10, color: "#fff", textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 36, borderRadius: 10, padding: "4px 16px", border: "3px solid #ff6666" }}>{t}</span>
+                      <span style={{ color: "#5a8aca", fontSize: 36, fontWeight: 900 }}>{byTable[t].length}品 →</span>
                     </button>
                   ))}
                 </div>
@@ -517,10 +517,12 @@ export default function App() {
                 /* 品目一覧 */
                 <div>
                   <button onClick={() => setUnservedTable(null)} style={{ background: "transparent", border: "none", color: "#5a8aca", fontSize: 14, cursor: "pointer", marginBottom: 10 }}>← 戻る</button>
-                  <div style={{ color: "#fff", fontWeight: 900, fontSize: 20, marginBottom: 12 }}>テーブル {unservedTable}</div>
+                  <div style={{ marginBottom: 14, textAlign: "center" }}>
+                    <span style={{ background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 48, borderRadius: 12, padding: "6px 20px", border: "3px solid #ff6666" }}>{unservedTable}</span>
+                  </div>
                   {byTable[unservedTable] ? byTable[unservedTable].map(o => (
-                    <div key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #2a2d33" }}>
-                      <span style={{ color: "#f0e6d0", fontSize: 16 }}>{o.item_name} ×{o.qty}</span>
+                    <div key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", borderBottom: "1px solid #2a2d33" }}>
+                      <span style={{ color: "#f0e6d0", fontSize: 32, fontWeight: 900 }}>{o.item_name} <span style={{ color: "#c9952a" }}>×{o.qty}</span></span>
                       <button onClick={() => markServed(o.id)}
                         style={{ padding: "8px 14px", background: "#4aaa5a", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                         出した ✓
@@ -573,8 +575,13 @@ export default function App() {
       {showCorrectModal && (
         <div style={{ position: "fixed", inset: 0, background: "#000000ee", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 16 }}>
           <div style={{ background: "#1a0808", border: "2px solid #c95a5a", borderRadius: 14, padding: 24, width: "100%", maxWidth: 380 }}>
-            <div style={{ color: "#ff8888", fontSize: 20, fontWeight: 900, marginBottom: 6, textAlign: "center" }}>✏️ 注文の修正</div>
-            <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 20, textAlign: "center" }}>テーブル {lastSentTable} の直前の注文</div>
+            <div style={{ color: "#ff8888", fontSize: 20, fontWeight: 900, marginBottom: 12, textAlign: "center" }}>✏️ 注文の修正</div>
+            <div style={{ textAlign: "center", marginBottom: 16 }}>
+              <div style={{ display: "inline-block", background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 56, borderRadius: 12, padding: "6px 24px", border: "4px solid #ff6666" }}>
+                {lastSentTable}
+              </div>
+              <div style={{ color: "#8a7050", fontSize: 13, marginTop: 6 }}>の直前の注文</div>
+            </div>
 
             {correctMode === null && (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -739,6 +746,13 @@ export default function App() {
           <span style={{ color: "#8a7050", marginLeft: 8, fontSize: 16 }}>{people}名</span>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {/* 時間内のみ右上に小さい赤修正ボタン */}
+          {countdown > 0 && (
+            <button onClick={() => { setShowCorrectModal(true); setCorrectMode(null); setCorrectTableTarget(null); }}
+              style={{ padding: "6px 12px", background: "#2a0a0a", border: "2px solid #c95a5a", borderRadius: 8, color: "#ff8888", fontSize: 13, fontWeight: 900, cursor: "pointer" }}>
+              ✏️ 修正
+            </button>
+          )}
           <button onClick={() => setChangingPeople(true)}
             style={{ padding: "4px 10px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 6, color: "#8a7050", fontSize: 11, cursor: "pointer" }}>
             人数変更
