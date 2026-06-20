@@ -1853,7 +1853,14 @@ export default function Register() {
                         </tr>
                       </thead>
                       <tbody>
-                        {selectedOrders.map((o, i) => (
+                        {Object.values(selectedOrders.reduce((acc, o) => {
+                          if (acc[o.item_name]) {
+                            acc[o.item_name].qty += o.qty;
+                          } else {
+                            acc[o.item_name] = { ...o };
+                          }
+                          return acc;
+                        }, {})).map((o, i) => (
                           <tr key={i}>
                             <td style={{ padding: "14px 12px", fontSize: 26, fontWeight: 700, color: o.price < 0 ? "#4aaa5a" : "#f0e6d0", borderBottom: "1px solid #3d2c1433" }}>{o.item_name}</td>
                             <td style={{ padding: "14px 12px", textAlign: "center", color: "#c9952a", fontSize: 26, fontWeight: 900, borderBottom: "1px solid #3d2c1433" }}>×{o.qty}</td>
