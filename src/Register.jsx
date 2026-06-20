@@ -1741,6 +1741,12 @@ export default function Register() {
               <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/kaunto.PNG" style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }} />
             </button>
 
+            {/* 集計アプリリンク */}
+            <button onClick={() => window.open("https://cattleya-order.vercel.app/Summary.html", "_blank")}
+              style={{ padding: "0", background: "#0a1a2a", border: "2px solid #5a8aca", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
+              <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/shukei2.PNG" style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }} />
+            </button>
+
             {(() => {
               const takeoutOcc = tableOrders("持ち帰り").length > 0;
               return (
