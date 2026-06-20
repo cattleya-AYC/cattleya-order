@@ -358,6 +358,19 @@ export default function App() {
         </div>
       )}
 
+      {/* 時間内のみ修正ボタンを上部に表示 */}
+      {countdown > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ textAlign: "center", color: "#c95a5a", fontSize: 14, marginBottom: 6, fontWeight: 700 }}>
+            ⏱ あと{countdown}秒間修正できます
+          </div>
+          <button onClick={() => { setShowCorrectModal(true); setCorrectMode(null); setCorrectTableTarget(null); }}
+            style={{ width: "100%", padding: "18px 0", background: "#2a0a0a", border: "3px solid #c95a5a", borderRadius: 12, color: "#ff8888", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>
+            ✏️ 直前の注文を修正する
+          </button>
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
         {TABLES.map((t) => {
           const occ = allOrders.some(o => String(o.table_no) === String(t));
@@ -747,13 +760,6 @@ export default function App() {
           <span style={{ color: "#8a7050", marginLeft: 8, fontSize: 16 }}>{people}名</span>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {/* 時間内のみ右上に小さい赤修正ボタン */}
-          {countdown > 0 && (
-            <button onClick={() => { setShowCorrectModal(true); setCorrectMode(null); setCorrectTableTarget(null); }}
-              style={{ padding: "6px 12px", background: "#2a0a0a", border: "2px solid #c95a5a", borderRadius: 8, color: "#ff8888", fontSize: 13, fontWeight: 900, cursor: "pointer" }}>
-              ✏️ 修正
-            </button>
-          )}
           <button onClick={() => setChangingPeople(true)}
             style={{ padding: "4px 10px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 6, color: "#8a7050", fontSize: 11, cursor: "pointer" }}>
             人数変更
