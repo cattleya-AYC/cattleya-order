@@ -543,9 +543,13 @@ export default function App() {
 
   if (screen === "people") return (
     <div style={{ padding: 24, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0" }}>
-      <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>Lounge Cattleya</div>
-      <div style={{ color: "#c9952a", fontSize: 36, fontWeight: 900, marginBottom: 16, fontFamily: "serif" }}>テーブル {selectedTable}</div>
-      <div style={{ fontFamily: "serif", color: "#f0e6d0", fontSize: 20, marginBottom: 16 }}>人数を選択してください</div>
+      <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 12 }}>Lounge Cattleya</div>
+      <div style={{ textAlign: "center", marginBottom: 16 }}>
+        <div style={{ display: "inline-block", background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 64, borderRadius: 14, padding: "8px 28px", border: "4px solid #ff6666" }}>
+          {selectedTable}
+        </div>
+      </div>
+      <div style={{ fontFamily: "serif", color: "#f0e6d0", fontSize: 20, marginBottom: 16, textAlign: "center" }}>人数を選択してください</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 24 }}>
         {PEOPLE.map((n) => (
           <button key={n} onClick={() => setPeople(n)}
@@ -737,7 +741,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column" }}>
+    <div style={{ background: "#0f0a05", height: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {confirming && <ConfirmModal />}
 
       <div style={{ padding: "10px 16px", background: "#1c1208", borderBottom: "1px solid #3d2c14", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
