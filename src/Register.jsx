@@ -1835,7 +1835,7 @@ export default function Register() {
                   <span style={{ color: "#8a7050", marginLeft: 12, fontSize: 17 }}>{selectedPeople}名</span>
                 </div>
                 <button onClick={() => setSelected(null)}
-                  style={{ padding: "10px 16px", background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", fontSize: 16, cursor: "pointer" }}>
+                  style={{ padding: "10px 16px", background: "#c9952a", border: "none", borderRadius: 8, color: "#0d0905", fontSize: 16, fontWeight: 900, cursor: "pointer" }}>
                   ← 一覧へ
                 </button>
               </div>
