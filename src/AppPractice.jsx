@@ -2,16 +2,29 @@ import { useState, useEffect, useRef } from "react";
 
 const PRACTICE_MODE = true; // 練習モード：データを一切送信しない
 
-// ダミーSupabase（何もしない）
+// ダミーSupabase（何もしない・エラーも出さない）
+const mockChain = () => {
+  const handler = {
+    select: () => handler,
+    insert: () => Promise.resolve({ data: [], error: null }),
+    update: () => handler,
+    delete: () => handler,
+    upsert: () => Promise.resolve({ data: [], error: null }),
+    eq: () => handler,
+    neq: () => handler,
+    order: () => handler,
+    limit: () => handler,
+    gte: () => handler,
+    lte: () => handler,
+    in: () => handler,
+    then: (resolve) => resolve({ data: [], error: null }),
+  };
+  return handler;
+};
+
 const supabase = {
-  from: () => ({
-    select: () => ({ order: () => ({ data: [], error: null }) }),
-    insert: () => Promise.resolve({ error: null }),
-    update: () => ({ eq: () => Promise.resolve({ error: null }) }),
-    delete: () => ({ eq: () => Promise.resolve({ error: null }) }),
-    upsert: () => Promise.resolve({ error: null }),
-  }),
-  channel: () => ({ on: () => ({ subscribe: () => {} }) }),
+  from: () => mockChain(),
+  channel: () => ({ on: () => ({ subscribe: () => ({}) }) }),
   removeChannel: () => {},
 };
 
