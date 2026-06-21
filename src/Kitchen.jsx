@@ -293,7 +293,7 @@ export default function Kitchen() {
             return (
               <div key={table} style={{ background: "#1a1d22", border: `2.5px solid ${urgent ? "#c95a5a" : "#2a4a2a"}`, borderRadius: 14, padding: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: "#aaa" }}>テーブル {table}</span>
+                  <span style={{ background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 32, borderRadius: 8, padding: "4px 14px", border: "3px solid #ff6666" }}>{table}</span>
                   <span style={{ fontSize: 15, color: urgent ? "#c95a5a" : "#888" }}>{timeAgo(oldest)}</span>
                 </div>
                 {items.map(o => (
