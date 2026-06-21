@@ -799,6 +799,7 @@ function OwnerMonthlyView({ sales, tobacco, selectedMonth, C, yen }) {
 
 // ===== PLUビュー =====
 function OwnerPluView({ items, C, yen }) {
+  const [pluTab, setPluTab] = useState("all");
   const plu = {};
   items.forEach(o => {
     if (!o.item_name || o.item_name.startsWith("【") || o.price <= 0) return;
@@ -807,9 +808,34 @@ function OwnerPluView({ items, C, yen }) {
     plu[o.item_name].amount += (o.price || 0) * (o.qty || 1);
   });
   const sorted = Object.entries(plu).sort((a, b) => b[1].amount - a[1].amount);
+
+  // カテゴリフィルター
+  const SWEETS = ["ミルクレープ","ガトーショコラ","フォンダンショコラ","チーズケーキ","紅茶のシフォン","栗のモンブラン","バニラアイスクリーム","コーヒーゼリー"];
+  const STRAIGHT = ["トラジャ","マンデリン","モカ","グァテマラ","キリマンジェロ"];
+  const filtered = pluTab === "all" ? sorted
+    : pluTab === "sweets" ? sorted.filter(([name]) => SWEETS.some(s => name.includes(s)))
+    : pluTab === "straight" ? sorted.filter(([name]) => STRAIGHT.some(s => name.includes(s)))
+    : pluTab === "sand" ? sorted.filter(([name]) => name.endsWith("サンド") || name.endsWith("トースト"))
+    : sorted;
+
+  const tabs = [
+    { key: "all", label: "全件" },
+    { key: "sweets", label: "🍰 スイーツ" },
+    { key: "straight", label: "☕ ストレート" },
+    { key: "sand", label: "🥪 サンド" },
+  ];
+
   return (
     <div style={{ marginTop: 16 }}>
-      {sorted.length === 0 ? <div className="lbl" style={{ color: C.sub, textAlign: "center", padding: 40 }}>データなし</div> : (
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+        {tabs.map(t => (
+          <button key={t.key} onClick={() => setPluTab(t.key)}
+            style={{ padding: "6px 12px", background: pluTab === t.key ? C.gold : "transparent", border: `1px solid ${pluTab === t.key ? C.gold : C.line}`, borderRadius: 8, color: pluTab === t.key ? "#0d0905" : C.sub, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {filtered.length === 0 ? <div className="lbl" style={{ color: C.sub, textAlign: "center", padding: 40 }}>データなし</div> : (
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>{["商品名","数量","売上"].map(h => (
@@ -817,9 +843,11 @@ function OwnerPluView({ items, C, yen }) {
             ))}</tr>
           </thead>
           <tbody>
-            {sorted.map(([name, v]) => (
+            {filtered.map(([name, v], i) => (
               <tr key={name}>
-                <td className="lbl" style={{ color: C.cream, padding: "7px 8px", borderBottom: `1px solid ${C.line}33`, fontSize: 13 }}>{name}</td>
+                <td className="lbl" style={{ color: C.cream, padding: "7px 8px", borderBottom: `1px solid ${C.line}33`, fontSize: 13 }}>
+                  <span className="lbl" style={{ color: C.sub, marginRight: 6 }}>{i + 1}.</span>{name}
+                </td>
                 <td className="lbl" style={{ color: C.sub, padding: "7px 8px", borderBottom: `1px solid ${C.line}33`, textAlign: "right", fontSize: 13 }}>{v.qty}</td>
                 <td className="gold" style={{ color: C.gold, padding: "7px 8px", borderBottom: `1px solid ${C.line}33`, textAlign: "right", fontSize: 13 }}>{yen(v.amount)}</td>
               </tr>
