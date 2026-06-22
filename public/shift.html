@@ -595,10 +595,13 @@ function render(){
     html+=`<div style="padding:0 14px 24px">`;
     html+=`<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:8px">📊 日別タイムライン</div>`;
 
-    // 日付セレクト
-    html+=`<select onchange="setHeatDay(+this.value)" style="padding:7px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px;margin-bottom:16px;background:#fff">`;
+    // 日付セレクト＋印刷ボタン
+    html+=`<div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap">`;
+    html+=`<select onchange="setHeatDay(+this.value)" style="padding:7px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px;background:#fff">`;
     wDays.forEach(d=>{html+=`<option value="${d}"${d===heatDay?" selected":""}>${M+1}/${d}(${WD[new Date(Y,M,d).getDay()]})</option>`;});
     html+=`</select>`;
+    html+=`<button onclick="printTimeline()" style="padding:7px 16px;border-radius:8px;border:none;background:#1e293b;color:#fff;font-weight:700;font-size:13px;cursor:pointer">🖨️ 印刷</button>`;
+    html+=`</div>`;
 
     // 時間軸の設定（9:00〜20:00）
     const TL_START=9*60; // 540分
@@ -1094,6 +1097,121 @@ function render(){
 
   document.getElementById("app").innerHTML=html;
 }
+
+// ── 日別タイムライン印刷 ──
+window.printTimeline=()=>{
+  const d=heatDay;
+  const dow=new Date(Y,M,d).getDay();
+  const dateLabel=`${Y}年${M+1}月${d}日（${WD[dow]}）`;
+  const TL_START=9*60,TL_END=20*60,TL_TOTAL=TL_END-TL_START;
+  const pct=min=>Math.max(0,Math.min(100,((min-TL_START)/TL_TOTAL)*100));
+  const timeLabels=[];
+  for(let h=9;h<=20;h++) timeLabels.push(h);
+
+  const DCOL={hall:"#3b82f6",support:"#a78bfa",kitchen:"#f59e42"};
+
+  // タイムライン1行生成
+  function makeRow(s, sh){
+    const isTencho=s.id==="tencho";
+    let bars="";
+    // グリッド線
+    timeLabels.forEach(h=>{
+      const left=pct(h*60);
+      bars+=`<div style="position:absolute;left:${left}%;top:0;bottom:0;width:1px;background:rgba(0,0,0,0.08)"></div>`;
+    });
+    // シフトバー
+    if(isTencho&&sh.blocks){
+      sh.blocks.forEach(b=>{
+        const s2=t2m(b.start),e2=t2m(b.end);
+        const l=pct(s2),w=pct(e2)-pct(s2);
+        bars+=`<div style="position:absolute;left:${l}%;width:${w}%;top:4px;height:20px;background:${DCOL[b.dept]||'#94a3b8'};border-radius:4px;opacity:0.85"></div>`;
+      });
+    } else {
+      ["hall","support","kitchen"].forEach(dept=>{
+        if(!sh[dept])return;
+        const s2=t2m(sh[dept].start),e2=t2m(sh[dept].end);
+        const l=pct(s2),w=pct(e2)-pct(s2);
+        bars+=`<div style="position:absolute;left:${l}%;width:${w}%;top:4px;height:20px;background:${DCOL[dept]};border-radius:4px;opacity:0.85"></div>`;
+      });
+    }
+    // 休憩①
+    if(sh.breakOn&&sh.breakStart){
+      const bs=t2m(sh.breakStart);
+      const l=pct(bs),w=pct(bs+30)-pct(bs);
+      bars+=`<div style="position:absolute;left:${l}%;width:${w}%;top:4px;height:20px;background:#94a3b8;border-radius:4px;opacity:0.9;display:flex;align-items:center;justify-content:center;font-size:10px">☕</div>`;
+    }
+    // 休憩②（15分）
+    if(sh.break15On&&sh.break15Start){
+      const bs=t2m(sh.break15Start);
+      const l=pct(bs),w=pct(bs+15)-pct(bs);
+      bars+=`<div style="position:absolute;left:${l}%;width:${w}%;top:4px;height:20px;background:#78716c;border-radius:4px;opacity:0.9;display:flex;align-items:center;justify-content:center;font-size:10px">☕</div>`;
+    }
+    // 銀行入金
+    if(sh.bank1){const bs=t2m(sh.bank1);const l=pct(bs),w=pct(bs+15)-pct(bs);bars+=`<div style="position:absolute;left:${l}%;width:${w}%;top:4px;height:20px;background:#374151;border-radius:4px;opacity:0.9;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff">🏦</div>`;}
+    if(sh.bank2){const bs=t2m(sh.bank2);const l=pct(bs),w=pct(bs+15)-pct(bs);bars+=`<div style="position:absolute;left:${l}%;width:${w}%;top:4px;height:20px;background:#374151;border-radius:4px;opacity:0.9;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff">🏦</div>`;}
+    return `<div style="display:flex;align-items:center;margin-bottom:8px">
+      <div style="width:60px;font-size:13px;font-weight:700;color:#1e293b;text-align:right;padding-right:10px;flex-shrink:0">${s.name}</div>
+      <div style="flex:1;height:28px;position:relative;background:#f8fafc;border-radius:6px;overflow:hidden">${bars}</div>
+    </div>`;
+  }
+
+  // ホール+補助
+  const hallStaff=STAFF.filter(s=>{
+    const sh=getShift(s.id,d);
+    if(!sh||sh.off)return false;
+    if(sh.blocks)return sh.blocks.some(b=>b.dept==="hall"||b.dept==="support");
+    return sh.hall||sh.support;
+  });
+  // 厨房
+  const kitchenStaff=STAFF.filter(s=>{
+    const sh=getShift(s.id,d);
+    if(!sh||sh.off)return false;
+    if(sh.blocks)return sh.blocks.some(b=>b.dept==="kitchen");
+    return !!sh.kitchen;
+  });
+
+  // 時間軸HTML
+  const axisHtml=`<div style="margin-left:70px;position:relative;height:20px;margin-bottom:2px">
+    ${timeLabels.map(h=>`<div style="position:absolute;left:${pct(h*60)}%;transform:translateX(-50%);font-size:10px;color:#94a3b8">${h}</div>`).join("")}
+  </div>
+  <div style="margin-left:70px;position:relative;height:4px;margin-bottom:6px">
+    ${timeLabels.map(h=>`<div style="position:absolute;left:${pct(h*60)}%;top:0;bottom:0;width:1px;background:#d1d5db"></div>`).join("")}
+  </div>`;
+
+  let body=`<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;max-width:800px;margin:0 auto">`;
+  body+=`<div style="text-align:center;font-size:22px;font-weight:900;color:#1e293b;margin-bottom:4px">ラウンジ カトレア</div>`;
+  body+=`<div style="text-align:center;font-size:16px;font-weight:700;color:#475569;margin-bottom:20px">${dateLabel} シフト</div>`;
+
+  if(hallStaff.length){
+    body+=`<div style="font-size:13px;font-weight:700;color:#3b82f6;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;background:#3b82f6;border-radius:2px"></span>ホール＋補助</div>`;
+    body+=axisHtml;
+    hallStaff.forEach(s=>{ const sh=getShift(s.id,d); body+=makeRow(s,sh); });
+    body+=`<div style="height:16px"></div>`;
+  }
+  if(kitchenStaff.length){
+    body+=`<div style="font-size:13px;font-weight:700;color:#f59e42;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;background:#f59e42;border-radius:2px"></span>厨房</div>`;
+    body+=axisHtml;
+    kitchenStaff.forEach(s=>{ const sh=getShift(s.id,d); body+=makeRow(s,sh); });
+    body+=`<div style="height:16px"></div>`;
+  }
+
+  // 凡例
+  body+=`<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#64748b;margin-top:12px;padding-top:10px;border-top:1px solid #e2e8f0">`;
+  body+=`<span><span style="display:inline-block;width:12px;height:10px;background:#3b82f6;border-radius:2px;margin-right:3px;vertical-align:middle"></span>ホール</span>`;
+  body+=`<span><span style="display:inline-block;width:12px;height:10px;background:#a78bfa;border-radius:2px;margin-right:3px;vertical-align:middle"></span>ホール補助</span>`;
+  body+=`<span><span style="display:inline-block;width:12px;height:10px;background:#f59e42;border-radius:2px;margin-right:3px;vertical-align:middle"></span>厨房</span>`;
+  body+=`<span><span style="display:inline-block;width:12px;height:10px;background:#94a3b8;border-radius:2px;margin-right:3px;vertical-align:middle"></span>休憩</span>`;
+  body+=`<span><span style="display:inline-block;width:12px;height:10px;background:#374151;border-radius:2px;margin-right:3px;vertical-align:middle"></span>銀行入金</span>`;
+  body+=`</div>`;
+  body+=`</div>`;
+
+  const w=window.open("","_blank","width=860,height=600");
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>シフト ${dateLabel}</title><style>
+    body{margin:0;background:#fff}
+    @media print{body{margin:0}@page{margin:15mm}}
+  </style></head><body>${body}<script>setTimeout(function(){window.print();},400);<\/script></body></html>`);
+  w.document.close();
+};
 
 // ── 月移動 ──
 window.prev=()=>{if(M===0){Y--;M=11;}else M--;actualLoaded=false;actual={};render();};
