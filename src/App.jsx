@@ -32,8 +32,6 @@ const MENU = {
     { id: 26, name: "アイスウーロン茶", price: 650 },
     { id: 27, name: "こんぶ茶（HOT）", price: 650 },
     { id: 28, name: "梅こん茶（HOT）", price: 650 },
-    { id: 29, name: "ストレートティ（HOT）", price: 650 },
-    { id: 30, name: "アイスストレートティ", price: 670 },
   ],
   ジュース: [
     { id: 31, name: "ミルク（HOT）", price: 650 },
@@ -94,23 +92,15 @@ const MENU = {
     { id: 97, name: "アイスミルクティー（おかわり）", price: 300 },
     { id: 98, name: "アイスウーロン（おかわり）", price: 300 },
     { id: 99, name: "烏龍茶（おかわり）", price: 300 },
-    { id: 100, name: "ストレートティー（おかわり）", price: 300 },
-    { id: 105, name: "アイスストレートティー（おかわり）", price: 300 },
   ],
   アルコール: [
     { id: 81, name: "オールド（水割り）", price: 790 },
     { id: 82, name: "バドワイザー", price: 800 },
   ],
-  モーニング変更: [
-    { id: 101, name: "モーニング変更追加料金", price: 220, kitchenName: "モーニング（飲み物注文済み）", label: "アイスコーヒー → モーニング　220円" },
-    { id: 102, name: "モーニング変更追加料金", price: 220, kitchenName: "モーニング（飲み物注文済み）", label: "アイスティ → モーニング　220円" },
-    { id: 103, name: "モーニング変更追加料金", price: 240, kitchenName: "モーニング（飲み物注文済み）", label: "コーヒー（HOT）→ モーニング　240円" },
-    { id: 104, name: "モーニング変更追加料金", price: 240, kitchenName: "モーニング（飲み物注文済み）", label: "紅茶（HOT）→ モーニング　240円" },
-  ],
 };
 
 const TABLES = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"];
-const PEOPLE = [0,1,2,3,4,5,6,7,8,9,10];
+const PEOPLE = [1,2,3,4,5,6,7,8,9,10];
 
 export default function App() {
   const [screen, setScreen] = useState("table");
@@ -132,16 +122,7 @@ export default function App() {
   const [moveFrom, setMoveFrom] = useState(null);
   const [moveTo, setMoveTo] = useState(null);
   const [moveLoading, setMoveLoading] = useState(false);
-  const [confirmAddTable, setConfirmAddTable] = useState(null); // 追加注文確認中のテーブル番号
-  const [lastSentIds, setLastSentIds] = useState([]);
-  const [lastSentTable, setLastSentTable] = useState(null);
-  const [lastSentCart, setLastSentCart] = useState([]);
-  const [countdown, setCountdown] = useState(0);
-  const [showCorrectModal, setShowCorrectModal] = useState(false);
-  const [correctMode, setCorrectMode] = useState(null);
-  const correctTimerRef = useRef(null);
-  const [correctTableTarget, setCorrectTableTarget] = useState(null);
-  const [correctTableLoading, setCorrectTableLoading] = useState(false);
+  const [printNotif, setPrintNotif] = useState(null); // { id, sent_at }
 
   const executeMoveTable = async () => {
     if (!moveFrom || !moveTo) return;
@@ -193,6 +174,20 @@ export default function App() {
   // 起動時にallOrdersを取得
   useEffect(() => { fetchAllOrders(); }, []);
 
+  // 印刷通知のリアルタイム購読
+  useEffect(() => {
+    // 起動時に未確認の通知があれば表示
+    supabase.from("print_notifications").select("*").eq("dismissed", false).order("sent_at", { ascending: false }).limit(1)
+      .then(({ data }) => { if (data && data.length > 0) setPrintNotif(data[0]); });
+
+    const channel = supabase.channel("print_notifications_channel")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "print_notifications" }, (payload) => {
+        setPrintNotif(payload.new);
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, []);
+
   // 30秒ごとに未提供リストを自動更新（10分超チェック用）
   useEffect(() => {
     const iv = setInterval(() => { fetchUnserved(); fetchAllOrders(); }, 30000);
@@ -228,21 +223,6 @@ export default function App() {
       });
       setConfirming(false);
       setSent(true);
-      // 直前送信IDを取得して30秒タイマー開始
-      const { data: justSent } = await supabase.from("orders")
-        .select("id").eq("table_no", String(selectedTable))
-        .eq("status", "pending").order("created_at", { ascending: false }).limit(cart.length);
-      setLastSentIds((justSent || []).map(o => o.id));
-      setLastSentTable(selectedTable);
-      setLastSentCart([...cart]);
-      setCountdown(60);
-      if (correctTimerRef.current) clearInterval(correctTimerRef.current);
-      correctTimerRef.current = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) { clearInterval(correctTimerRef.current); return 0; }
-          return prev - 1;
-        });
-      }, 1000);
       setCart([]);
       fetchUnserved();
     } catch (e) {
@@ -262,109 +242,6 @@ export default function App() {
     return (now - new Date(o.created_at)) > 10 * 60 * 1000;
   });
 
-  // ── 30秒修正ロジック ──
-  const CorrectModal = () => (
-    <div style={{ position: "fixed", inset: 0, background: "#000000ee", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 16 }}>
-      <div style={{ background: "#1a0808", border: "2px solid #c95a5a", borderRadius: 14, padding: 24, width: "100%", maxWidth: 380 }}>
-        <div style={{ color: "#ff8888", fontSize: 20, fontWeight: 900, marginBottom: 12, textAlign: "center" }}>✏️ 注文の修正</div>
-        <div style={{ textAlign: "center", marginBottom: 16 }}>
-          <div style={{ display: "inline-block", background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 56, borderRadius: 12, padding: "6px 24px", border: "4px solid #ff6666" }}>
-            {lastSentTable}
-          </div>
-          <div style={{ color: "#8a7050", fontSize: 13, marginTop: 6 }}>の直前の注文</div>
-        </div>
-        {correctMode === null && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <button onClick={() => setShowCorrectModal(false)}
-              style={{ padding: "18px 0", background: "#0a2010", border: "2px solid #4aaa5a", borderRadius: 12, color: "#4aaa5a", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
-              ✅ 変更なし
-            </button>
-            <button onClick={doCancel}
-              style={{ padding: "18px 0", background: "#2a0a0a", border: "2px solid #c95a5a", borderRadius: 12, color: "#ff8888", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
-              🗑 取消
-            </button>
-            <button onClick={() => { setCorrectMode("tableChange"); setCorrectTableTarget(null); }}
-              style={{ padding: "18px 0", background: "#0a1a2a", border: "2px solid #5a8aca", borderRadius: 12, color: "#88bbff", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
-              🔄 テーブル変更
-            </button>
-            <button onClick={doMenuChange}
-              style={{ padding: "18px 0", background: "#1a1008", border: "2px solid #c9952a", borderRadius: 12, color: "#c9952a", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>
-              📝 メニュー変更
-            </button>
-          </div>
-        )}
-        {correctMode === "tableChange" && (
-          <>
-            <div style={{ color: "#88bbff", fontSize: 15, fontWeight: 700, marginBottom: 12 }}>変更先のテーブルを選んでください</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 14 }}>
-              {TABLES.filter(t => String(t) !== String(lastSentTable)).map(t => (
-                <button key={t} onClick={() => setCorrectTableTarget(t)}
-                  style={{ padding: "12px 0", background: correctTableTarget === t ? "#2a4a8a" : "#251a0a", border: `2px solid ${correctTableTarget === t ? "#5a8aca" : "#3d2c14"}`, borderRadius: 8, color: correctTableTarget === t ? "#fff" : "#88bbff", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
-                  {t}
-                </button>
-              ))}
-            </div>
-            {correctTableTarget && (
-              <button onClick={doTableChange} disabled={correctTableLoading}
-                style={{ width: "100%", padding: "16px 0", background: "#2a4a8a", border: "none", borderRadius: 10, color: "#fff", fontSize: 18, fontWeight: 900, cursor: "pointer", marginBottom: 10 }}>
-                {correctTableLoading ? "変更中..." : `✅ テーブル${correctTableTarget}に変更する`}
-              </button>
-            )}
-            <button onClick={() => setCorrectMode(null)}
-              style={{ width: "100%", padding: 12, background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>
-              ← 戻る
-            </button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-
-  const doTableChange = async () => {
-    if (!correctTableTarget || correctTableLoading) return;
-    setCorrectTableLoading(true);
-    for (const id of lastSentIds) {
-      await supabase.from("orders").update({ table_no: String(correctTableTarget) }).eq("id", id);
-    }
-    await supabase.from("orders")
-      .update({ table_no: String(correctTableTarget) })
-      .eq("table_no", String(lastSentTable)).eq("status", "info");
-    setCorrectTableLoading(false);
-    setShowCorrectModal(false);
-    setCountdown(0);
-    clearInterval(correctTimerRef.current);
-    alert(`✅ テーブル${lastSentTable}→テーブル${correctTableTarget}に変更しました`);
-    fetchAllOrders();
-  };
-
-  const doCancel = async () => {
-    if (!window.confirm("直前の注文を取り消しますか？")) return;
-    for (const id of lastSentIds) {
-      await supabase.from("orders").delete().eq("id", id);
-    }
-    setShowCorrectModal(false);
-    setCountdown(0);
-    clearInterval(correctTimerRef.current);
-    setSent(false);
-    setScreen("table");
-    alert("✅ 注文を取り消しました");
-    fetchAllOrders();
-  };
-
-  const doMenuChange = async () => {
-    for (const id of lastSentIds) {
-      await supabase.from("orders").delete().eq("id", id);
-    }
-    setCart(lastSentCart);
-    setSelectedTable(lastSentTable);
-    setShowCorrectModal(false);
-    setCountdown(0);
-    clearInterval(correctTimerRef.current);
-    setSent(false);
-    setScreen("order");
-    fetchAllOrders();
-  };
-
   if (screen === "table") return (
     <div style={{ padding: 16, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0" }}>
       <style>{`
@@ -375,7 +252,22 @@ export default function App() {
         }
         .pulse-btn { animation: pulse-red 1.2s infinite; }
       `}</style>
-      {showCorrectModal && <CorrectModal />}
+      {/* 印刷通知バナー */}
+      {printNotif && (
+        <div style={{ background: "#1a0a00", border: "3px solid #ff6600", borderRadius: 12, padding: "16px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: "#ff9944", fontWeight: 900, fontSize: 17, marginBottom: 4 }}>🖨️ 印刷のお知らせ</div>
+            <div style={{ color: "#f0e6d0", fontSize: 15, lineHeight: 1.5 }}>プリンターに印刷が届きました。<br/>ショートカットボタンから印刷してください。</div>
+          </div>
+          <button onClick={async () => {
+            await supabase.from("print_notifications").update({ dismissed: true, dismissed_at: new Date().toISOString() }).eq("id", printNotif.id);
+            setPrintNotif(null);
+          }} style={{ padding: "10px 14px", background: "#ff6600", border: "none", borderRadius: 8, color: "#fff", fontSize: 14, fontWeight: 900, cursor: "pointer", whiteSpace: "nowrap" }}>
+            ✅ わかった
+          </button>
+        </div>
+      )}
+
       <h1 style={{ color: "#c9952a", marginBottom: 16, fontFamily: "serif" }}>Lounge Cattleya</h1>
       <p style={{ color: "#8a7050", marginBottom: 12 }}>テーブルを選択</p>
       <style>{`
@@ -385,63 +277,13 @@ export default function App() {
         }
         .tbl-occ { animation: pulse-gold 2s ease-in-out infinite; }
       `}</style>
-
-      {/* 着席中テーブル追加注文確認モーダル */}
-      {confirmAddTable && (
-        <div style={{ position: "fixed", inset: 0, background: "#000000ee", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 24 }}>
-          <div style={{ background: "#1a1208", border: "3px solid #c9952a", borderRadius: 16, padding: 28, width: "100%", maxWidth: 360, textAlign: "center" }}>
-            <div style={{ fontSize: 56, marginBottom: 8 }}>⚠️</div>
-            <div style={{ color: "#c9952a", fontSize: 20, fontWeight: 900, marginBottom: 8 }}>テーブル {confirmAddTable} は着席中です</div>
-            <div style={{ color: "#f0e6d0", fontSize: 16, marginBottom: 24 }}>追加注文でよろしいですか？</div>
-            <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setConfirmAddTable(null)}
-                style={{ flex: 1, padding: 16, background: "transparent", border: "2px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
-                いいえ
-              </button>
-              <button onClick={() => {
-                const t = confirmAddTable;
-                setConfirmAddTable(null);
-                setSelectedTable(t);
-                setScreen("people");
-                setPeople(null);
-                setCart([]);
-                setActiveCat("コーヒー");
-                setConfirming(false);
-                setTakeout(false);
-              }} style={{ flex: 1, padding: 16, background: "#c9952a", border: "none", borderRadius: 10, color: "#0f0a05", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
-                はい
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 時間内のみ修正ボタンを上部に表示 */}
-      {countdown > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ textAlign: "center", color: "#c95a5a", fontSize: 14, marginBottom: 6, fontWeight: 700 }}>
-            ⏱ あと{countdown}秒間修正できます
-          </div>
-          <button onClick={() => { setShowCorrectModal(true); setCorrectMode(null); setCorrectTableTarget(null); }}
-            style={{ width: "100%", padding: "18px 0", background: "#2a0a0a", border: "3px solid #c95a5a", borderRadius: 12, color: "#ff8888", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>
-            ✏️ 直前の注文を修正する
-          </button>
-        </div>
-      )}
-
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
         {TABLES.map((t) => {
           const occ = allOrders.some(o => String(o.table_no) === String(t));
           return (
             <button key={t}
               className={occ ? "tbl-occ" : ""}
-              onClick={() => {
-                if (occ) {
-                  setConfirmAddTable(t);
-                } else {
-                  setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setActiveCat("コーヒー"); setConfirming(false); setTakeout(false);
-                }
-              }}
+              onClick={() => { setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setActiveCat("コーヒー"); setConfirming(false); setTakeout(false); }}
               style={{ padding: "10px 0 8px", background: occ ? "#2a1c0a" : "#251a0a", border: `2px solid ${occ ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: occ ? "#c9952a" : "#8a7050", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
               {t}
               {occ && <div style={{ fontSize: 9, color: "#8a7050", marginTop: 2 }}>着席中</div>}
@@ -470,12 +312,6 @@ export default function App() {
         );
       })()}
 
-      {/* 座席変更ボタン */}
-      <button onClick={() => { setShowMoveTable(true); setMoveStep(1); setMoveFrom(null); setMoveTo(null); }}
-        style={{ marginTop: 12, width: "100%", padding: "22px 0", background: "#1a0a2a", border: "3px solid #6a2aaa", borderRadius: 12, color: "#cc88ff", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>
-        🟣 座席変更
-      </button>
-
       {/* 持ち帰りボタン */}
       <button onClick={() => {
         setSelectedTable("持ち帰り");
@@ -494,6 +330,12 @@ export default function App() {
         fontSize: 22, fontWeight: 900, cursor: "pointer"
       }}>
         🛍 持ち帰り（税8%）
+      </button>
+
+      {/* 座席変更ボタン */}
+      <button onClick={() => { setShowMoveTable(true); setMoveStep(1); setMoveFrom(null); setMoveTo(null); }}
+        style={{ marginTop: 12, width: "100%", padding: "22px 0", background: "#1a0a2a", border: "3px solid #6a2aaa", borderRadius: 12, color: "#cc88ff", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>
+        🟣 座席変更
       </button>
 
       {/* 座席変更モーダル */}
@@ -575,12 +417,12 @@ export default function App() {
                 <div style={{ color: "#666", textAlign: "center", padding: 30 }}>未提供の注文はありません</div>
               ) : unservedTable === null ? (
                 /* テーブル一覧 */
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {tables.map(t => (
                     <button key={t} onClick={() => setUnservedTable(t)}
-                      style={{ padding: "16px", background: "#1a1d22", border: "1px solid #2a3a6a", borderRadius: 10, color: "#fff", textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 36, borderRadius: 10, padding: "4px 16px", border: "3px solid #ff6666" }}>{t}</span>
-                      <span style={{ color: "#5a8aca", fontSize: 36, fontWeight: 900 }}>{byTable[t].length}品 →</span>
+                      style={{ padding: "14px 16px", background: "#1a1d22", border: "1px solid #2a3a6a", borderRadius: 10, color: "#fff", fontSize: 18, fontWeight: 700, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between" }}>
+                      <span>テーブル {t}</span>
+                      <span style={{ color: "#5a8aca", fontSize: 14 }}>{byTable[t].length}品 →</span>
                     </button>
                   ))}
                 </div>
@@ -588,12 +430,10 @@ export default function App() {
                 /* 品目一覧 */
                 <div>
                   <button onClick={() => setUnservedTable(null)} style={{ background: "transparent", border: "none", color: "#5a8aca", fontSize: 14, cursor: "pointer", marginBottom: 10 }}>← 戻る</button>
-                  <div style={{ marginBottom: 14, textAlign: "center" }}>
-                    <span style={{ background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 48, borderRadius: 12, padding: "6px 20px", border: "3px solid #ff6666" }}>{unservedTable}</span>
-                  </div>
+                  <div style={{ color: "#fff", fontWeight: 900, fontSize: 20, marginBottom: 12 }}>テーブル {unservedTable}</div>
                   {byTable[unservedTable] ? byTable[unservedTable].map(o => (
-                    <div key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", borderBottom: "1px solid #2a2d33" }}>
-                      <span style={{ color: "#f0e6d0", fontSize: 32, fontWeight: 900 }}>{o.item_name} <span style={{ color: "#c9952a" }}>×{o.qty}</span></span>
+                    <div key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #2a2d33" }}>
+                      <span style={{ color: "#f0e6d0", fontSize: 16 }}>{o.item_name} ×{o.qty}</span>
                       <button onClick={() => markServed(o.id)}
                         style={{ padding: "8px 14px", background: "#4aaa5a", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                         出した ✓
@@ -614,13 +454,9 @@ export default function App() {
 
   if (screen === "people") return (
     <div style={{ padding: 24, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0" }}>
-      <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 12 }}>Lounge Cattleya</div>
-      <div style={{ textAlign: "center", marginBottom: 16 }}>
-        <div style={{ display: "inline-block", background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 64, borderRadius: 14, padding: "8px 28px", border: "4px solid #ff6666" }}>
-          {selectedTable}
-        </div>
-      </div>
-      <div style={{ fontFamily: "serif", color: "#f0e6d0", fontSize: 20, marginBottom: 16, textAlign: "center" }}>人数を選択してください</div>
+      <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>Lounge Cattleya</div>
+      <div style={{ color: "#c9952a", fontSize: 36, fontWeight: 900, marginBottom: 16, fontFamily: "serif" }}>テーブル {selectedTable}</div>
+      <div style={{ fontFamily: "serif", color: "#f0e6d0", fontSize: 20, marginBottom: 16 }}>人数を選択してください</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 24 }}>
         {PEOPLE.map((n) => (
           <button key={n} onClick={() => setPeople(n)}
@@ -635,8 +471,8 @@ export default function App() {
           style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 15, cursor: "pointer" }}>
           ← 戻る
         </button>
-        <button onClick={() => setScreen("order")} disabled={people === null}
-          style={{ flex: 2, padding: 14, background: people !== null ? "#c9952a" : "#3d2c14", border: "none", borderRadius: 10, color: people !== null ? "#0f0a05" : "#8a7050", fontSize: 16, fontWeight: 700, cursor: people !== null ? "pointer" : "not-allowed" }}>
+        <button onClick={() => setScreen("order")} disabled={!people}
+          style={{ flex: 2, padding: 14, background: people ? "#c9952a" : "#3d2c14", border: "none", borderRadius: 10, color: people ? "#0f0a05" : "#8a7050", fontSize: 16, fontWeight: 700, cursor: people ? "pointer" : "not-allowed" }}>
           注文入力へ →
         </button>
       </div>
@@ -645,26 +481,11 @@ export default function App() {
 
   if (sent) return (
     <div style={{ padding: 24, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-      {showCorrectModal && <CorrectModal />}
-
       <div style={{ fontSize: 72, marginBottom: 8 }}>✅</div>
       <div style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 900, marginBottom: 6 }}>キッチンに送りました</div>
-      <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 20 }}>テーブル {selectedTable}・{people}名</div>
+      <div style={{ color: "#8a7050", fontSize: 18, marginBottom: 32 }}>テーブル {selectedTable}・{people}名</div>
 
-      {/* 修正ボタンを上に移動 */}
-      {countdown > 0 && (
-        <div style={{ width: "100%", maxWidth: 360, marginBottom: 20 }}>
-          <div style={{ textAlign: "center", color: "#c95a5a", fontSize: 22, marginBottom: 10, fontWeight: 900 }}>
-            ⏱ あと{countdown}秒間だけ修正できます
-          </div>
-          <button onClick={() => { setShowCorrectModal(true); setCorrectMode(null); setCorrectTableTarget(null); }}
-            style={{ width: "100%", padding: "22px 0", background: "#2a0a0a", border: "3px solid #c95a5a", borderRadius: 12, color: "#ff8888", fontSize: 24, fontWeight: 900, cursor: "pointer" }}>
-            ✏️ 注文を修正する
-          </button>
-        </div>
-      )}
-
-      <div style={{ background: "#1a120a", border: "1px solid #3d2c14", borderRadius: 14, padding: "20px 24px", marginBottom: 20, textAlign: "left", width: "100%", maxWidth: 360 }}>
+      <div style={{ background: "#1a120a", border: "1px solid #3d2c14", borderRadius: 14, padding: "20px 24px", marginBottom: 36, textAlign: "left", width: "100%", maxWidth: 360 }}>
         <div style={{ color: "#c9952a", fontWeight: 700, fontSize: 15, marginBottom: 14 }}>📋 ウェイトレスへ</div>
         <div style={{ color: "#f0e6d0", fontSize: 17, lineHeight: 2 }}>
           <div>① テーブルカードを厨房カウンターに準備してください。</div>
@@ -696,31 +517,20 @@ export default function App() {
 
     return (
     <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}>
-      <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "92vh", overflow: "auto" }}>
-
-        {/* テーブル番号 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-          <span style={{ background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 36, borderRadius: 10, padding: "4px 16px", border: "3px solid #ff6666" }}>{selectedTable}</span>
-          <span style={{ color: "#8a7050", fontSize: 14 }}>{people}名</span>
-        </div>
-
+      <div style={{ background: "#1c1208", border: "1px solid #3d2c14", borderRadius: 12, padding: 24, width: "90%", maxWidth: 400, maxHeight: "80vh", overflow: "auto" }}>
+        <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>注文確認</div>
+        <div style={{ color: "#c9952a", fontSize: 32, fontWeight: 900, marginBottom: 12, fontFamily: "serif" }}>テーブル {selectedTable}　<span style={{ fontSize: 18, color: "#8a7050" }}>{people}名</span></div>
         <button onClick={() => setTakeout(t => !t)} style={{ width: "100%", padding: "10px 0", marginBottom: 12, background: takeout ? "#1a3a1a" : "#1c1208", border: `2px solid ${takeout ? "#4aaa5a" : "#3d2c14"}`, borderRadius: 8, color: takeout ? "#4aaa5a" : "#8a7050", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
           {takeout ? "🛍 持ち帰り（税8%）✓" : "🛍 持ち帰りにする（税8%）"}
         </button>
-
-        {/* 復唱点滅 */}
-        <style>{`@keyframes blink-warn { 0%,100%{background:#2a1a0a;border-color:#c9952a;} 50%{background:#4a2a0a;border-color:#ffcc44;} }`}</style>
-        <div style={{ border: "3px solid #c9952a", borderRadius: 10, padding: "12px 14px", marginBottom: 14, textAlign: "center", animation: "blink-warn 1s infinite" }}>
-          <div style={{ color: "#f0e6d0", fontWeight: 700, fontSize: 18, marginBottom: 6 }}>オーダーはあっていますか？</div>
-          <div style={{ color: "#ffcc44", fontWeight: 900, fontSize: 26 }}>⚠️ 必ず復唱‼️</div>
+        <div style={{ background: "#2a1a0a", border: "2px solid #c9952a", borderRadius: 10, padding: "12px 14px", marginBottom: 14, textAlign: "center" }}>
+          <div style={{ color: "#fff", fontWeight: 900, fontSize: 24 }}>⚠️ 必ず復唱‼️</div>
         </div>
-
-        {/* メニュー大きく */}
         <div style={{ borderTop: "1px solid #3d2c14", paddingTop: 12, marginBottom: 12 }}>
           {cart.map((item, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #3d2c1433" }}>
-              <span style={{ color: "#f0e6d0", fontSize: 28, fontWeight: 900 }}>{item.label || item.name}</span>
-              <span style={{ color: "#c9952a", fontFamily: "serif", fontSize: 28, fontWeight: 900 }}>×{item.qty}</span>
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #3d2c1433" }}>
+              <span style={{ color: "#f0e6d0", fontSize: 24, fontWeight: 700 }}>{item.name} ×{item.qty}</span>
+              <span style={{ color: "#8a7050", fontFamily: "serif", fontSize: 12 }}>¥{(item.price * item.qty).toLocaleString()}</span>
             </div>
           ))}
           {autoDiscount > 0 && (
@@ -750,12 +560,12 @@ export default function App() {
   };
 
   return (
-    <div style={{ background: "#0f0a05", height: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0", display: "flex", flexDirection: "column" }}>
       {confirming && <ConfirmModal />}
 
       <div style={{ padding: "10px 16px", background: "#1c1208", borderBottom: "1px solid #3d2c14", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <span style={{ background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 34, borderRadius: 10, padding: "4px 16px", border: "3px solid #ff6666" }}>{selectedTable}</span>
+          <span style={{ color: "#c9952a", fontFamily: "serif", fontWeight: 900, fontSize: 28 }}>T{selectedTable}</span>
           <span style={{ color: "#8a7050", marginLeft: 8, fontSize: 16 }}>{people}名</span>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -792,13 +602,10 @@ export default function App() {
       )}
 
       <div style={{ display: "flex", borderBottom: "1px solid #3d2c14", background: "#1c1208", overflowX: "auto" }}>
-        {Object.keys(MENU).filter(cat => {
-          if (cat === "モーニング変更") return new Date().getHours() < 11;
-          return true;
-        }).map((cat) => (
+        {Object.keys(MENU).map((cat) => (
           <button key={cat} onClick={() => setActiveCat(cat)}
-            style={{ padding: "14px 16px", border: "none", background: cat === "モーニング変更" ? (activeCat === cat ? "#2a1a3a" : "#1a0a2a") : "none", color: cat === "モーニング変更" ? (activeCat === cat ? "#cc88ff" : "#884acc") : (activeCat === cat ? "#c9952a" : "#8a7050"), borderBottom: activeCat === cat ? `3px solid ${cat === "モーニング変更" ? "#cc88ff" : "#c9952a"}` : "3px solid transparent", cursor: "pointer", fontSize: 20, whiteSpace: "nowrap", flexShrink: 0, fontWeight: 700 }}>
-            {cat === "モーニング変更" ? "🌅 変更" : cat}
+            style={{ padding: "14px 16px", border: "none", background: "none", color: activeCat === cat ? "#c9952a" : "#8a7050", borderBottom: activeCat === cat ? "3px solid #c9952a" : "3px solid transparent", cursor: "pointer", fontSize: 20, whiteSpace: "nowrap", flexShrink: 0, fontWeight: 700 }}>
+            {cat}
           </button>
         ))}
       </div>
@@ -811,7 +618,7 @@ export default function App() {
             <div key={item.id}
               style={{ display: "flex", alignItems: "center", padding: "11px 14px", background: isDiscount ? "#0a1508" : "#201508", border: `1px solid ${qty > 0 ? "#6a4d15" : isDiscount ? "#1a4020" : "#352510"}`, borderRadius: 10, marginBottom: 6 }}>
               <div style={{ flex: 1, cursor: "pointer" }} onClick={() => addItem(item)}>
-                <div style={{ color: isDiscount ? "#4aaa5a" : "#f0e6d0", fontSize: 28, fontWeight: 700, lineHeight: 1.3 }}>{item.label || item.name}</div>
+                <div style={{ color: isDiscount ? "#4aaa5a" : "#f0e6d0", fontSize: 28, fontWeight: 700, lineHeight: 1.3 }}>{item.name}</div>
                 <div style={{ color: isDiscount ? "#4aaa5a" : "#8a7050", fontSize: 13, marginTop: 2 }}>
                   {isDiscount ? `-¥${Math.abs(item.price)}` : `¥${item.price.toLocaleString()}`}
                 </div>
