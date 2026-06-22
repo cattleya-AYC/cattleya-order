@@ -1,0 +1,1869 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1e293b">
+<link rel="apple-touch-icon" href="shift.PNG">
+<link rel="icon" href="shift.PNG">
+<title>カトレア シフト管理</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f8fafc;color:#333;font-size:14px;}
+.hd{background:#1e293b;color:#fff;padding:0 14px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:10;}
+.hd h1{font-size:16px;font-weight:700;}
+.tabs{display:flex;gap:3px;}
+.tabs button{padding:5px 10px;border-radius:20px;border:none;cursor:pointer;font-weight:600;font-size:11px;background:rgba(255,255,255,0.15);color:#fff;}
+.tabs button.on{background:#3b82f6;}
+.nav{display:flex;align-items:center;gap:8px;padding:10px 14px 4px;}
+.nav span{font-weight:700;font-size:18px;color:#1e293b;}
+.nb{width:28px;height:28px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-size:15px;color:#475569;font-weight:700;}
+.acts{display:flex;gap:5px;flex-wrap:wrap;padding:4px 14px 8px;}
+.acts button{border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:11px;padding:7px 12px;white-space:nowrap;}
+.legend{display:flex;gap:8px;padding:2px 14px 8px;flex-wrap:wrap;}
+.legend span{display:flex;align-items:center;gap:3px;font-size:10px;color:#64748b;}
+.dot{width:8px;height:8px;border-radius:2px;display:inline-block;}
+/* カレンダー */
+.twrap{overflow-x:auto;padding:0 14px 24px;}
+.tbl{border-collapse:collapse;min-width:100%;}
+.tbl th{padding:5px 2px;font-weight:600;font-size:10px;text-align:center;border-bottom:2px solid #e2e8f0;white-space:nowrap;min-width:46px;background:#f1f5f9;color:#475569;}
+.tbl th.stk{position:sticky;left:0;z-index:2;min-width:68px;}
+.tbl th.sun{background:#fee2e2;color:#dc2626;}
+.tbl th.sat{background:#eff6ff;color:#2563eb;}
+.tbl th.hol{background:#f3f4f6;color:#9ca3af;}
+.tbl td.stk{position:sticky;left:0;padding:5px 8px;font-weight:600;font-size:12px;color:#1e293b;white-space:nowrap;border-right:2px solid #e2e8f0;border-bottom:1px solid #f1f5f9;}
+.tbl td.dc{padding:2px;text-align:center;cursor:pointer;border-bottom:1px solid #f1f5f9;border-right:1px solid #f1f5f9;min-width:46px;vertical-align:top;}
+.chip{border-radius:5px;padding:2px 2px;font-size:8px;line-height:1.4;position:relative;}
+.plus{height:32px;display:flex;align-items:center;justify-content:center;color:#d1d5db;font-size:16px;}
+.closed{height:32px;display:flex;align-items:center;justify-content:center;color:#d1d5db;font-size:9px;}
+/* モーダル */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:200;}
+.modal{background:#fff;border-radius:16px;padding:20px;box-shadow:0 24px 64px rgba(0,0,0,0.2);min-width:310px;max-width:94vw;max-height:88vh;overflow-y:auto;}
+.modal h3{font-size:15px;font-weight:700;color:#1e293b;margin-bottom:12px;}
+.dep-box{border-radius:10px;padding:12px;margin-bottom:10px;}
+.dep-box label{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;margin-bottom:8px;cursor:pointer;}
+.dep-box input[type=checkbox]{width:18px;height:18px;}
+.time-row{display:flex;gap:10px;}
+.time-row>div{flex:1;}
+.time-row label{display:block;font-size:11px;color:#64748b;margin-bottom:3px;}
+.time-row select{width:100%;padding:8px;border-radius:8px;font-size:14px;}
+.brk-box{background:#f5f3ff;border-radius:10px;padding:12px;margin-bottom:14px;}
+.brk-btns{display:flex;gap:8px;margin:8px 0;}
+.brk-btns button{flex:1;padding:9px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;}
+.modal-btns button{border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:12px;padding:9px 16px;}
+/* 過不足 */
+.cov-wrap{padding:0 14px 24px;}
+.heat-grid{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:12px;}
+.heat-cell{display:flex;flex-direction:column;align-items:center;gap:1px;}
+.heat-box{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;}
+/* 集計 */
+.sum-wrap{overflow-x:auto;padding:0 14px 24px;}
+.sum-tbl{border-collapse:collapse;min-width:400px;}
+.sum-tbl th,.sum-tbl td{padding:8px 6px;text-align:center;font-size:12px;border-bottom:1px solid #f1f5f9;}
+.sum-tbl th{background:#f1f5f9;font-weight:600;color:#475569;}
+.sum-tbl th.stk,.sum-tbl td.stk{position:sticky;left:0;text-align:left;padding-left:10px;}
+.sum-tbl th.stk{background:#f1f5f9;}
+/* 予定vs実績 */
+.act-note{display:flex;gap:10px;padding:6px 14px;font-size:10px;flex-wrap:wrap;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:9px 20px;border-radius:24px;font-weight:600;font-size:12px;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,0.3);pointer-events:none;white-space:nowrap;}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <h1>📅 シフト管理</h1>
+  <div class="tabs">
+    <button class="on" onclick="setTab('calendar')">カレンダー</button>
+    <button onclick="setTab('actual')">予定vs実績</button>
+    <button onclick="setTab('coverage')">過不足</button>
+    <button onclick="setTab('summary')">集計</button>
+    <button onclick="setTab('wish')">🙋希望</button>
+    <button onclick="setTab('timeline')">📊 日別</button>
+    <button onclick="setTab('pay')">💰 給与</button>
+    <button onclick="setTab('shifttpl')">📋 出勤設定</button>
+    <button onclick="setTab('brkset')">⚙️休憩設定</button>
+    <button onclick="setTab('break')">☕休憩</button>
+  </div>
+</div>
+
+<div id="app"></div>
+<div id="toast" class="toast" style="display:none"></div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.7.2/firebase-app.js";
+import{getFirestore,collection,getDocs,query,where}from"https://www.gstatic.com/firebasejs/10.7.2/firebase-firestore.js";
+
+const FB={apiKey:"AIzaSyA0P2xZW4uXbBL4dOFhuYLoFuXPAz68Ef4",authDomain:"cattleya-timecard.firebaseapp.com",projectId:"cattleya-timecard",storageBucket:"cattleya-timecard.firebasestorage.app",messagingSenderId:"308051028432",appId:"1:308051028432:web:f84c12cd3114878982f1d5"};
+const fbApp=initializeApp(FB,"shift-app");
+const db=getFirestore(fbApp);
+
+// ── スタッフ ──
+const STAFF=[
+  {id:"tencho",  name:"店長"},
+  {id:"chief",   name:"チーフ"},
+  {id:"sasaki",  name:"佐々木"},
+  {id:"shirota", name:"城田"},
+  {id:"miyagawa",name:"宮川"},
+  {id:"ibuchi",  name:"井渕"},
+  {id:"suenaga", name:"末永"},
+];
+
+// ── 定数 ──
+const DEPTS=[
+  {id:"hall",   label:"ホール",    color:"#3b82f6",tc:"#fff"},
+  {id:"support",label:"ホール補助",color:"#a78bfa",tc:"#fff"},
+  {id:"kitchen",label:"厨房",      color:"#f59e42",tc:"#fff"},
+];
+const ALL_TIMES=["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30","21:00"];
+const START_TIMES=ALL_TIMES;
+const END_TIMES  =ALL_TIMES;
+// 店長用（9:00〜20:00、30分刻み）
+const TENCHO_TIMES=["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
+const KITCHEN_START_TENCHO=TENCHO_TIMES; // 後方互換
+const BRK_TIMES  =["11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00"];
+const BANK_TIMES =["10:45","11:00","11:15","11:30","15:00","15:15","15:30"];
+const SHIFT_START_TIMES=ALL_TIMES;
+const SHIFT_END_TIMES  =ALL_TIMES;
+const WD=["日","月","火","水","木","金","土"];
+const HOLIDAYS=["2026-01-01","2026-01-12","2026-02-11","2026-02-23","2026-03-20","2026-04-29","2026-05-03","2026-05-04","2026-05-05","2026-05-06","2026-07-20","2026-08-11","2026-09-21","2026-09-22","2026-09-23","2026-10-12","2026-11-03","2026-11-23","2026-12-23"];
+
+// ホール+補助の必要人数（合算）、厨房別
+const DEF_REQ={
+  hall:   {8:1,9:1,10:2,11:2,12:3,13:3,14:3,15:2,16:2,17:2,18:2,19:1,20:1,21:1},
+  kitchen:{8:1,9:1,10:1,11:2,12:2,13:2,14:2,15:2,16:2,17:2,18:2,19:1,20:1,21:1},
+};
+
+// ── ストレージ ──
+const ls={
+  get:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;}},
+  set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}},
+};
+let shifts  = ls.get("sh2_shifts",{});
+let dayoff  = ls.get("sh2_dayoff",{});
+let req     = ls.get("sh2_req",{});
+let breaks  = ls.get("sh2_breaks",{});
+let wishes  = ls.get("sh2_wishes",{});
+// 休憩テンプレート: { staffId: { default:"12:00", byDow:{1:"12:00",2:"13:00",...} } }
+// bank: 銀行入金時間帯 { staffId: { default:"11:00", byDow:{...} } }
+let brkTpl  = ls.get("sh2_brktpl",{});  // 通常休憩テンプレート
+// 出勤テンプレート: { staffId: { byDow: {1:{start,end,off}, 2:...} } }
+let shiftTpl = ls.get("sh2_shifttpl",{});
+let shiftTplFrom = ls.get("sh2_shifttplFrom", 1);
+// 給与設定: { staffId: { rate:1330, allowance:0 } }
+let paySettings = ls.get("sh2_pay", {
+  tencho:   {rate:1330, allowance:0},
+  chief:    {rate:1330, allowance:0},
+  sasaki:   {rate:1330, allowance:0},
+  shirota:  {rate:1330, allowance:0},
+  miyagawa: {rate:1330, allowance:0},
+  ibuchi:   {rate:1330, allowance:0},
+  suenaga:  {rate:1330, allowance:0},
+});
+let payWeekStart = ls.get("sh2_payWeekStart", 1); // 週の開始日
+let dayCopySrc = null;   // { d: 22 } 日コピー元
+let cellCopySrc = null;  // { sid, d } セルコピー元 // 反映開始日
+let bankTpl = ls.get("sh2_banktpl",{}); // 銀行入金テンプレート（店長のみ）
+
+function getBrkTplTime(sid, dow){
+  const tpl=brkTpl[sid]||{};
+  return tpl.byDow?.[dow] ?? tpl.default ?? null;
+}
+function getBankTplTime(sid, dow){
+  const tpl=bankTpl[sid]||{};
+  return tpl.byDow?.[dow] ?? tpl.default ?? null;
+} // { "staffId_Y_M_D": {start:"10:00",end:"18:00"} or "off" or null } // { "staffId_Y_M_D": "12:00" }
+let actual  = {};
+let actualLoaded = false;
+
+// 店長の休憩は15:00固定
+const FIXED_BREAK = {tencho: "15:00"};
+
+// スタッフのメイン部門（自動生成用）
+const STAFF_DEPT = {
+  tencho:   ["support"],           // ホール補助メイン
+  miyagawa: ["hall"],              // ホールメイン
+  suenaga:  ["hall"],              // ホールメイン
+  shirota:  ["hall"],              // ホールメイン
+  ibuchi:   ["hall","kitchen"],    // ホールメイン（月曜のみ厨房）
+  chief:    ["kitchen"],           // 厨房メイン
+  sasaki:   ["kitchen"],           // 厨房メイン
+};
+
+// 月曜日は井渕が厨房
+function getStaffDept(sid, d){
+  const dow = new Date(Y,M,d).getDay();
+  if(sid==="ibuchi" && dow===1) return ["kitchen"];
+  return STAFF_DEPT[sid] || ["hall"];
+}
+const BRK_OPTIONS = ["11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30"];
+
+function getBrk(sid, d){
+  if(FIXED_BREAK[sid]) return FIXED_BREAK[sid];
+  return breaks[`${sid}_${Y}_${M+1}_${d}`] || null;
+}
+function setBrkData(sid, d, val){
+  breaks[`${sid}_${Y}_${M+1}_${d}`] = val;
+  ls.set("sh2_breaks", breaks);
+}
+
+// 休憩の重複チェックと自動ずらし提案
+function checkBrkConflicts(d){
+  const entries = []; // {sid, name, start}
+  STAFF.forEach(s=>{
+    const sh = getShift(s.id, d);
+    if(!sh || sh.off) return;
+    const brk = getBrk(s.id, d);
+    // シフト中の人のみ（どれかdeptに入っている）
+    const hasShift = DEPTS.some(dep=>sh[dep.id]);
+    if(hasShift && brk) entries.push({sid: s.id, name: s.name, start: brk, fixed: !!FIXED_BREAK[s.id]});
+  });
+
+  // 重複検出（同じ時間帯=30分間で2人以上）
+  const conflicts = [];
+  entries.forEach((a,i)=>{
+    entries.forEach((b,j)=>{
+      if(i>=j) return;
+      const am=t2m(a.start), bm=t2m(b.start);
+      if(Math.abs(am-bm) < 30) conflicts.push([a,b]);
+    });
+  });
+
+  // 自動ずらし提案
+  const suggestions = [];
+  if(conflicts.length > 0){
+    // 固定の人を除いた可動スタッフを対象にずらす
+    const fixed = entries.filter(e=>e.fixed);
+    const free  = entries.filter(e=>!e.fixed);
+
+    // 全員に時間を割り当てる（30分ずつずらす）
+    const fixedTimes = fixed.map(e=>t2m(e.start));
+    const usedTimes  = [...fixedTimes];
+    free.forEach(e=>{
+      let t = t2m(e.start) || t2m("12:00");
+      // 使われてない時間を探す
+      while(usedTimes.some(u=>Math.abs(u-t)<30)){
+        t += 30;
+        if(t >= 20*60) t = 11*60; // 20時超えたら11時に戻す
+      }
+      usedTimes.push(t);
+      const newTime = String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0");
+      if(newTime !== e.start) suggestions.push({sid:e.sid, name:e.name, from:e.start, to:newTime});
+    });
+  }
+
+  return {entries, conflicts, suggestions};
+}
+
+// ── 状態 ──
+const now=new Date();
+let Y=now.getFullYear(), M=now.getMonth(), coverView="day", copySrc=null;
+let heatDay=ls.get("sh2_heatDay", now.getDate());
+let curTab="calendar";
+
+// ── ユーティリティ ──
+const dim=(y,m)=>new Date(y,m+1,0).getDate();
+const dk=(d)=>`${Y}-${String(M+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+const sk=(sid,d)=>`${sid}_${Y}_${M+1}_${d}`;
+const t2m=t=>{if(!t)return null;const[h,m]=t.split(":").map(Number);return h*60+m;};
+const dur=min=>!min||min<=0?"-":Math.floor(min/60)+":"+String(min%60).padStart(2,"0");
+const hm=iso=>{if(!iso)return"?";const d=new Date(iso);return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");};
+
+function isHol(d){const dow=new Date(Y,M,d).getDay();if(dow===0||dow===6)return true;return HOLIDAYS.includes(dk(d));}
+function isStaffOff(sid,d){const dow=new Date(Y,M,d).getDay();return(dayoff[sid]||[]).includes(dow);}
+function getShift(sid,d){return shifts[sk(sid,d)]||null;}
+function getAct(sid,d){return actual[`${sid}_${dk(d)}`]||null;}
+function getReq(dept,h){
+  // hall+supportは合算してhallの必要人数と比較
+  const map=req[dept]||DEF_REQ[dept]||{};
+  return map[h]??2;
+}
+
+// ある時間hにdeptで在勤中か
+function isWorking(sh,dept,hm_min){
+  // hm_min: 分単位の時刻（例：8:30=510, 9:00=540）
+  if(!sh||sh.off)return false;
+  // 店長ブロック対応
+  if(sh.blocks&&sh.blocks.length){
+    return sh.blocks.some(b=>{
+      if(b.dept!==dept)return false;
+      const s=t2m(b.start),e=t2m(b.end);
+      if(s===null||e===null)return false;
+      const inBlock=e>s?hm_min>=s&&hm_min<e:hm_min>=s||hm_min<e;
+      if(!inBlock)return false;
+      if(sh.breakOn&&sh.breakStart){const bs=t2m(sh.breakStart);if(bs!==null&&hm_min>=bs&&hm_min<bs+30)return false;}
+      // 銀行入金中は離席（15分）
+      if(sh.bank1){const bb=t2m(sh.bank1);if(bb!==null&&hm_min>=bb&&hm_min<bb+15)return false;}
+      if(sh.bank2){const bb=t2m(sh.bank2);if(bb!==null&&hm_min>=bb&&hm_min<bb+15)return false;}
+      return true;
+    });
+  }
+  if(!sh[dept])return false;
+  const s=t2m(sh[dept].start),e=t2m(sh[dept].end);
+  if(s===null||e===null)return false;
+  const inShift=e>s?hm_min>=s&&hm_min<e:hm_min>=s||hm_min<e;
+  if(!inShift)return false;
+  if(sh.breakOn&&sh.breakStart){const bs=t2m(sh.breakStart);if(bs!==null&&hm_min>=bs&&hm_min<bs+30)return false;}
+  return true;
+}
+function isWorkingH(sh,dept,h){return isWorking(sh,dept,h*60);}
+
+// ホール+補助の合算在勤数
+function hallPlusSupport(d,hm_min){
+  return STAFF.filter(s=>isWorking(getShift(s.id,d),"hall",hm_min)||isWorking(getShift(s.id,d),"support",hm_min)).length;
+}
+function hallPlusSupportH(d,h){return hallPlusSupport(d,h*60);}
+
+// シフトから勤務時間（分）を計算（休憩・銀行入金を差し引く）
+function calcWorkMin(sh){
+  if(!sh||sh.off)return 0;
+  let total=0;
+  if(sh.blocks&&sh.blocks.length){
+    sh.blocks.forEach(b=>{
+      const s=t2m(b.start),e=t2m(b.end);
+      if(s!==null&&e!==null)total+=Math.max(0,e-s);
+    });
+  } else {
+    DEPTS.forEach(dep=>{
+      if(!sh[dep.id])return;
+      const s=t2m(sh[dep.id].start),e=t2m(sh[dep.id].end);
+      if(s!==null&&e!==null)total+=Math.max(0,e-s);
+    });
+  }
+  // 休憩30分を引く
+  if(sh.breakOn)total=Math.max(0,total-30);
+  // 15分休憩②を引く（給与対象のみ：break15NoPayがない場合）
+  if(sh.break15On&&!sh.break15NoPay)total=Math.max(0,total-15);
+  // 銀行入金（各15分）を引く
+  if(sh.bank1)total=Math.max(0,total-15);
+  if(sh.bank2)total=Math.max(0,total-15);
+  return total;
+}
+
+function totalPlanned(sh){
+  if(!sh||sh.off)return 0;
+  return DEPTS.reduce((a,dep)=>{
+    if(!sh[dep.id])return a;
+    const s=t2m(sh[dep.id].start),e=t2m(sh[dep.id].end);
+    if(s===null||e===null)return a;
+    const brk=sh.breakOn?30:0;
+    return a+Math.max(0,(e>s?e-s:1440-s+e)-brk);
+  },0);
+}
+
+// ── トースト ──
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.style.display="block";setTimeout(()=>t.style.display="none",2800);}
+
+// ── タブ切替 ──
+window.setTab=t=>{
+  curTab=t;
+  document.querySelectorAll(".tabs button").forEach((b,i)=>{
+    b.classList.toggle("on",["calendar","actual","coverage","summary","wish","timeline","pay","shifttpl","brkset","break"][i]===t);
+  });
+  render();
+};
+
+// ── チップHTML ──
+function chipHtml(sh,ac){
+  if(!sh)return`<div class="plus">+</div>`;
+  if(sh.off)return`<div style="background:#e2e8f0;border:1px solid #cbd5e1;border-radius:5px;padding:2px 3px;font-size:9px;color:#64748b;font-weight:600;text-align:center">休み</div>`;
+  let inner=`<div class="chip" style="position:relative">`;
+  if(sh.hall)inner+=`<div style="background:#3b82f6;color:#fff;border-radius:3px;padding:1px 2px;margin-bottom:1px;font-size:8px;font-weight:700">🔵${sh.hall.start}〜${sh.hall.end}</div>`;
+  if(sh.support)inner+=`<div style="background:#a78bfa;color:#fff;border-radius:3px;padding:1px 2px;margin-bottom:1px;font-size:8px;font-weight:700">🟣${sh.support.start}〜${sh.support.end}</div>`;
+  if(sh.kitchen)inner+=`<div style="background:#f59e42;color:#fff;border-radius:3px;padding:1px 2px;font-size:8px;font-weight:700">🟠${sh.kitchen.start}〜${sh.kitchen.end}</div>`;
+  if(sh.bank1)inner+=`<div style="font-size:7px;color:#854d0e;margin-top:1px">🏦${sh.bank1}</div>`;
+  if(sh.bank2)inner+=`<div style="font-size:7px;color:#854d0e;margin-top:1px">🏦${sh.bank2}</div>`;
+  if(sh.breakOn&&sh.breakStart)inner+=`<div style="font-size:7px;color:#666;margin-top:1px">☕${sh.breakStart}</div>`;
+  if(ac)inner+=`<span style="position:absolute;top:1px;right:1px;width:5px;height:5px;border-radius:50%;background:${ac.out?"#10b981":"#f59e42"};border:1px solid #fff"></span>`;
+  inner+=`</div>`;
+  return inner;
+}
+
+// ── メインレンダリング ──
+function render(){
+  const days=Array.from({length:dim(Y,M)},(_,i)=>i+1);
+  const workDays=days.filter(d=>!isHol(d));
+  let html="";
+
+  // 月ナビ + アクション
+  html+=`<div class="nav"><button class="nb" onclick="prev()">‹</button><span>${Y}年 ${M+1}月</span><button class="nb" onclick="next()">›</button></div>`;
+  html+=`<div class="acts">`;
+  html+=`<button onclick="fetchActual()" style="background:#eff6ff;color:#3b82f6">🔄 実績取得</button>`;
+  html+=`<button onclick="openReq()" style="background:#f5f3ff;color:#7c3aed">⚙️ 必要人数</button>`;
+  html+=`<button onclick="openStaff()" style="background:#f0fdf4;color:#16a34a">👤 定休設定</button>`;
+  html+=`<button onclick="printWish()" style="background:#fff7ed;color:#ea580c">📋 希望表</button>`;
+  html+=`<button onclick="doCopy()" style="background:#f1f5f9;color:#475569">📋 月コピー</button>`;
+  html+=`<button onclick="openDayCopy()" style="background:#f1f5f9;color:#475569">📋 日コピー</button>`;
+  if(copySrc)html+=`<button onclick="doPaste()" style="background:#f0fdf4;color:#16a34a">📌 貼付け</button>`;
+  html+=`<button onclick="doCSV()" style="background:#f0fdf4;color:#16a34a">📥 CSV</button>`;
+  html+=`</div>`;
+
+  // 凡例
+  html+=`<div class="legend">`;
+  html+=`<span><span class="dot" style="background:#3b82f6"></span>ホール</span>`;
+  html+=`<span><span class="dot" style="background:#a78bfa"></span>ホール補助</span>`;
+  html+=`<span><span class="dot" style="background:#f59e42"></span>厨房</span>`;
+  html+=`<span><span class="dot" style="background:#e2e8f0;border:1px solid #ccc"></span>休み</span>`;
+  if(actualLoaded)html+=`<span>🟢実績あり 🟠退勤未記録</span>`;
+  html+=`</div>`;
+
+  // ── カレンダー ──
+  if(curTab==="calendar"){
+    html+=`<div class="twrap"><table class="tbl"><thead><tr><th class="stk">スタッフ</th>`;
+    days.forEach(d=>{
+      const dow=new Date(Y,M,d).getDay();
+      const hol=isHol(d);
+      html+=`<th class="${hol?"hol":dow===0?"sun":dow===6?"sat":""}">${d}<br><span style="font-size:8px;opacity:.7">${hol?"休":WD[dow]}</span></th>`;
+    });
+    html+=`</tr></thead><tbody>`;
+    STAFF.forEach((s,si)=>{
+      const bg=si%2===0?"#fff":"#f8fafc";
+      html+=`<tr><td class="stk" style="background:${bg}">${s.name}</td>`;
+      days.forEach(d=>{
+        const hol=isHol(d);
+        const soff=!hol&&isStaffOff(s.id,d);
+        const sh=getShift(s.id,d);
+        const ac=getAct(s.id,d);
+        const bg2=hol?"#f3f4f6":soff?"#f5f5f5":bg;
+        html+=`<td class="dc" style="background:${bg2}" ${!hol&&!soff?`onclick="openCell('${s.id}',${d})"`:""}>`;
+        if(hol)html+=`<div class="closed">定休</div>`;
+        else if(soff)html+=`<div class="closed">個休</div>`;
+        else html+=chipHtml(sh,ac);
+        html+=`</td>`;
+      });
+      html+=`</tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  }
+
+  // ── 予定vs実績 ──
+  else if(curTab==="actual"){
+    if(!actualLoaded){
+      html+=`<div style="text-align:center;padding:40px;color:#94a3b8"><div style="font-size:32px;margin-bottom:12px">📋</div><p style="margin-bottom:16px;font-weight:600;color:#475569">「🔄 実績取得」を押してください</p><button onclick="fetchActual()" style="padding:10px 20px;background:#3b82f6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700">🔄 実績を取得する</button></div>`;
+    }else{
+      html+=`<div class="twrap"><table class="tbl"><thead><tr><th class="stk">スタッフ</th>`;
+      days.forEach(d=>{const dow=new Date(Y,M,d).getDay();const hol=isHol(d);html+=`<th class="${hol?"hol":""}">${d}<br><span style="font-size:8px;opacity:.7">${hol?"休":WD[dow]}</span></th>`;});
+      html+=`</tr></thead><tbody>`;
+      STAFF.forEach((s,si)=>{
+        const bg=si%2===0?"#fff":"#f8fafc";
+        html+=`<tr><td class="stk" style="background:${bg}">${s.name}</td>`;
+        days.forEach(d=>{
+          const hol=isHol(d);const sh=getShift(s.id,d);const ac=getAct(s.id,d);
+          const pm=totalPlanned(sh);
+          const diff=sh&&!sh.off&&ac&&ac.min!=null?ac.min-pm:null;
+          html+=`<td style="padding:2px;background:${hol?"#f3f4f6":bg};border-bottom:1px solid #f1f5f9;border-right:1px solid #f1f5f9;min-width:50px;vertical-align:top">`;
+          if(!hol&&(sh||ac)){
+            html+=`<div style="font-size:8px;line-height:1.5;padding:1px 2px">`;
+            if(sh&&!sh.off){
+              DEPTS.forEach(dep=>{if(sh[dep.id])html+=`<div style="color:${dep.color};font-weight:700">${dep.label[0]}:${sh[dep.id].start}〜${sh[dep.id].end}</div>`;});
+            }
+            if(sh?.off)html+=`<div style="color:#94a3b8">休み</div>`;
+            if(ac)html+=`<div style="color:${ac.out?"#1e293b":"#f59e42"};border-top:1px dashed #e2e8f0;padding-top:1px">${hm(ac.in)}→${ac.out?hm(ac.out):'<span style="color:#f59e42">未</span>'}</div>`;
+            if(diff!=null)html+=`<div style="font-weight:700;color:${diff>=0?"#16a34a":"#dc2626"}">${diff>=0?"+":""}${diff}分</div>`;
+            html+=`</div>`;
+          }
+          html+=`</td>`;
+        });
+        html+=`</tr>`;
+      });
+      html+=`</tbody></table></div>`;
+      html+=`<div class="act-note"><span style="color:#3b82f6;font-weight:600">青=ホール予定</span><span style="color:#a78bfa;font-weight:600">紫=補助予定</span><span style="color:#f59e42;font-weight:600">橙=厨房予定</span><span style="color:#1e293b;font-weight:600">黒=実績</span><span style="color:#16a34a;font-weight:600">緑=超過</span><span style="color:#dc2626;font-weight:600">赤=不足</span></div>`;
+    }
+  }
+
+  // ── 過不足 ──
+  else if(curTab==="coverage"){
+    // heatDayが営業日でない場合、最初の営業日に修正
+    if(workDays.length>0 && !workDays.includes(heatDay)) heatDay=workDays[0];
+    // 表示切替
+    html+=`<div style="display:flex;gap:6px;padding:8px 14px 12px">`;
+    [["day","日別"],["week","週別"],["month","月別"]].forEach(([v,l])=>{
+      html+=`<button onclick="coverView='${v}';render()" style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;font-weight:600;font-size:12px;background:${coverView===v?"#1e293b":"#f1f5f9"};color:${coverView===v?"#fff":"#475569"}">${l}</button>`;
+    });
+    html+=`</div>`;
+
+    html+=`<div class="cov-wrap">`;
+
+    // ── 日別バー（ホール+補助合算 & 厨房） ──
+    html+=`<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:10px">📊 日別 在勤人数 vs 必要人数</div>`;
+    [
+      {id:"hall", label:"ホール＋補助", color:"#3b82f6", fn:(d,hm)=>hallPlusSupport(d,hm)},
+      {id:"kitchen", label:"厨房", color:"#f59e42", fn:(d,hm)=>STAFF.filter(s=>isWorking(getShift(s.id,d),"kitchen",hm)).length},
+    ].forEach(dep=>{
+      html+=`<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:${dep.color};margin-bottom:6px"><span style="display:inline-block;width:10px;height:10px;background:${dep.color};border-radius:2px;margin-right:4px"></span>${dep.label}</div>`;
+      html+=`<div style="overflow-x:auto"><div style="display:flex;gap:3px;align-items:flex-end;min-width:${workDays.length*32}px;padding-bottom:4px">`;
+      workDays.forEach(d=>{
+        let maxW=0,minDiff=999;
+        for(let h=8;h<=21;h++){const w=dep.fn(d,h*60);const r=getReq(dep.id,h);if(w>maxW)maxW=w;if(w-r<minDiff)minDiff=w-r;}
+        const mx=Math.max(maxW,3);
+        html+=`<div style="display:flex;flex-direction:column;align-items:center;gap:1px;flex:1;min-width:30px">`;
+        html+=`<div style="font-size:9px;font-weight:700;color:${minDiff<0?"#dc2626":minDiff===0?"#16a34a":"#f59e0b"}">${minDiff>0?"+"+minDiff:minDiff}</div>`;
+        html+=`<div style="width:100%;background:${dep.color};border-radius:3px 3px 0 0;height:${Math.max(maxW?(maxW/mx)*56:0,2)}px"></div>`;
+        const dow2=new Date(Y,M,d).getDay();
+        html+=`<div style="font-size:8px;color:${dow2===1?"#2563eb":"#64748b"};text-align:center;line-height:1.3">${d}<br>${WD[dow2]}</div>`;
+        html+=`</div>`;
+      });
+      html+=`</div></div></div>`;
+    });
+
+    // ── 時間帯ヒートマップ ──
+    html+=`<div style="font-weight:700;font-size:13px;color:#1e293b;margin:12px 0 8px">🕐 時間帯別 在勤人数</div>`;
+
+    if(coverView==="day"){
+      html+=`<select onchange="setHeatDay(+this.value)" style="padding:6px 10px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;margin-bottom:10px;background:#fff">`;
+      workDays.forEach(d=>{html+=`<option value="${d}"${d===heatDay?" selected":""}>${M+1}/${d}(${WD[new Date(Y,M,d).getDay()]})</option>`;});
+      html+=`</select>`;
+      // ホール+補助合算
+      [
+        {label:"ホール＋補助",color:"#3b82f6",fn:(m)=>hallPlusSupport(heatDay,m),reqKey:"hall"},
+        {label:"厨房",color:"#f59e42",fn:(m)=>STAFF.filter(s=>isWorking(getShift(s.id,heatDay),"kitchen",m)).length,reqKey:"kitchen"},
+      ].forEach(dep=>{
+        const reqH=h=>getReq(dep.reqKey,h);
+        html+=`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:${dep.color};margin-bottom:5px">${dep.label}</div><div class="heat-grid">`;
+        for(let m=510;m<=1260;m+=30){
+          const n=dep.fn(m);const h=Math.floor(m/60);const min=m%60;
+          const r=reqH(h);
+          const bg=n===0?"#f1f5f9":n>=r?"#bbf7d0":n===r-1?"#fef08a":"#fecaca";
+          const label=String(h).padStart(2,"0")+":"+(min===0?"00":"30");
+          html+=`<div class="heat-cell"><div class="heat-box" style="background:${bg};color:${n===0?"#cbd5e1":"#1e293b"};font-size:12px">${n||""}</div><div style="font-size:7px;color:#94a3b8">${label}</div><div style="font-size:7px;color:#d1d5db">/${r}</div></div>`;
+        }
+        html+=`</div></div>`;
+      });
+    } else {
+      const showDays=coverView==="week"?workDays.slice(0,7):workDays;
+      [
+        {label:"ホール＋補助",color:"#3b82f6",fn:(d,m)=>hallPlusSupport(d,m),reqKey:"hall"},
+        {label:"厨房",color:"#f59e42",fn:(d,m)=>STAFF.filter(s=>isWorking(getShift(s.id,d),"kitchen",m)).length,reqKey:"kitchen"},
+      ].forEach(dep=>{
+        html+=`<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:700;color:${dep.color};margin-bottom:5px">${dep.label}</div><div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:9px"><thead><tr><th style="padding:2px 4px;color:#94a3b8;position:sticky;left:0;background:#fff">時間</th>`;
+        showDays.forEach(d=>{html+=`<th style="padding:2px 3px;text-align:center;color:#475569;min-width:22px">${d}<br>${WD[new Date(Y,M,d).getDay()]}</th>`;});
+        html+=`</tr></thead><tbody>`;
+        for(let m=510;m<=1260;m+=30){
+          const h=Math.floor(m/60);const min=m%60;
+          const r=getReq(dep.reqKey,h);
+          const label=String(h).padStart(2,"0")+":"+(min===0?"00":"30");
+          html+=`<tr><td style="padding:2px 4px;white-space:nowrap;color:#94a3b8;position:sticky;left:0;background:#fff">${label}<span style="color:#e5e7eb">/${r}</span></td>`;
+          showDays.forEach(d=>{
+            const n=dep.fn(d,m);
+            const bg=n===0?"#f3f4f6":n>=r?"#bbf7d0":n===r-1?"#fef08a":"#fecaca";
+            html+=`<td style="padding:1px"><div style="width:20px;height:20px;border-radius:4px;background:${bg};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9px;color:${n===0?"#d1d5db":"#1e293b"};margin:auto">${n||""}</div></td>`;
+          });
+          html+=`</tr>`;
+        }
+        html+=`</tbody></table></div></div>`;
+      });
+    }
+    html+=`<div style="display:flex;gap:8px;font-size:10px;flex-wrap:wrap;margin-top:4px"><span style="background:#bbf7d0;padding:2px 8px;border-radius:4px">充足</span><span style="background:#fef08a;padding:2px 8px;border-radius:4px">あと1人</span><span style="background:#fecaca;padding:2px 8px;border-radius:4px">不足</span></div>`;
+    html+=`</div>`;
+  }
+
+  // ── 集計 ──
+  else if(curTab==="summary"){
+    html+=`<div class="sum-wrap"><table class="sum-tbl"><thead><tr><th class="stk">スタッフ</th><th style="color:#3b82f6">ホール</th><th style="color:#a78bfa">補助</th><th style="color:#f59e42">厨房</th><th>休み</th><th>出勤日</th><th>予定時間</th>${actualLoaded?"<th>実績時間</th><th>差異</th>":""}</tr></thead><tbody>`;
+    STAFF.forEach((s,si)=>{
+      const bg=si%2===0?"#fff":"#f8fafc";
+      let hc=0,sc=0,kc=0,oc=0,pm=0,am=0;
+      Array.from({length:dim(Y,M)},(_,i)=>i+1).forEach(d=>{
+        if(isHol(d)||isStaffOff(s.id,d))return;
+        const sh=getShift(s.id,d);if(!sh)return;
+        if(sh.off){oc++;return;}
+        if(sh.hall)hc++;if(sh.support)sc++;if(sh.kitchen)kc++;
+        pm+=totalPlanned(sh);
+        const ac=getAct(s.id,d);if(ac?.min)am+=ac.min;
+      });
+      const work=Array.from({length:dim(Y,M)},(_,i)=>i+1).filter(d=>{if(isHol(d)||isStaffOff(s.id,d))return false;const sh=getShift(s.id,d);return sh&&!sh.off&&(sh.hall||sh.support||sh.kitchen);}).length;
+      const diff=actualLoaded?am-pm:null;
+      html+=`<tr style="background:${bg}"><td class="stk" style="background:${bg}">${s.name}</td>`;
+      html+=`<td style="color:${hc?"#3b82f6":"#d1d5db"};font-weight:600">${hc||"-"}</td>`;
+      html+=`<td style="color:${sc?"#a78bfa":"#d1d5db"};font-weight:600">${sc||"-"}</td>`;
+      html+=`<td style="color:${kc?"#f59e42":"#d1d5db"};font-weight:600">${kc||"-"}</td>`;
+      html+=`<td style="color:#94a3b8">${oc||"-"}</td>`;
+      html+=`<td style="font-weight:700;color:#1e293b">${work}</td>`;
+      html+=`<td>${dur(pm)}</td>`;
+      if(actualLoaded){html+=`<td style="font-weight:600">${dur(am)}</td><td style="font-weight:700;color:${diff!=null&&diff>=0?"#16a34a":"#dc2626"}">${diff!=null?(diff>=0?"+":"")+diff+"分":"-"}</td>`;}
+      html+=`</tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  }
+
+  // ── 日別タイムラインタブ ──
+  if(curTab==="timeline"){
+    const wDays=Array.from({length:dim(Y,M)},(_,i)=>i+1).filter(d=>!isHol(d));
+    if(!wDays.includes(heatDay)) heatDay=wDays[0]||1;
+
+    html+=`<div style="padding:0 14px 24px">`;
+    html+=`<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:8px">📊 日別タイムライン</div>`;
+
+    // 日付セレクト
+    html+=`<select onchange="setHeatDay(+this.value)" style="padding:7px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px;margin-bottom:16px;background:#fff">`;
+    wDays.forEach(d=>{html+=`<option value="${d}"${d===heatDay?" selected":""}>${M+1}/${d}(${WD[new Date(Y,M,d).getDay()]})</option>`;});
+    html+=`</select>`;
+
+    // 時間軸の設定（9:00〜20:00）
+    const TL_START=9*60; // 540分
+    const TL_END=20*60;  // 1200分
+    const TL_TOTAL=TL_END-TL_START;
+
+    // 時間軸ヘッダー
+    const timeLabels=[];
+    for(let h=9;h<=20;h++) timeLabels.push(h);
+
+    function pct(min){return Math.max(0,Math.min(100,((min-TL_START)/TL_TOTAL)*100));}
+
+    // 時間軸（ラベル＋縦線）
+    html+=`<div style="margin-left:64px;margin-bottom:0;position:relative;height:18px">`;
+    timeLabels.forEach(h=>{
+      const left=pct(h*60);
+      html+=`<div style="position:absolute;left:${left}%;transform:translateX(-50%);font-size:9px;color:#94a3b8;text-align:center">${h}</div>`;
+    });
+    html+=`</div>`;
+    // 時間軸の下線（ラベルとバーの境界）
+    html+=`<div style="margin-left:64px;position:relative;height:6px;margin-bottom:2px">`;
+    timeLabels.forEach(h=>{
+      const left=pct(h*60);
+      html+=`<div style="position:absolute;left:${left}%;top:0;bottom:0;width:1px;background:#d1d5db"></div>`;
+    });
+    html+=`</div>`;
+
+    // グリッド線の関数（バー内の縦線）
+    const gridLines=()=>{
+      let g="";
+      timeLabels.forEach(h=>{
+        const left=pct(h*60);
+        g+=`<div style="position:absolute;left:${left}%;top:0;bottom:0;width:1px;background:rgba(0,0,0,0.10);z-index:2;pointer-events:none"></div>`;
+      });
+      return g;
+    };
+
+    // ── ホール＋補助 ──
+    const hallStaff=STAFF.filter(s=>{
+      const sh=getShift(s.id,heatDay);
+      if(!sh||sh.off)return false;
+      if(sh.blocks) return sh.blocks.some(b=>b.dept==="hall"||b.dept==="support");
+      return sh.hall||sh.support;
+    });
+
+    if(hallStaff.length){
+      html+=`<div style="margin-bottom:20px">`;
+      html+=`<div style="font-size:12px;font-weight:700;color:#3b82f6;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;background:#3b82f6;border-radius:2px"></span>ホール＋補助</div>`;
+
+      hallStaff.forEach(s=>{
+        const sh=getShift(s.id,heatDay);
+        html+=`<div style="display:flex;align-items:center;margin-bottom:6px">`;
+        html+=`<div style="width:58px;font-size:11px;font-weight:600;color:#1e293b;flex-shrink:0;text-align:right;padding-right:8px">${s.name}</div>`;
+        html+=`<div style="flex:1;height:28px;position:relative;background:#f8fafc;border-radius:6px;overflow:hidden">`;
+        html+=gridLines();
+
+        const isTencho=s.id==="tencho";
+        const DCOL={hall:"#3b82f6",support:"#a78bfa",kitchen:"#f59e42"};
+
+        if(isTencho&&sh.blocks){
+          // 店長ブロック
+          sh.blocks.forEach(b=>{
+            if(b.dept==="kitchen")return; // ホール系のみ
+            const s2=t2m(b.start),e2=t2m(b.end);
+            const left=pct(s2),width=pct(e2)-pct(s2);
+            html+=`<div style="position:absolute;left:${left}%;width:${width}%;top:3px;height:22px;background:${DCOL[b.dept]};border-radius:4px;opacity:0.85" title="${b.dept} ${b.start}〜${b.end}"></div>`;
+          });
+        } else {
+          // 通常スタッフ
+          ["hall","support"].forEach(dept=>{
+            if(!sh[dept])return;
+            const s2=t2m(sh[dept].start),e2=t2m(sh[dept].end);
+            const left=pct(s2),width=pct(e2)-pct(s2);
+            html+=`<div style="position:absolute;left:${left}%;width:${width}%;top:3px;height:22px;background:${DCOL[dept]};border-radius:4px;opacity:0.85"></div>`;
+          });
+        }
+
+        // 休憩（グレー）
+        if(sh.breakOn&&sh.breakStart){
+          const bs=t2m(sh.breakStart);
+          const left=pct(bs),width=pct(bs+30)-pct(bs);
+          html+=`<div style="position:absolute;left:${left}%;width:${width}%;top:3px;height:22px;background:#94a3b8;border-radius:4px;opacity:0.9;display:flex;align-items:center;justify-content:center" title="休憩 ${sh.breakStart}〜">`;
+          html+=`<span style="font-size:8px;color:#fff">☕</span></div>`;
+        }
+
+        // 銀行入金（黄）
+        if(sh.bank1){
+          const bs=t2m(sh.bank1);
+          const left=pct(bs),width=pct(bs+15)-pct(bs);
+          html+=`<div style="position:absolute;left:${left}%;width:${width}%;top:3px;height:22px;background:#374151;border-radius:4px;opacity:0.9;display:flex;align-items:center;justify-content:center" title="銀行 ${sh.bank1}〜">`;
+          html+=`<span style="font-size:7px;color:#fff">🏦</span></div>`;
+        }
+        if(sh.bank2){
+          const bs=t2m(sh.bank2);
+          const left=pct(bs),width=pct(bs+15)-pct(bs);
+          html+=`<div style="position:absolute;left:${left}%;width:${width}%;top:3px;height:22px;background:#374151;border-radius:4px;opacity:0.9;display:flex;align-items:center;justify-content:center" title="銀行 ${sh.bank2}〜">`;
+          html+=`<span style="font-size:7px;color:#fff">🏦</span></div>`;
+        }
+        // 宮川：15分休憩②
+        if(s.id==="miyagawa"&&sh.break15On&&sh.break15Start){
+          const bs=t2m(sh.break15Start);
+          const left=pct(bs),width=pct(bs+15)-pct(bs);
+          html+=`<div style="position:absolute;left:${left}%;width:${width}%;top:3px;height:22px;background:#78716c;border-radius:4px;opacity:0.9;display:flex;align-items:center;justify-content:center" title="休憩② ${sh.break15Start}〜（15分）">`;
+          html+=`<span style="font-size:7px;color:#fff">☕</span></div>`;
+        }
+
+        html+=`</div></div>`;
+      });
+      html+=`</div>`;
+    }
+
+    // ── 厨房 ──
+    const kitchenStaff=STAFF.filter(s=>{
+      const sh=getShift(s.id,heatDay);
+      if(!sh||sh.off)return false;
+      if(sh.blocks) return sh.blocks.some(b=>b.dept==="kitchen");
+      return !!sh.kitchen;
+    });
+
+    if(kitchenStaff.length){
+      html+=`<div style="margin-bottom:20px">`;
+      html+=`<div style="font-size:12px;font-weight:700;color:#f59e42;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;background:#f59e42;border-radius:2px"></span>厨房</div>`;
+
+      kitchenStaff.forEach(s=>{
+        const sh=getShift(s.id,heatDay);
+        html+=`<div style="display:flex;align-items:center;margin-bottom:6px">`;
+        html+=`<div style="width:58px;font-size:11px;font-weight:600;color:#1e293b;flex-shrink:0;text-align:right;padding-right:8px">${s.name}</div>`;
+        html+=`<div style="flex:1;height:28px;position:relative;background:#f8fafc;border-radius:6px;overflow:hidden">`;
+        html+=gridLines();
+
+        const isTencho=s.id==="tencho";
+
+        if(isTencho&&sh.blocks){
+          sh.blocks.forEach(b=>{
+            if(b.dept!=="kitchen")return;
+            const s2=t2m(b.start),e2=t2m(b.end);
+            const left=pct(s2),width=pct(e2)-pct(s2);
+            html+=`<div style="position:absolute;left:${left}%;width:${width}%;top:3px;height:22px;background:#f59e42;border-radius:4px;opacity:0.85" title="厨房 ${b.start}〜${b.end}"></div>`;
+          });
+        } else {
+          if(!sh.kitchen)return;
+          const s2=t2m(sh.kitchen.start),e2=t2m(sh.kitchen.end);
+          const left=pct(s2),width=pct(e2)-pct(s2);
+          html+=`<div style="position:absolute;left:${left}%;width:${width}%;top:3px;height:22px;background:#f59e42;border-radius:4px;opacity:0.85"></div>`;
+        }
+
+        // 休憩
+        if(sh.breakOn&&sh.breakStart){
+          const bs=t2m(sh.breakStart);
+          const left=pct(bs),width=pct(bs+30)-pct(bs);
+          html+=`<div style="position:absolute;left:${left}%;width:${width}%;top:3px;height:22px;background:#94a3b8;border-radius:4px;opacity:0.9;display:flex;align-items:center;justify-content:center">`;
+          html+=`<span style="font-size:8px;color:#fff">☕</span></div>`;
+        }
+
+        // 銀行入金（店長が厨房中に銀行行く場合）
+        if(sh.bank1){const bs=t2m(sh.bank1);const left=pct(bs),width=pct(bs+15)-pct(bs);html+=`<div style="position:absolute;left:${left}%;width:${width}%;top:3px;height:22px;background:#374151;border-radius:4px;opacity:0.9;display:flex;align-items:center;justify-content:center"><span style="font-size:7px;color:#fff">🏦</span></div>`;}
+        if(sh.bank2){const bs=t2m(sh.bank2);const left=pct(bs),width=pct(bs+15)-pct(bs);html+=`<div style="position:absolute;left:${left}%;width:${width}%;top:3px;height:22px;background:#374151;border-radius:4px;opacity:0.9;display:flex;align-items:center;justify-content:center"><span style="font-size:7px;color:#fff">🏦</span></div>`;}
+        // チーフ：15分休憩②
+        if(s.id==="chief"&&sh.break15On&&sh.break15Start){
+          const bs=t2m(sh.break15Start);
+          const left=pct(bs),width=pct(bs+15)-pct(bs);
+          html+=`<div style="position:absolute;left:${left}%;width:${width}%;top:3px;height:22px;background:#78716c;border-radius:4px;opacity:0.9;display:flex;align-items:center;justify-content:center" title="休憩② ${sh.break15Start}〜（15分）">`;
+          html+=`<span style="font-size:7px;color:#fff">☕</span></div>`;
+        }
+
+        html+=`</div></div>`;
+      });
+      html+=`</div>`;
+    }
+
+    // 凡例
+    html+=`<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:#64748b;margin-top:8px;padding-top:10px;border-top:1px solid #f1f5f9">`;
+    html+=`<span><span style="display:inline-block;width:12px;height:10px;background:#3b82f6;border-radius:2px;margin-right:3px;vertical-align:middle"></span>ホール</span>`;
+    html+=`<span><span style="display:inline-block;width:12px;height:10px;background:#a78bfa;border-radius:2px;margin-right:3px;vertical-align:middle"></span>ホール補助</span>`;
+    html+=`<span><span style="display:inline-block;width:12px;height:10px;background:#f59e42;border-radius:2px;margin-right:3px;vertical-align:middle"></span>厨房</span>`;
+    html+=`<span><span style="display:inline-block;width:12px;height:10px;background:#94a3b8;border-radius:2px;margin-right:3px;vertical-align:middle"></span>休憩</span>`;
+    html+=`<span><span style="display:inline-block;width:12px;height:10px;background:#374151;border-radius:2px;margin-right:3px;vertical-align:middle"></span>銀行入金</span>`;
+    html+=`</div>`;
+    html+=`</div>`;
+  }
+
+  // ── 給与タブ ──
+  if(curTab==="pay"){
+    const payView=ls.get("sh2_payView","staff");
+    const payWkIdx=+ls.get("sh2_payWeekStart",0);
+
+    // 週リスト生成
+    const allDays2=Array.from({length:dim(Y,M)},(_,i)=>i+1).filter(d=>!isHol(d));
+    const weeks2=[];
+    let buf=[];
+    allDays2.forEach(d=>{
+      if(new Date(Y,M,d).getDay()===1&&buf.length){weeks2.push([...buf]);buf=[];}
+      buf.push(d);
+    });
+    if(buf.length)weeks2.push(buf);
+    const wi=Math.min(payWkIdx,weeks2.length-1);
+    const selWk=weeks2[wi]||allDays2.slice(0,5);
+
+    html+=`<div style="padding:0 14px 24px">`;
+    html+=`<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:10px">💰 給与概算</div>`;
+
+    // ビュー切替
+    html+=`<div style="display:flex;gap:6px;margin-bottom:10px">`;
+    html+=`<button id="btn_staff" onclick="window._setPayView('staff')" style="padding:7px 18px;border-radius:20px;border:none;cursor:pointer;font-weight:700;font-size:12px;background:${payView==="staff"?"#1e293b":"#f1f5f9"};color:${payView==="staff"?"#fff":"#475569"}">👤 人別</button>`;
+    html+=`<button id="btn_day" onclick="window._setPayView('day')" style="padding:7px 18px;border-radius:20px;border:none;cursor:pointer;font-weight:700;font-size:12px;background:${payView==="day"?"#1e293b":"#f1f5f9"};color:${payView==="day"?"#fff":"#475569"}">📅 日別</button>`;
+    html+=`</div>`;
+
+    // 週セレクト
+    html+=`<div style="margin-bottom:14px"><select id="payWkSel" onchange="window._setPayWeek(+this.value)" style="padding:8px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;background:#fff">`;
+    weeks2.forEach((wk,i)=>{
+      const fd=wk[0],ld=wk[wk.length-1];
+      html+=`<option value="${i}"${i===wi?" selected":""}>${M+1}/${fd}(${WD[new Date(Y,M,fd).getDay()]})〜${M+1}/${ld}(${WD[new Date(Y,M,ld).getDay()]})</option>`;
+    });
+    html+=`</select></div>`;
+
+    if(payView==="day"){
+      // 日別ビュー
+      let dayGrand=0;
+      html+=`<table style="border-collapse:collapse;width:100%;font-size:12px">`;
+      html+=`<thead><tr style="background:#1e293b;color:#fff"><th style="padding:8px 6px;text-align:left">日付</th><th style="padding:8px;text-align:center">出勤</th><th style="padding:8px;text-align:center">総勤務h</th><th style="padding:8px;text-align:right;color:#E0A800">日計</th></tr></thead><tbody>`;
+      selWk.forEach((d,di)=>{
+        const bg=di%2===0?"#fff":"#f8fafc";
+        const dow=new Date(Y,M,d).getDay();
+        let dayMin=0,dayCount=0,dayPay=0;
+        STAFF.filter(s=>s.id!=="shirota").forEach(s=>{
+          if(isStaffOff(s.id,d))return;
+          const sh=getShift(s.id,d);
+          const min=calcWorkMin(sh);
+          const pay=paySettings[s.id]||{rate:1330,allowance:0};
+          if(min>0){dayMin+=min;dayCount++;dayPay+=Math.round((min/60)*pay.rate);}
+        });
+        dayGrand+=dayPay;
+        html+=`<tr style="background:${bg}"><td style="padding:8px 6px;font-weight:700;border-bottom:1px solid #f1f5f9">${M+1}/${d}(${WD[dow]})</td><td style="padding:8px;text-align:center;border-bottom:1px solid #f1f5f9;color:#3b82f6;font-weight:600">${dayCount}人</td><td style="padding:8px;text-align:center;border-bottom:1px solid #f1f5f9;font-weight:600">${(dayMin/60).toFixed(1)}h</td><td style="padding:8px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:700">¥${dayPay.toLocaleString()}</td></tr>`;
+      });
+      html+=`<tr style="background:#1e293b;color:#fff"><td colspan="3" style="padding:8px 6px;font-weight:700">週合計</td><td style="padding:8px;text-align:right;font-weight:700;font-size:14px;color:#E0A800">¥${dayGrand.toLocaleString()}</td></tr>`;
+      html+=`</tbody></table>`;
+
+    } else {
+      // 人別ビュー
+      let grandTotal=0;
+      const staffRows=[];
+      STAFF.filter(s=>s.id!=="shirota").forEach(s=>{
+        const pay=paySettings[s.id]||{rate:1330,allowance:0};
+        let totalMin=0;
+        const dayMins=[];
+        selWk.forEach(d=>{
+          const min=isStaffOff(s.id,d)?-1:calcWorkMin(getShift(s.id,d));
+          dayMins.push({d,min});
+          if(min>0)totalMin+=min;
+        });
+        const baseWage=Math.round((totalMin/60)*pay.rate);
+        const total=baseWage+(+pay.allowance||0);
+        grandTotal+=total;
+        staffRows.push({s,pay,dayMins,totalMin,baseWage,total});
+      });
+
+      html+=`<div style="overflow-x:auto"><table style="border-collapse:collapse;min-width:100%;font-size:11px">`;
+      html+=`<thead><tr style="background:#1e293b;color:#fff"><th style="padding:7px 5px;text-align:left;position:sticky;left:0;background:#1e293b;min-width:54px">名前</th>`;
+      selWk.forEach(d=>{const dow=new Date(Y,M,d).getDay();html+=`<th style="padding:7px 3px;text-align:center;min-width:38px">${d}<br><span style="font-size:8px;opacity:.7">${WD[dow]}</span></th>`;});
+      html+=`<th style="padding:7px 4px;text-align:center">合計h</th><th style="padding:7px 4px;text-align:center;min-width:56px">時給</th><th style="padding:7px 4px;text-align:center;min-width:56px">手当</th><th style="padding:7px 5px;text-align:right;color:#E0A800;min-width:68px">給与</th></tr></thead><tbody>`;
+
+      staffRows.forEach(({s,pay,dayMins,totalMin,total},si)=>{
+        const bg=si%2===0?"#fff":"#f8fafc";
+        html+=`<tr style="background:${bg}"><td style="padding:6px 5px;font-weight:700;position:sticky;left:0;background:${bg};border-bottom:1px solid #f1f5f9">${s.name}</td>`;
+        dayMins.forEach(({min})=>{
+          const col=min===-1?"#dc2626":min===0?"#d1d5db":"#1e293b";
+          const txt=min===-1?"定":min===0?"-":((min/60).toFixed(1))+"h";
+          html+=`<td style="padding:6px 2px;text-align:center;border-bottom:1px solid #f1f5f9;color:${col};font-weight:${min>0?"600":"400"}">${txt}</td>`;
+        });
+        html+=`<td style="padding:6px 4px;text-align:center;border-bottom:1px solid #f1f5f9;font-weight:700">${(totalMin/60).toFixed(1)}h</td>`;
+        html+=`<td style="padding:3px;border-bottom:1px solid #f1f5f9"><input type="number" value="${pay.rate}" onchange="window._setPayS('${s.id}','rate',+this.value)" style="width:54px;padding:3px;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;text-align:center"></td>`;
+        html+=`<td style="padding:3px;border-bottom:1px solid #f1f5f9"><input type="number" value="${pay.allowance||0}" onchange="window._setPayS('${s.id}','allowance',+this.value)" style="width:54px;padding:3px;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;text-align:center"></td>`;
+        html+=`<td style="padding:6px 5px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:700">¥${total.toLocaleString()}</td></tr>`;
+      });
+
+      // 日計行
+      const dayTotals=selWk.map(d=>{
+        let p=0;
+        STAFF.filter(s=>s.id!=="shirota").forEach(s=>{
+          if(isStaffOff(s.id,d))return;
+          const min=calcWorkMin(getShift(s.id,d));
+          const pay=paySettings[s.id]||{rate:1330};
+          if(min>0)p+=Math.round((min/60)*pay.rate);
+        });
+        return p;
+      });
+      html+=`<tr style="background:#f0f9ff"><td style="padding:5px;font-weight:700;font-size:10px;color:#3b82f6;position:sticky;left:0;background:#f0f9ff">日計</td>`;
+      dayTotals.forEach(p=>{html+=`<td style="padding:5px 2px;text-align:center;font-size:10px;font-weight:600;color:#3b82f6">${p>0?"¥"+(p/1000).toFixed(0)+"k":"-"}</td>`;});
+      html+=`<td colspan="4"></td></tr>`;
+      html+=`<tr style="background:#1e293b;color:#fff"><td colspan="${selWk.length+2}" style="padding:8px 5px;font-weight:700;position:sticky;left:0;background:#1e293b">週合計</td><td colspan="2"></td><td style="padding:8px 5px;text-align:right;font-weight:700;font-size:13px;color:#E0A800">¥${grandTotal.toLocaleString()}</td></tr>`;
+      html+=`</tbody></table></div>`;
+    }
+
+    html+=`<div style="font-size:10px;color:#94a3b8;margin-top:10px">※ シフト予定ベースの概算です</div>`;
+    html+=`</div>`;
+  }
+
+  // ── 希望入力タブ ──
+  if(curTab==="wish"){
+    const wDays=Array.from({length:dim(Y,M)},(_,i)=>i+1).filter(d=>!isHol(d));
+    html+=`<div style="padding:0 14px 24px">`;
+    html+=`<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:4px">🙋 出勤希望入力</div>`;
+    html+=`<div style="font-size:11px;color:#64748b;margin-bottom:10px">紙の希望表をもとに入力してください</div>`;
+    html+=`<button onclick="autoGenerate()" style="width:100%;padding:12px;background:linear-gradient(135deg,#3b82f6,#7c3aed);color:#fff;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-size:15px;margin-bottom:14px">✨ 自動シフト生成</button>`;
+    STAFF.forEach(s=>{
+      html+=`<div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.08)">`;
+      html+=`<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:8px">${s.name}</div>`;
+      html+=`<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:11px">`;
+      html+=`<thead><tr><th style="padding:4px 6px;background:#f1f5f9;text-align:left">日</th><th style="padding:4px 6px;background:#f1f5f9">開始</th><th style="padding:4px 6px;background:#f1f5f9">終了</th><th style="padding:4px 6px;background:#f1f5f9">休み</th></tr></thead><tbody>`;
+      wDays.forEach(d=>{
+        const soff=isStaffOff(s.id,d);
+        const wk=`${s.id}_${Y}_${M+1}_${d}`;
+        const w=wishes[wk];
+        const dow=new Date(Y,M,d).getDay();
+        if(soff){html+=`<tr><td style="padding:4px 6px;color:#94a3b8">${d}(${WD[dow]})</td><td colspan="3" style="color:#dc2626;font-weight:600;padding:4px 6px">定休</td></tr>`;return;}
+        const isOff=w==="off";
+        const start=w&&w!=="off"?w.start:"";
+        const end=w&&w!=="off"?w.end:"";
+        html+=`<tr style="border-bottom:1px solid #f1f5f9">`;
+        html+=`<td style="padding:4px 6px;font-weight:600;white-space:nowrap">${d}(${WD[dow]})</td>`;
+        html+=`<td style="padding:2px 3px"><select onchange="setWish('${s.id}',${d},'start',this.value)" ${isOff?'disabled':''} style="padding:3px;border-radius:6px;border:1px solid #e2e8f0;font-size:11px"><option value="">-</option>${START_TIMES.map(t=>`<option value="${t}"${t===start?' selected':''}>${t}</option>`).join('')}</select></td>`;
+        html+=`<td style="padding:2px 3px"><select onchange="setWish('${s.id}',${d},'end',this.value)" ${isOff?'disabled':''} style="padding:3px;border-radius:6px;border:1px solid #e2e8f0;font-size:11px"><option value="">-</option>${END_TIMES.map(t=>`<option value="${t}"${t===end?' selected':''}>${t}</option>`).join('')}</select></td>`;
+        html+=`<td style="padding:2px 3px"><button onclick="togWishOff('${s.id}',${d})" style="padding:3px 8px;border-radius:6px;border:1px solid ${isOff?'#dc2626':'#e2e8f0'};background:${isOff?'#fee2e2':'#fff'};color:${isOff?'#dc2626':'#475569'};font-size:10px;cursor:pointer">${isOff?'休み✓':'×'}</button></td>`;
+        html+=`</tr>`;
+      });
+      html+=`</tbody></table></div></div>`;
+    });
+    html+=`</div>`;
+  }
+
+  // ── 出勤設定タブ ──
+  if(curTab==="shifttpl"){
+    const WDF2=["","月","火","水","木","金"];
+    const workDays2=Array.from({length:dim(Y,M)},(_,i)=>i+1).filter(d=>!isHol(d));
+
+    html+=`<div style="padding:0 14px 24px">`;
+    html+=`<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:4px">📋 曜日別 出勤設定</div>`;
+    html+=`<div style="font-size:11px;color:#64748b;margin-bottom:10px">毎週の基本シフトを設定して、カレンダーに一括反映できます。</div>`;
+
+    // 反映開始日の選択
+    html+=`<div style="background:#eff6ff;border-radius:10px;padding:12px;margin-bottom:14px">`;
+    html+=`<div style="font-size:12px;font-weight:600;color:#1d4ed8;margin-bottom:6px">📅 反映開始日</div>`;
+    html+=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">`;
+    html+=`<select onchange="shiftTplFrom=+this.value;ls.set('sh2_shifttplFrom',shiftTplFrom)" style="padding:8px 12px;border-radius:8px;border:1.5px solid #93c5fd;font-size:14px;background:#fff">`;
+    workDays2.forEach(d=>{
+      const dow=new Date(Y,M,d).getDay();
+      html+=`<option value="${d}"${d===shiftTplFrom?' selected':''}>${M+1}/${d}(${WD[dow]})</option>`;
+    });
+    html+=`</select>`;
+    html+=`<span style="font-size:12px;color:#64748b">以降の営業日に反映</span>`;
+    html+=`</div></div>`;
+
+    // 反映ボタン
+    html+=`<button onclick="applyShiftTpl()" style="width:100%;padding:12px;background:linear-gradient(135deg,#1e293b,#3b82f6);color:#fff;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-size:14px;margin-bottom:14px">📅 カレンダーに反映</button>`;
+
+    // スタッフ×曜日のテーブル
+    html+=`<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:11px">`;
+    html+=`<thead><tr><th style="padding:8px 6px;background:#1e293b;color:#fff;text-align:left;position:sticky;left:0;min-width:58px">スタッフ</th>`;
+    [1,2,3,4,5].forEach(dow=>{
+      html+=`<th style="padding:8px 6px;background:#1e293b;color:#fff;text-align:center;min-width:100px">${WDF2[dow]}</th>`;
+    });
+    html+=`</tr></thead><tbody>`;
+
+    STAFF.forEach((s,si)=>{
+      const bg=si%2===0?"#fff":"#f8fafc";
+      const isShirota=s.id==="shirota";
+      const tpl=shiftTpl[s.id]||{};
+
+      html+=`<tr style="background:${bg}"><td style="padding:8px 6px;font-weight:700;position:sticky;left:0;background:${bg};border-bottom:1px solid #f1f5f9">${s.name}</td>`;
+
+      if(isShirota){
+        html+=`<td colspan="5" style="padding:8px;text-align:center;color:#dc2626;font-size:11px;border-bottom:1px solid #f1f5f9">× 復帰未定</td>`;
+      } else {
+        [1,2,3,4,5].forEach(dow=>{
+          const isOff=(dayoff[s.id]||[]).includes(dow);
+          if(isOff){
+            html+=`<td style="padding:4px;text-align:center;background:#f3f4f6;border-bottom:1px solid #f1f5f9;color:#9ca3af;font-size:11px">定休</td>`;
+            return;
+          }
+          const cell=tpl[dow]||{};
+          const isOffCell=cell.off===true;
+          html+=`<td style="padding:4px;text-align:center;border-bottom:1px solid #f1f5f9;background:${isOffCell?'#f9fafb':bg}">`;
+          // 休みボタン
+          html+=`<button onclick="setShiftTplOff('${s.id}',${dow},${!isOffCell})" style="width:100%;padding:3px 4px;margin-bottom:3px;border-radius:6px;border:1px solid ${isOffCell?'#dc2626':'#e2e8f0'};background:${isOffCell?'#fee2e2':'#fff'};color:${isOffCell?'#dc2626':'#94a3b8'};font-size:10px;cursor:pointer;font-weight:600">${isOffCell?'休み✓':'休み'}</button>`;
+          if(!isOffCell){
+            // 開始時間
+            html+=`<select onchange="setShiftTpl('${s.id}',${dow},'start',this.value)" style="width:100%;padding:4px;border-radius:6px;border:1px solid #e2e8f0;font-size:11px;margin-bottom:2px">`;
+            html+=`<option value="">開始-</option>`;
+            SHIFT_START_TIMES.forEach(t=>{html+=`<option value="${t}"${t===cell.start?' selected':''}>${t}</option>`;});
+            html+=`</select>`;
+            // 終了時間
+            html+=`<select onchange="setShiftTpl('${s.id}',${dow},'end',this.value)" style="width:100%;padding:4px;border-radius:6px;border:1px solid #e2e8f0;font-size:11px">`;
+            html+=`<option value="">終了-</option>`;
+            SHIFT_END_TIMES.forEach(t=>{html+=`<option value="${t}"${t===cell.end?' selected':''}>${t}</option>`;});
+            html+=`</select>`;
+          }
+          html+=`</td>`;
+        });
+      }
+      html+=`</tr>`;
+    });
+    html+=`</tbody></table></div>`;
+    html+=`<div style="font-size:10px;color:#64748b;margin-top:10px">💡 設定後「カレンダーに反映」を押すと、指定日以降の該当曜日に一括でシフトが入ります。</div>`;
+    html+=`</div>`;
+  }
+
+  // ── 休憩設定タブ ──
+  if(curTab==="brkset"){
+    const WDF=["","月","火","水","木","金"];
+    const BRK_OPT=["11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00"];
+    const BANK_OPT=["11:00","11:15","11:30","15:15","15:30"];
+    const brkStaff=STAFF.filter(s=>s.id!=="ibuchi"&&s.id!=="shirota");
+
+    // 重複チェック（曜日別）
+    function getDowConflicts(dow){
+      const used={};
+      const conflicts=new Set();
+      brkStaff.forEach(s=>{
+        const tpl=brkTpl[s.id]||{};
+        const t=tpl.byDow?.[dow]??tpl.default;
+        if(!t)return;
+        if(used[t])conflicts.add(t);
+        used[t]=(used[t]||[]); used[t].push(s.id);
+      });
+      return conflicts;
+    }
+
+    html+=`<div style="padding:0 14px 24px">`;
+    html+=`<div style="font-weight:700;font-size:14px;color:#1e293b;margin-bottom:4px">⚙️ 休憩テンプレート</div>`;
+    html+=`<div style="font-size:11px;color:#64748b;margin-bottom:10px">曜日ごとに休憩時間を設定。重複は赤く表示されます。</div>`;
+    html+=`<button onclick="applyBrkTpl()" style="width:100%;padding:12px;background:linear-gradient(135deg,#7c3aed,#3b82f6);color:#fff;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-size:14px;margin-bottom:14px">📅 今月のシフトに休憩を適用</button>`;
+
+    // テーブル表示
+    html+=`<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:12px">`;
+    // ヘッダー
+    html+=`<thead><tr><th style="padding:8px 6px;background:#1e293b;color:#fff;text-align:left;position:sticky;left:0;min-width:60px">スタッフ</th>`;
+    [1,2,3,4,5].forEach(dow=>{
+      const conflicts=getDowConflicts(dow);
+      html+=`<th style="padding:8px 6px;background:#1e293b;color:#fff;text-align:center;min-width:90px">${WDF[dow]}${conflicts.size>0?'<br><span style="font-size:9px;color:#fca5a5">⚠️重複</span>':''}</th>`;
+    });
+    html+=`</tr></thead><tbody>`;
+
+    // 各スタッフ行
+    STAFF.forEach((s,si)=>{
+      const bg=si%2===0?"#fff":"#f8fafc";
+      const isIbuchi=s.id==="ibuchi";
+      const isShirota=s.id==="shirota";
+      const isTencho=s.id==="tencho";
+      const tpl=brkTpl[s.id]||{};
+      const bank=bankTpl[s.id]||{};
+
+      html+=`<tr style="background:${bg}">`;
+      html+=`<td style="padding:8px 6px;font-weight:700;position:sticky;left:0;background:${bg};border-bottom:1px solid #f1f5f9">${s.name}${isTencho?'<div style="font-size:9px;color:#7c3aed">銀行入金あり</div>':''}</td>`;
+
+      if(isIbuchi){
+        html+=`<td colspan="5" style="padding:8px 6px;text-align:center;color:#94a3b8;font-size:11px;border-bottom:1px solid #f1f5f9">休憩なし</td>`;
+      } else if(isShirota){
+        html+=`<td colspan="5" style="padding:8px 6px;text-align:center;color:#dc2626;font-size:11px;border-bottom:1px solid #f1f5f9">× 復帰未定</td>`;
+      } else {
+        [1,2,3,4,5].forEach(dow=>{
+          const conflicts=getDowConflicts(dow);
+          const val=tpl.byDow?.[dow]??tpl.default??'';
+          const isConflict=val&&conflicts.has(val);
+          const bankVal=isTencho?(bank.byDow?.[dow]??bank.default??''):'';
+          // 個人定休チェック
+          const isPersonalOff=(dayoff[s.id]||[]).includes(dow);
+          if(isPersonalOff){
+            html+=`<td style="padding:4px;text-align:center;border-bottom:1px solid #f1f5f9;background:#f3f4f6;color:#9ca3af;font-size:11px;font-weight:600">定休</td>`;
+            return;
+          }
+          html+=`<td style="padding:4px;text-align:center;border-bottom:1px solid #f1f5f9;background:${isConflict?'#fef2f2':bg}">`;
+          // 休憩セレクト
+          html+=`<select onchange="setBrkTplFull('${s.id}',${dow},this.value)" style="width:82px;padding:5px;border-radius:7px;border:1.5px solid ${isConflict?'#dc2626':'#e2e8f0'};font-size:11px;background:${isConflict?'#fff5f5':'#fff'}">`;
+          html+=`<option value="">-</option>`;
+          BRK_OPT.forEach(t=>{html+=`<option value="${t}"${t===val?' selected':''}>${t}</option>`;});
+          html+=`</select>`;
+          // 銀行入金（店長のみ）
+          if(isTencho){
+            html+=`<div style="margin-top:3px"><select onchange="setBankTplFull(${dow},this.value)" style="width:82px;padding:4px;border-radius:7px;border:1.5px solid #7c3aed;font-size:10px;background:#f5f3ff">`;
+            html+=`<option value="">銀行-</option>`;
+            BANK_OPT.forEach(t=>{html+=`<option value="${t}"${t===bankVal?' selected':''}>${t}</option>`;});
+            html+=`</select></div>`;
+          }
+          html+=`</td>`;
+        });
+      }
+      html+=`</tr>`;
+    });
+    html+=`</tbody></table></div>`;
+    html+=`<div style="font-size:10px;color:#64748b;margin-top:10px">💡 同じ時間が重複すると赤く表示されます。全員がずれるように設定してください。</div>`;
+    html+=`</div>`;
+  }
+
+  document.getElementById("app").innerHTML=html;
+}
+
+// ── 月移動 ──
+window.prev=()=>{if(M===0){Y--;M=11;}else M--;actualLoaded=false;actual={};render();};
+window.next=()=>{if(M===11){Y++;M=0;}else M++;actualLoaded=false;actual={};render();};
+
+// ── Firebase 実績取得 ──
+window.fetchActual=async()=>{
+  toast("読込中...");
+  try{
+    const pre=`${Y}-${String(M+1).padStart(2,"0")}`;
+    const q=query(collection(db,"records"),where("dateKey",">=",pre+"-01"),where("dateKey","<=",pre+"-31"));
+    const snap=await getDocs(q);const recs=[];snap.forEach(d=>recs.push(d.data()));
+    const map={};
+    recs.forEach(r=>{const k=`${r.staffId}_${r.dateKey}`;if(!map[k])map[k]={ins:[],outs:[]};const t=new Date(r.time);(r.type==="in"?map[k].ins:map[k].outs).push(t);});
+    const res={};
+    Object.entries(map).forEach(([k,v])=>{
+      const fi=v.ins.length?new Date(Math.min(...v.ins)):null;
+      const lo=v.outs.length?new Date(Math.max(...v.outs)):null;
+      let min=null;
+      if(fi&&lo){const ri=new Date(fi);ri.setMinutes(Math.ceil(ri.getMinutes()/15)*15,0,0);const ro=new Date(lo);ro.setMinutes(Math.floor(ro.getMinutes()/15)*15,0,0);min=Math.max(0,Math.round((ro-ri)/60000)-30);}
+      res[k]={in:fi?fi.toISOString():null,out:lo?lo.toISOString():null,min};
+    });
+    actual=res;actualLoaded=true;
+    toast(`✅ ${recs.length}件の実績を取得しました`);render();
+  }catch(e){toast("⚠️ エラー: "+e.message);}
+};
+
+// ── コピー/貼付け ──
+window.doCopy=()=>{copySrc={Y,M};toast(`${M+1}月をコピーしました`);render();};
+
+// ── 日コピー ──
+window.openDayCopy=()=>{
+  const days=Array.from({length:dim(Y,M)},(_,i)=>i+1).filter(d=>!isHol(d));
+  let html=`<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal">`;
+  html+=`<h3>📋 日コピー</h3>`;
+  html+=`<div style="font-size:12px;color:#64748b;margin-bottom:12px">コピー元の日付を選んで、貼り付け先を選択してください</div>`;
+  html+=`<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:6px">コピー元</div>`;
+  html+=`<select id="dayCopySrcSel" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px">`;
+  days.forEach(d=>{const dow=new Date(Y,M,d).getDay();html+=`<option value="${d}">${M+1}/${d}(${WD[dow]})</option>`;});
+  html+=`</select></div>`;
+  html+=`<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:6px">貼り付け先（複数選択可）</div>`;
+  html+=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px" id="dayPasteTargets">`;
+  days.forEach(d=>{
+    const dow=new Date(Y,M,d).getDay();
+    html+=`<button onclick="this.classList.toggle('sel')" data-d="${d}" style="padding:6px 4px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px;font-weight:600">${d}<br><span style="font-size:9px;color:#94a3b8">${WD[dow]}</span></button>`;
+  });
+  html+=`</div></div>`;
+  html+=`<div style="display:flex;gap:8px;justify-content:flex-end">`;
+  html+=`<button onclick="closeModal()" style="border:none;border-radius:8px;cursor:pointer;font-weight:700;padding:10px 16px;background:#f1f5f9;color:#475569">キャンセル</button>`;
+  html+=`<button onclick="execDayCopy()" style="border:none;border-radius:8px;cursor:pointer;font-weight:700;padding:10px 20px;background:#3b82f6;color:#fff">📋 コピー実行</button>`;
+  html+=`</div></div></div>`;
+  showModal(html);
+};
+
+window.execDayCopy=()=>{
+  const srcD=+document.getElementById("dayCopySrcSel").value;
+  const targets=[...document.querySelectorAll("#dayPasteTargets button.sel")].map(b=>+b.dataset.d);
+  if(!targets.length){toast("貼り付け先を選んでください");return;}
+  let count=0;
+  targets.forEach(tgtD=>{
+    if(tgtD===srcD)return;
+    STAFF.forEach(s=>{
+      const src=getShift(s.id,srcD);
+      if(src)shifts[sk(s.id,tgtD)]={...src};
+      else delete shifts[sk(s.id,tgtD)];
+      count++;
+    });
+  });
+  ls.set("sh2_shifts",shifts);
+  closeModal();
+  toast(`✅ ${targets.length}日分にコピーしました`);
+  render();
+};
+
+// ── セルコピー ──
+window.copyCellSrc=()=>{
+  // 貼り付け先を選ぶモーダルを表示
+  const sid=editSid, srcD=editDay;
+  const sName=STAFF.find(s=>s.id===sid)?.name||sid;
+  const days=Array.from({length:dim(Y,M)},(_,i)=>i+1).filter(d=>!isHol(d)&&d!==srcD&&!isStaffOff(sid,d));
+  closeModal();
+  let html=`<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal">`;
+  html+=`<h3>📋 ${sName} ${M+1}/${srcD} をコピー</h3>`;
+  html+=`<div style="font-size:12px;color:#64748b;margin-bottom:12px">貼り付け先の日を選んでください（複数可）</div>`;
+  html+=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px">`;
+  days.forEach(d=>{
+    const dow=new Date(Y,M,d).getDay();
+    html+=`<button onclick="this.classList.toggle('sel');this.style.background=this.classList.contains('sel')?'#3b82f6':'#fff';this.style.color=this.classList.contains('sel')?'#fff':'#1e293b'" data-d="${d}" style="padding:8px 4px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:#1e293b">${d}<br><span style="font-size:9px;opacity:.7">${WD[dow]}</span></button>`;
+  });
+  html+=`</div>`;
+  html+=`<div style="display:flex;gap:8px;justify-content:flex-end">`;
+  html+=`<button onclick="closeModal()" style="border:none;border-radius:8px;cursor:pointer;font-weight:700;padding:10px 16px;background:#f1f5f9;color:#475569">キャンセル</button>`;
+  html+=`<button onclick="execCellPaste('${sid}',${srcD})" style="border:none;border-radius:8px;cursor:pointer;font-weight:700;padding:10px 20px;background:#3b82f6;color:#fff">貼り付け</button>`;
+  html+=`</div></div></div>`;
+  showModal(html);
+};
+
+window.execCellPaste=(sid,srcD)=>{
+  const targets=[...document.querySelectorAll(".modal button.sel")].map(b=>+b.dataset.d);
+  if(!targets.length){toast("貼り付け先を選んでください");return;}
+  const src=getShift(sid,srcD);
+  targets.forEach(d=>{
+    if(src)shifts[sk(sid,d)]={...src};
+  });
+  ls.set("sh2_shifts",shifts);
+  closeModal();
+  toast(`✅ ${targets.length}日に貼り付けました`);
+  render();
+};
+window.doPaste=()=>{
+  if(!copySrc)return;
+  const{Y:sy,M:sm}=copySrc;
+  STAFF.forEach(s=>{for(let d=1;d<=dim(sy,sm);d++){const src=shifts[`${s.id}_${sy}_${sm+1}_${d}`];if(src)shifts[sk(s.id,d)]={...src};}});
+  ls.set("sh2_shifts",shifts);copySrc=null;toast("貼り付けました");render();
+};
+
+// ── CSV ──
+window.doCSV=()=>{
+  const days=Array.from({length:dim(Y,M)},(_,i)=>i+1);
+  const hdr=["スタッフ",...days.map(d=>`${d}(${WD[new Date(Y,M,d).getDay()]})`)];
+  const rows=STAFF.map(s=>[s.name,...days.map(d=>{const sh=getShift(s.id,d);if(!sh)return"";if(sh.off)return"休";return DEPTS.filter(dep=>sh[dep.id]).map(dep=>`${dep.label}:${sh[dep.id].start}-${sh[dep.id].end}`).join("/");})]);
+  const csv=[hdr,...rows].map(r=>r.map(c=>`"${c}"`).join(",")).join("\n");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}));a.download=`シフト_${Y}${String(M+1).padStart(2,"0")}.csv`;a.click();
+  toast("CSV出力しました");
+};
+
+// ── 必要人数設定 ──
+window.openReq=()=>{
+  const hrs=Array.from({length:14},(_,i)=>i+8);
+  let html=`<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal"><h3>⚙️ 時間帯別 必要人数</h3>`;
+  html+=`<div style="font-size:11px;color:#64748b;margin-bottom:14px;background:#fffbeb;padding:8px;border-radius:8px">ホール＋補助の合計と、厨房をそれぞれ設定します</div>`;
+  [
+    {id:"hall",   label:"ホール＋補助（合算）",color:"#3b82f6"},
+    {id:"kitchen",label:"厨房",               color:"#f59e42"},
+  ].forEach(dep=>{
+    html+=`<div style="margin-bottom:14px"><div style="font-weight:700;font-size:12px;color:${dep.color};margin-bottom:6px">${dep.label}</div>`;
+    html+=`<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px">`;
+    hrs.forEach(h=>{
+      html+=`<div style="text-align:center"><div style="font-size:9px;color:#94a3b8;margin-bottom:2px">${h}時</div>`;
+      html+=`<input type="number" min="0" max="9" value="${getReq(dep.id,h)}" onchange="setReq('${dep.id}',${h},+this.value)" style="width:100%;padding:4px;border-radius:6px;border:1.5px solid ${dep.color}40;font-size:14px;font-weight:700;text-align:center"></div>`;
+    });
+    html+=`</div></div>`;
+  });
+  html+=`<div style="text-align:right"><button onclick="closeModal()" style="border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;padding:10px 24px;background:#3b82f6;color:#fff">OK</button></div>`;
+  html+=`</div></div>`;
+  showModal(html);
+};
+window.setReq=(dept,h,v)=>{if(!req[dept])req[dept]={...DEF_REQ[dept]};req[dept][h]=v;ls.set("sh2_req",req);};
+
+// ── スタッフ定休設定 ──
+window.openStaff=()=>{
+  let html=`<div class="ov" onclick="if(event.target===this){closeModal();render()}"><div class="modal"><h3>👤 定休曜日設定</h3>`;
+  html+=`<div style="font-size:11px;color:#64748b;margin-bottom:14px">毎週決まって休む曜日（月〜金）を設定します</div>`;
+  STAFF.forEach(s=>{
+    const offs=dayoff[s.id]||[];
+    html+=`<div style="margin-bottom:10px;padding:10px;background:#f8fafc;border-radius:10px">`;
+    html+=`<div style="font-weight:700;font-size:13px;margin-bottom:8px">${s.name}</div>`;
+    html+=`<div style="display:flex;gap:6px">`;
+    [1,2,3,4,5].forEach(dow=>{
+      const on=offs.includes(dow);
+      html+=`<button onclick="togDayOff('${s.id}',${dow},this)" style="padding:6px 12px;border-radius:8px;border:2px solid ${on?"#dc2626":"#e2e8f0"};background:${on?"#fee2e2":"#fff"};color:${on?"#dc2626":"#475569"};font-weight:700;font-size:13px;cursor:pointer">${WD[dow]}</button>`;
+    });
+    html+=`</div></div>`;
+  });
+  html+=`<div style="text-align:right;margin-top:8px"><button onclick="closeModal();render()" style="border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;padding:10px 24px;background:#3b82f6;color:#fff">OK</button></div>`;
+  html+=`</div></div>`;
+  showModal(html);
+};
+window.togDayOff=(sid,dow,btn)=>{
+  if(!dayoff[sid])dayoff[sid]=[];
+  const idx=dayoff[sid].indexOf(dow);
+  if(idx>=0){dayoff[sid].splice(idx,1);btn.style.background="#fff";btn.style.border="2px solid #e2e8f0";btn.style.color="#475569";}
+  else{dayoff[sid].push(dow);btn.style.background="#fee2e2";btn.style.border="2px solid #dc2626";btn.style.color="#dc2626";}
+  ls.set("sh2_dayoff",dayoff);
+};
+
+// ── 希望表印刷 ──
+window.printWish=()=>{
+  // 月と週の入力を受け取るモーダル
+  const now=new Date();
+  const defaultMonth=`${now.getMonth()+1}月`;
+  let html=`<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal">`;
+  html+=`<h3>📋 希望表の対象期間を入力</h3>`;
+  html+=`<div style="margin-bottom:14px">`;
+  html+=`<div style="font-size:12px;color:#64748b;margin-bottom:6px">月（例：7月）</div>`;
+  html+=`<input id="wishMonth" type="text" value="${defaultMonth}" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:16px;box-sizing:border-box">`;
+  html+=`</div>`;
+  html+=`<div style="margin-bottom:20px">`;
+  html+=`<div style="font-size:12px;color:#64748b;margin-bottom:6px">週（例：第1週、6/30〜7/4 など）</div>`;
+  html+=`<input id="wishWeek" type="text" placeholder="第1週 など" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:16px;box-sizing:border-box">`;
+  html+=`</div>`;
+  html+=`<div style="display:flex;gap:8px;justify-content:flex-end">`;
+  html+=`<button onclick="closeModal()" style="border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;padding:10px 16px;background:#f1f5f9;color:#475569">キャンセル</button>`;
+  html+=`<button onclick="doPrintWish()" style="border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;padding:10px 20px;background:#3b82f6;color:#fff">印刷プレビュー</button>`;
+  html+=`</div></div></div>`;
+  showModal(html);
+};
+
+window.doPrintWish=()=>{
+  const month=document.getElementById("wishMonth")?.value||"";
+  const week=document.getElementById("wishWeek")?.value||"";
+  closeModal();
+
+  const PREFILL=["tencho","miyagawa"];
+  const WD2=["日","月","火","水","木","金","土"];
+
+  let body=`<div style="font-family:sans-serif">`;
+  body+=`<div style="text-align:center;font-weight:900;font-size:28px;margin-bottom:6px">ラウンジ カトレア　シフト希望表</div>`;
+  body+=`<div style="text-align:center;font-weight:700;font-size:24px;color:#1e293b;margin-bottom:12px">${month}${week?" "+week:""}</div>`;
+  body+=`<div style="font-size:18px;font-weight:700;color:#333;background:#fffbeb;padding:12px;border-radius:6px;margin-bottom:14px;line-height:1.7">`;
+  body+=`※出勤<span style="font-size:22px;font-weight:900;color:#dc2626">可能</span>な時間帯を記入してください<br>`;
+  body+=`（例：10:00〜17:00）<br>`;
+  body+=`出勤不可の場合は「<span style="font-size:22px;font-weight:900;color:#dc2626">×</span>」を記入してください。`;
+  body+=`</div>`;
+
+  body+=`<table style="width:100%;border-collapse:collapse;font-size:14px">`;
+  body+=`<thead><tr style="background:#1e293b;color:#fff">`;
+  body+=`<th style="border:1px solid #ccc;padding:12px;text-align:left;font-size:16px">スタッフ</th>`;
+  [1,2,3,4,5].forEach(dow=>{body+=`<th style="border:1px solid #ccc;padding:12px;text-align:center;font-size:15px">${WD2[dow]}</th>`;});
+  body+=`</tr></thead><tbody>`;
+
+  STAFF.forEach((s,si)=>{
+    const prefill=PREFILL.includes(s.id);
+    body+=`<tr style="background:${si%2===0?"#fff":"#f8fafc"}">`;
+    body+=`<td style="border:1px solid #ccc;padding:12px;font-weight:900;font-size:26px;color:#1e293b;white-space:nowrap">${s.name}</td>`;
+    [1,2,3,4,5].forEach(dow=>{
+      const off=(dayoff[s.id]||[]).includes(dow);
+      body+=`<td style="border:1px solid #ccc;padding:8px;text-align:center">`;
+      if(off){
+        body+=`<span style="color:#dc2626;font-weight:700;font-size:16px">定休</span>`;
+      }else if(prefill){
+        body+=`<div style="font-size:15px;font-weight:700;color:#1e293b;padding:10px 0">9:00〜20:00</div>`;
+      }else{
+        body+=`<div style="height:50px;border-bottom:1px solid #ccc"></div>`;
+      }
+      body+=`</td>`;
+    });
+    body+=`</tr>`;
+  });
+
+  body+=`</tbody></table>`;
+  body+=`<div style="margin-top:16px;font-size:14px;color:#666;border-top:1px solid #ddd;padding-top:10px;display:flex;justify-content:space-between">`;
+  body+=`<span>提出期限：　　　月　　　日（　　　）</span><span>提出先：店長 / チーフ</span>`;
+  body+=`</div></div>`;
+
+  const w=window.open("","_blank","width=700,height=600");
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>シフト希望表</title><style>body{margin:16px}@media print{body{margin:0}}</style></head><body>${body}<script>setTimeout(function(){window.print();},300);<\/script></body></html>`);
+  w.document.close();
+};;
+
+// ── セル編集 ──
+let editSid,editDay;
+window.openCell=(sid,d)=>{
+  editSid=sid;editDay=d;
+  const sh=getShift(sid,d)||{};
+  const ac=getAct(sid,d);
+  const isOff=!!sh.off;
+  const sName=STAFF.find(s=>s.id===sid)?.name||sid;
+  const isTencho=sid==="tencho";
+  const opts=(arr,cur)=>arr.map(v=>`<option value="${v}"${v===cur?" selected":""}>${v}</option>`).join("");
+
+  let html=`<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal">`;
+  html+=`<h3>${sName}　${M+1}/${d}(${WD[new Date(Y,M,d).getDay()]})</h3>`;
+  if(ac)html+=`<div style="margin-bottom:10px;padding:7px 10px;background:#f0fdf4;border-radius:8px;font-size:11px;color:#166534">実績: ${hm(ac.in)} → ${ac.out?hm(ac.out):"退勤未記録"} ${ac.min!=null?"（"+dur(ac.min)+"）":""}</div>`;
+
+  // 休みボタン
+  html+=`<div style="margin-bottom:14px"><button id="bOff" onclick="togOff()" style="width:100%;padding:10px;border-radius:8px;border:2px solid ${isOff?"#94a3b8":"#e2e8f0"};background:${isOff?"#e2e8f0":"#fff"};color:#64748b;font-weight:700;font-size:14px;cursor:pointer">🚫 休み</button></div>`;
+
+  html+=`<div id="deptArea" style="${isOff?"display:none":""}">`;
+
+  if(isTencho){
+    // ── 店長専用：複数ブロック入力 ──
+    // blocksデータ: sh.blocks = [{dept:"support",start:"09:00",end:"13:00"}, ...]
+    editBlocks=sh.blocks||(
+      // 既存データからブロックを生成
+      Object.keys(sh).filter(k=>["hall","support","kitchen"].includes(k)).map(k=>({dept:k,start:sh[k].start,end:sh[k].end}))
+    );
+    if(!editBlocks.length) editBlocks.push({dept:"support",start:"09:00",end:"18:00"});
+
+    html+=`<div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:8px">時間帯ブロック（上から順番に）</div>`;
+    html+=`<div id="blocksArea">`;
+    editBlocks.forEach((b,i)=>{
+      const dCol=b.dept==="hall"?"#3b82f6":b.dept==="support"?"#a78bfa":"#f59e42";
+      const dLabel=b.dept==="hall"?"🔵ホール":b.dept==="support"?"🟣補助":"🟠厨房";
+      html+=`<div class="blk-row" data-i="${i}" style="display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:8px;background:#f8fafc;border-radius:10px;border-left:3px solid ${dCol}">`;
+      html+=`<select onchange="updBlock(${i},'dept',this.value)" style="padding:5px;border-radius:7px;border:1.5px solid ${dCol};font-size:12px;font-weight:700;color:${dCol}">`;
+      [{id:"support",l:"🟣補助"},{id:"hall",l:"🔵ホール"},{id:"kitchen",l:"🟠厨房"}].forEach(dep=>{
+        html+=`<option value="${dep.id}"${dep.id===b.dept?" selected":""}>${dep.l}</option>`;
+      });
+      html+=`</select>`;
+      html+=`<select onchange="updBlock(${i},'start',this.value)" style="padding:5px;border-radius:7px;border:1px solid #e2e8f0;font-size:12px">${opts(TENCHO_TIMES,b.start||"09:00")}</select>`;
+      html+=`<span style="color:#94a3b8;font-size:11px">〜</span>`;
+      html+=`<select onchange="updBlock(${i},'end',this.value)" style="padding:5px;border-radius:7px;border:1px solid #e2e8f0;font-size:12px">${opts(TENCHO_TIMES,b.end||"18:00")}</select>`;
+      html+=`<button onclick="delBlock(${i})" style="padding:4px 8px;border:none;background:#fee2e2;color:#dc2626;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;flex-shrink:0">削除</button>`;
+      html+=`</div>`;
+    });
+    html+=`</div>`;
+    html+=`<button onclick="addBlock()" style="width:100%;padding:8px;border:2px dashed #a78bfa;background:#f5f3ff;color:#7c3aed;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px;margin-bottom:14px">＋ ブロック追加</button>`;
+
+    // 銀行入金
+    const bank1=sh.bank1||"";
+    const bank2=sh.bank2||"";
+    html+=`<div style="background:#fefce8;border-radius:10px;padding:12px;margin-bottom:10px">`;
+    html+=`<div style="font-weight:700;font-size:13px;color:#854d0e;margin-bottom:8px">🏦 銀行入金（各15分・離席）</div>`;
+    html+=`<div style="display:flex;gap:10px;flex-wrap:wrap">`;
+    html+=`<div style="flex:1"><div style="font-size:11px;color:#64748b;margin-bottom:3px">1回目</div>`;
+    html+=`<select id="bank1" style="width:100%;padding:7px;border-radius:8px;border:1.5px solid #fde047;font-size:13px;background:#fff">`;
+    html+=`<option value="">なし</option>`;
+    BANK_TIMES.forEach(t=>{html+=`<option value="${t}"${t===bank1?" selected":""}>${t}</option>`;});
+    html+=`</select></div>`;
+    html+=`<div style="flex:1"><div style="font-size:11px;color:#64748b;margin-bottom:3px">2回目</div>`;
+    html+=`<select id="bank2" style="width:100%;padding:7px;border-radius:8px;border:1.5px solid #fde047;font-size:13px;background:#fff">`;
+    html+=`<option value="">なし</option>`;
+    BANK_TIMES.forEach(t=>{html+=`<option value="${t}"${t===bank2?" selected":""}>${t}</option>`;});
+    html+=`</select></div>`;
+    html+=`</div></div>`;
+    // 休憩
+    const bOn=!!sh.breakOn,bStart=sh.breakStart||"15:00";
+    html+=`<div class="brk-box">`;
+    html+=`<div style="font-weight:700;font-size:13px;color:#7c3aed;margin-bottom:6px">☕ 休憩（30分）</div>`;
+    html+=`<div class="brk-btns">`;
+    html+=`<button id="bOn" onclick="setBrk(true)" style="border:2px solid ${bOn?"#7c3aed":"#e2e8f0"};background:${bOn?"#7c3aed":"#fff"};color:${bOn?"#fff":"#475569"}">あり</button>`;
+    html+=`<button id="bOff2" onclick="setBrk(false)" style="border:2px solid ${!bOn?"#94a3b8":"#e2e8f0"};background:${!bOn?"#e2e8f0":"#fff"};color:#64748b">なし</button>`;
+    html+=`</div>`;
+    html+=`<div id="brkRow" style="display:${bOn?"flex":"none"};align-items:center;gap:10px">`;
+    html+=`<div style="font-size:12px;color:#7c3aed;font-weight:600;white-space:nowrap">開始時間</div>`;
+    html+=`<select id="brkStart" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid #ddd6fe;font-size:14px">${opts(BRK_TIMES,bStart)}</select>`;
+    html+=`</div></div>`;
+
+  } else {
+    // ── 通常スタッフ ──
+    const depBoxes=[
+      {id:"hall",   label:"🔵 ホール",    color:"#3b82f6", bg:"#eff6ff", bc:"#bfdbfe"},
+      {id:"support",label:"🟣 ホール補助",color:"#a78bfa", bg:"#f5f3ff", bc:"#ddd6fe"},
+      {id:"kitchen",label:"🟠 厨房",      color:"#f59e42", bg:"#fff7ed", bc:"#fed7aa"},
+    ];
+    depBoxes.forEach(dep=>{
+      const has=!!sh[dep.id];
+      const startOpts=START_TIMES;
+      const defaultStart="09:00";
+      html+=`<div class="dep-box" style="background:${dep.bg}">`;
+      html+=`<label><input type="checkbox" id="chk_${dep.id}" onchange="togDept('${dep.id}')" ${has?"checked":""}><span style="color:${dep.color}">${dep.label}</span></label>`;
+      html+=`<div id="times_${dep.id}" style="display:${has?"flex":"none"}" class="time-row">`;
+      html+=`<div><label>開始</label><select id="${dep.id}_s" style="border:1.5px solid ${dep.bc}">${opts(startOpts,sh[dep.id]?.start||defaultStart)}</select></div>`;
+      html+=`<div><label>終了</label><select id="${dep.id}_e" style="border:1.5px solid ${dep.bc}">${opts(END_TIMES,sh[dep.id]?.end||"18:00")}</select></div>`;
+      html+=`</div></div>`;
+    });
+
+    // 休憩（30分）
+    const bOn=!!sh.breakOn,bStart=sh.breakStart||"12:00";
+    html+=`<div class="brk-box">`;
+    html+=`<div style="font-weight:700;font-size:13px;color:#7c3aed;margin-bottom:6px">☕ 休憩①（30分）</div>`;
+    html+=`<div class="brk-btns">`;
+    html+=`<button id="bOn" onclick="setBrk(true)" style="border:2px solid ${bOn?"#7c3aed":"#e2e8f0"};background:${bOn?"#7c3aed":"#fff"};color:${bOn?"#fff":"#475569"}">あり</button>`;
+    html+=`<button id="bOff2" onclick="setBrk(false)" style="border:2px solid ${!bOn?"#94a3b8":"#e2e8f0"};background:${!bOn?"#e2e8f0":"#fff"};color:#64748b">なし</button>`;
+    html+=`</div>`;
+    html+=`<div id="brkRow" style="display:${bOn?"flex":"none"};align-items:center;gap:10px">`;
+    html+=`<div style="font-size:12px;color:#7c3aed;font-weight:600;white-space:nowrap">開始時間</div>`;
+    html+=`<select id="brkStart" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid #ddd6fe;font-size:14px">${opts(BRK_TIMES,bStart)}</select>`;
+    html+=`</div></div>`;
+    // 宮川・チーフのみ：15分休憩②
+    if(sid==="miyagawa"||sid==="chief"){
+      const BRK15_TIMES=["16:00","16:30","17:00","17:30","18:00"];
+      const b15On=!!sh.break15On, b15Start=sh.break15Start||"16:00";
+      html+=`<div style="background:#fef3c7;border-radius:10px;padding:12px;margin-bottom:14px">`;
+      html+=`<div style="font-weight:700;font-size:13px;color:#b45309;margin-bottom:6px">☕ 休憩②（15分）</div>`;
+      html+=`<div style="display:flex;gap:8px;margin:8px 0">`;
+      html+=`<button id="b15On" onclick="setBrk15(true)" style="flex:1;padding:9px;border-radius:8px;border:2px solid ${b15On?"#b45309":"#e2e8f0"};background:${b15On?"#b45309":"#fff"};color:${b15On?"#fff":"#475569"};font-weight:700;font-size:13px;cursor:pointer">あり</button>`;
+      html+=`<button id="b15Off" onclick="setBrk15(false)" style="flex:1;padding:9px;border-radius:8px;border:2px solid ${!b15On?"#94a3b8":"#e2e8f0"};background:${!b15On?"#e2e8f0":"#fff"};color:#64748b;font-weight:700;font-size:13px;cursor:pointer">なし</button>`;
+      html+=`</div>`;
+      html+=`<div id="brk15Row" style="display:${b15On?"flex":"none"};align-items:center;gap:10px">`;
+      html+=`<div style="font-size:12px;color:#b45309;font-weight:600;white-space:nowrap">開始時間</div>`;
+      html+=`<select id="brk15Start" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid #fde68a;font-size:14px">${opts(BRK15_TIMES,b15Start)}</select>`;
+      html+=`</div></div>`;
+    }
+  }
+
+  html+=`</div>`; // deptArea
+
+  html+=`<div class="modal-btns" style="flex-wrap:wrap">`;
+  html+=`<button onclick="delCell()" style="background:#fee2e2;color:#dc2626">削除</button>`;
+  html+=`<button onclick="copyCellSrc()" style="background:#f0fdf4;color:#16a34a">📋 コピー</button>`;
+  html+=`<button onclick="closeModal()" style="background:#f1f5f9;color:#475569">キャンセル</button>`;
+  html+=`<button onclick="saveCell()" style="background:#3b82f6;color:#fff">保存</button>`;
+  html+=`</div></div></div>`;
+  showModal(html);
+};;
+
+// ── 店長ブロック操作 ──
+let editBlocks=[];
+window.addBlock=()=>{
+  editBlocks.push({dept:"support",start:"09:00",end:"18:00"});
+  refreshBlocks();
+};
+window.delBlock=i=>{
+  editBlocks.splice(i,1);
+  if(!editBlocks.length) editBlocks.push({dept:"support",start:"09:00",end:"18:00"});
+  refreshBlocks();
+};
+window.updBlock=(i,field,val)=>{
+  editBlocks[i][field]=val;
+  if(field==="dept"){
+    // 厨房に変えたら開始時間を適切なものに
+    if(val==="kitchen"&&!KITCHEN_START_TENCHO.includes(editBlocks[i].start)){
+      editBlocks[i].start=KITCHEN_START_TENCHO[0];
+    }
+  }
+  refreshBlocks();
+};
+function refreshBlocks(){
+  const area=document.getElementById("blocksArea");
+  if(!area)return;
+  let html="";
+  editBlocks.forEach((b,i)=>{
+    const dCol=b.dept==="hall"?"#3b82f6":b.dept==="support"?"#a78bfa":"#f59e42";
+    const sopts=TENCHO_TIMES.map(v=>`<option value="${v}"${v===b.start?" selected":""}>${v}</option>`).join("");
+    const eopts=TENCHO_TIMES.map(v=>`<option value="${v}"${v===b.end?" selected":""}>${v}</option>`).join("");
+    const dopts=[{id:"support",l:"🟣補助"},{id:"hall",l:"🔵ホール"},{id:"kitchen",l:"🟠厨房"}].map(dep=>`<option value="${dep.id}"${dep.id===b.dept?" selected":""}>${dep.l}</option>`).join("");
+    html+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:8px;background:#f8fafc;border-radius:10px;border-left:3px solid ${dCol}">`;
+    html+=`<select onchange="updBlock(${i},'dept',this.value)" style="padding:5px;border-radius:7px;border:1.5px solid ${dCol};font-size:12px;font-weight:700;color:${dCol}">${dopts}</select>`;
+    html+=`<select onchange="updBlock(${i},'start',this.value)" style="padding:5px;border-radius:7px;border:1px solid #e2e8f0;font-size:12px">${sopts}</select>`;
+    html+=`<span style="color:#94a3b8;font-size:11px">〜</span>`;
+    html+=`<select onchange="updBlock(${i},'end',this.value)" style="padding:5px;border-radius:7px;border:1px solid #e2e8f0;font-size:12px">${eopts}</select>`;
+    html+=`<button onclick="delBlock(${i})" style="padding:4px 8px;border:none;background:#fee2e2;color:#dc2626;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;flex-shrink:0">削除</button>`;
+    html+=`</div>`;
+  });
+  area.innerHTML=html;
+}
+
+window.setBrk15=on=>{
+  const a=document.getElementById("b15On"),b=document.getElementById("b15Off"),r=document.getElementById("brk15Row");
+  if(a){a.style.background=on?"#b45309":"#fff";a.style.border=`2px solid ${on?"#b45309":"#e2e8f0"}`;a.style.color=on?"#fff":"#475569";}
+  if(b){b.style.background=on?"#fff":"#e2e8f0";b.style.border=`2px solid ${on?"#e2e8f0":"#94a3b8"}`;}
+  if(r)r.style.display=on?"flex":"none";
+};
+window.togOff=()=>{
+  const btn=document.getElementById("bOff"),area=document.getElementById("deptArea");
+  const now=btn.style.background==="#e2e8f0"||btn.style.background==="rgb(226, 232, 240)";
+  if(!now){btn.style.background="#e2e8f0";btn.style.border="2px solid #94a3b8";if(area)area.style.display="none";}
+  else{btn.style.background="#fff";btn.style.border="2px solid #e2e8f0";if(area)area.style.display="";}
+};
+window.togDept=dep=>{const chk=document.getElementById("chk_"+dep),t=document.getElementById("times_"+dep);if(t)t.style.display=chk.checked?"flex":"none";};
+window.setBrk=on=>{
+  const a=document.getElementById("bOn"),b=document.getElementById("bOff2"),r=document.getElementById("brkRow");
+  if(a){a.style.background=on?"#7c3aed":"#fff";a.style.border=`2px solid ${on?"#7c3aed":"#e2e8f0"}`;a.style.color=on?"#fff":"#475569";}
+  if(b){b.style.background=on?"#fff":"#e2e8f0";b.style.border=`2px solid ${on?"#e2e8f0":"#94a3b8"}`;}
+  if(r)r.style.display=on?"flex":"none";
+};
+window.saveCell=()=>{
+  const offBtn=document.getElementById("bOff");
+  const isOff=offBtn&&(offBtn.style.background==="#e2e8f0"||offBtn.style.background==="rgb(226, 232, 240)");
+  if(isOff){shifts[sk(editSid,editDay)]={off:true};ls.set("sh2_shifts",shifts);closeModal();toast("保存しました");render();return;}
+
+  const bOnBtn=document.getElementById("bOn");
+  const brkOn=bOnBtn&&(bOnBtn.style.background==="#7c3aed"||bOnBtn.style.background==="rgb(124, 58, 237)");
+  const brkStart=document.getElementById("brkStart")?.value||"12:00";
+
+  if(editSid==="tencho"){
+    // 店長：ブロックから保存
+    if(!editBlocks.length){toast("部門を追加してください");return;}
+    // blocksをshift形式に変換（最初のhall/support/kitchenそれぞれの最初を代表値として保存 + blocks全体も保存）
+    const val={blocks:[...editBlocks]};
+    // 代表値（過不足計算用）
+    editBlocks.forEach(b=>{
+      if(!val[b.dept]) val[b.dept]={start:b.start,end:b.end};
+    });
+    if(brkOn){val.breakOn=true;val.breakStart=brkStart;}
+    const b1=document.getElementById("bank1")?.value||"";
+    const b2=document.getElementById("bank2")?.value||"";
+    if(b1)val.bank1=b1;
+    if(b2)val.bank2=b2;
+    shifts[sk(editSid,editDay)]=val;
+  } else {
+    // 通常スタッフ
+    const val={};
+    ["hall","support","kitchen"].forEach(dep=>{
+      const chk=document.getElementById("chk_"+dep);
+      if(chk?.checked)val[dep]={start:document.getElementById(dep+"_s")?.value||"09:00",end:document.getElementById(dep+"_e")?.value||"18:00"};
+    });
+    if(!Object.keys(val).length){toast("部門を選択してください");return;}
+    if(brkOn){val.breakOn=true;val.breakStart=brkStart;}
+    // 宮川・チーフ：15分休憩②
+    if(editSid==="miyagawa"||editSid==="chief"){
+      const b15OnBtn=document.getElementById("b15On");
+      const brk15On=b15OnBtn&&(b15OnBtn.style.background==="#b45309"||b15OnBtn.style.background==="rgb(180, 83, 9)");
+      const brk15Start=document.getElementById("brk15Start")?.value||"16:00";
+      // チーフ・宮川は給与計算に影響させないフラグを付ける
+      if(brk15On){val.break15On=true;val.break15Start=brk15Start;val.break15NoPay=true;}
+    }
+    shifts[sk(editSid,editDay)]=val;
+  }
+  ls.set("sh2_shifts",shifts);closeModal();toast("保存しました");render();
+};;
+window.delCell=()=>{delete shifts[sk(editSid,editDay)];ls.set("sh2_shifts",shifts);closeModal();toast("削除しました");render();};
+
+// ── heatDay更新 ──
+window.setHeatDay=d=>{heatDay=d;ls.set('sh2_heatDay',d);render();};
+
+// ── 給与週切替 ──
+window.setPayWeek=i=>{payWeekStart=i;ls.set("sh2_payWeekStart",i);render();};
+
+// ── 給与ビュー切替 ──
+window.setPayView=v=>{ls.set("sh2_payView",v);render();};
+window.setPayWeek=i=>{payWeekStart=i;ls.set("sh2_payWeekStart",i);render();};
+
+// ── 給与設定保存 ──
+window.setPaySetting=(sid,field,val)=>{
+  if(!paySettings[sid])paySettings[sid]={rate:1330,allowance:0};
+  paySettings[sid][field]=val;
+  ls.set("sh2_pay",paySettings);
+  render();
+};
+
+// ── 希望入力 ──
+window.setWish=(sid,d,field,val)=>{
+  const wk=`${sid}_${Y}_${M+1}_${d}`;
+  if(!wishes[wk]||wishes[wk]==="off") wishes[wk]={start:"",end:""};
+  wishes[wk][field]=val;
+  ls.set("sh2_wishes",wishes);
+};
+window.togWishOff=(sid,d)=>{
+  const wk=`${sid}_${Y}_${M+1}_${d}`;
+  if(wishes[wk]==="off") wishes[wk]=null;
+  else wishes[wk]="off";
+  ls.set("sh2_wishes",wishes);
+  render();
+};
+
+// ── 自動シフト生成 ──
+window.autoGenerate=()=>{
+  const days=Array.from({length:dim(Y,M)},(_,i)=>i+1);
+  const workDays=days.filter(d=>!isHol(d));
+  let generated=0, skipped=0;
+
+  workDays.forEach(d=>{
+    STAFF.forEach(s=>{
+      if(isStaffOff(s.id,d)) return;
+      const wk=`${s.id}_${Y}_${M+1}_${d}`;
+      const w=wishes[wk];
+      if(!w||w==="off"||!w.start||!w.end){
+        // 希望なし or 休み希望
+        if(w==="off"){
+          shifts[sk(s.id,d)]={off:true};
+          generated++;
+        }
+        return;
+      }
+
+      // メイン部門を決定
+      const depts=getStaffDept(s.id,d);
+      const val={};
+
+      // 全部門に希望時間を割り当て
+      depts.forEach(dept=>{val[dept]={start:w.start,end:w.end};});
+
+      // 既存のシフトがあれば上書きしない（オプション: 今回は上書き）
+      shifts[sk(s.id,d)]=val;
+      generated++;
+    });
+  });
+
+  ls.set("sh2_shifts",shifts);
+
+  // 結果サマリーをモーダルで表示
+  const days2=workDays.filter(d=>!isHol(d));
+  // 不足チェック
+  const shortages=[];
+  days2.forEach(d=>{
+    // ホール+補助
+    let maxHall=0;
+    for(let h=9;h<=20;h++){
+      const n=hallPlusSupport(d,h*60);
+      const r=getReq("hall",h);
+      if(n>maxHall)maxHall=n;
+      if(n<r) shortages.push({d,h,dept:"ホール",n,r});
+    }
+    // 厨房
+    for(let h=9;h<=20;h++){
+      const n=STAFF.filter(s=>isWorking(getShift(s.id,d),"kitchen",h*60)).length;
+      const r=getReq("kitchen",h);
+      if(n<r) shortages.push({d,h,dept:"厨房",n,r});
+    }
+  });
+
+  // 不足をまとめる（日別）
+  const shortByDay={};
+  shortages.forEach(({d,dept,n,r})=>{
+    const key=`${d}_${dept}`;
+    if(!shortByDay[key]) shortByDay[key]={d,dept,min:n,req:r};
+    else if(n<shortByDay[key].min) shortByDay[key].min=n;
+  });
+  const shortList=Object.values(shortByDay);
+
+  let html=`<div class="ov" onclick="if(event.target===this)closeModal()"><div class="modal">`;
+  html+=`<h3>✨ 自動生成完了！</h3>`;
+  html+=`<div style="background:#f0fdf4;border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px;color:#166534;font-weight:600">`;
+  html+=`${generated}件のシフトを生成しました</div>`;
+
+  if(shortList.length>0){
+    html+=`<div style="background:#fef2f2;border-radius:10px;padding:12px;margin-bottom:12px">`;
+    html+=`<div style="font-weight:700;font-size:13px;color:#dc2626;margin-bottom:8px">⚠️ まだ人手が不足している日があります</div>`;
+    // 日別にまとめて表示（最大10件）
+    const grouped={};
+    shortList.forEach(({d,dept,min,req})=>{
+      if(!grouped[d]) grouped[d]=[];
+      grouped[d].push(`${dept}(${min}/${req}人)`);
+    });
+    Object.entries(grouped).slice(0,10).forEach(([d,list])=>{
+      const dow=new Date(Y,M,+d).getDay();
+      html+=`<div style="font-size:12px;margin-bottom:4px;display:flex;gap:6px;align-items:center">`;
+      html+=`<span style="font-weight:700;min-width:44px">${M+1}/${d}(${WD[dow]})</span>`;
+      html+=`<span style="color:#dc2626">${list.join("・")}</span></div>`;
+    });
+    if(Object.keys(grouped).length>10) html+=`<div style="font-size:11px;color:#94a3b8">...他${Object.keys(grouped).length-10}日</div>`;
+    html+=`<div style="font-size:11px;color:#64748b;margin-top:8px">カレンダーで手動調整してください</div>`;
+    html+=`</div>`;
+  }else{
+    html+=`<div style="background:#eff6ff;border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px;color:#1d4ed8;font-weight:600">🎉 全日程で必要人数を満たしています！</div>`;
+  }
+
+  html+=`<div style="display:flex;gap:8px;justify-content:flex-end">`;
+  html+=`<button onclick="closeModal();setTab('calendar');render()" style="border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;padding:10px 20px;background:#3b82f6;color:#fff">カレンダーで確認</button>`;
+  html+=`</div></div></div>`;
+  showModal(html);
+};
+
+// ── 休憩テンプレート設定 ──
+// ── 出勤テンプレート操作 ──
+window.setShiftTpl=(sid,dow,field,val)=>{
+  if(!shiftTpl[sid])shiftTpl[sid]={};
+  if(!shiftTpl[sid][dow])shiftTpl[sid][dow]={};
+  shiftTpl[sid][dow][field]=val||null;
+  shiftTpl[sid][dow].off=false;
+  ls.set("sh2_shifttpl",shiftTpl);render();
+};
+window.setShiftTplOff=(sid,dow,isOff)=>{
+  if(!shiftTpl[sid])shiftTpl[sid]={};
+  if(!shiftTpl[sid][dow])shiftTpl[sid][dow]={};
+  shiftTpl[sid][dow].off=isOff;
+  if(isOff){shiftTpl[sid][dow].start=null;shiftTpl[sid][dow].end=null;}
+  ls.set("sh2_shifttpl",shiftTpl);render();
+};
+
+// ── 出勤テンプレートをカレンダーに反映 ──
+window.applyShiftTpl=()=>{
+  const days=Array.from({length:dim(Y,M)},(_,i)=>i+1);
+  let count=0, skipped=0;
+  days.forEach(d=>{
+    if(d<shiftTplFrom)return; // 開始日より前はスキップ
+    if(isHol(d))return;
+    const dow=new Date(Y,M,d).getDay();
+    STAFF.forEach(s=>{
+      if(s.id==="shirota")return;
+      if(isStaffOff(s.id,d))return;
+      const cell=(shiftTpl[s.id]||{})[dow];
+      if(!cell)return;
+      if(cell.off){
+        shifts[sk(s.id,d)]={off:true};
+        count++;
+      } else if(cell.start&&cell.end){
+        // メイン部門を決定（1つだけ）
+        const depts=getStaffDept(s.id,d);
+        const val={};
+        // depts[0]のみ使用（1人1部門）
+        val[depts[0]]={start:cell.start,end:cell.end};
+        // 既存の休憩設定は保持
+        const existing=shifts[sk(s.id,d)]||{};
+        if(existing.breakOn){val.breakOn=existing.breakOn;val.breakStart=existing.breakStart;}
+        shifts[sk(s.id,d)]=val;
+        count++;
+      }
+    });
+  });
+  ls.set("sh2_shifts",shifts);
+  toast(`✅ ${count}件のシフトを反映しました`);
+  render();
+};
+
+// setBrkTplFull: 曜日ごとに直接セット
+window.setBrkTplFull=(sid,dow,val)=>{
+  if(!brkTpl[sid])brkTpl[sid]={};
+  if(!brkTpl[sid].byDow)brkTpl[sid].byDow={};
+  brkTpl[sid].byDow[dow]=val||null;
+  // 全曜日同じなら default にまとめる
+  const vals=Object.values(brkTpl[sid].byDow).filter(Boolean);
+  const uniq=[...new Set(vals)];
+  if(uniq.length===1&&vals.length===5){brkTpl[sid].default=uniq[0];brkTpl[sid].byDow={};}
+  ls.set("sh2_brktpl",brkTpl);render();
+};
+window.setBankTplFull=(dow,val)=>{
+  if(!bankTpl.tencho)bankTpl.tencho={};
+  if(!bankTpl.tencho.byDow)bankTpl.tencho.byDow={};
+  bankTpl.tencho.byDow[dow]=val||null;
+  ls.set("sh2_banktpl",bankTpl);render();
+};
+window.setBrkTpl=(sid,field,val)=>{
+  if(!brkTpl[sid])brkTpl[sid]={};
+  brkTpl[sid][field]=val||null;
+  ls.set("sh2_brktpl",brkTpl);render();
+};
+window.setBrkTplDow=(sid,dow,val)=>{
+  if(!brkTpl[sid])brkTpl[sid]={};
+  if(!brkTpl[sid].byDow)brkTpl[sid].byDow={};
+  brkTpl[sid].byDow[dow]=val||null;
+  ls.set("sh2_brktpl",brkTpl);render();
+};
+window.setBankTpl=(field,val)=>{
+  if(!bankTpl.tencho)bankTpl.tencho={};
+  bankTpl.tencho[field]=val||null;
+  ls.set("sh2_banktpl",bankTpl);render();
+};
+window.setBankTplDow=(dow,val)=>{
+  if(!bankTpl.tencho)bankTpl.tencho={};
+  if(!bankTpl.tencho.byDow)bankTpl.tencho.byDow={};
+  bankTpl.tencho.byDow[dow]=val||null;
+  ls.set("sh2_banktpl",bankTpl);render();
+};
+
+// ── 今月に休憩テンプレートを適用 ──
+window.applyBrkTpl=()=>{
+  const days=Array.from({length:dim(Y,M)},(_,i)=>i+1);
+  let count=0;
+  days.forEach(d=>{
+    if(isHol(d))return;
+    const dow=new Date(Y,M,d).getDay();
+    STAFF.forEach(s=>{
+      if(s.id==="shirota"||s.id==="ibuchi")return; // 休憩なし
+      if(isStaffOff(s.id,d))return;
+      const sh=getShift(s.id,d);
+      if(!sh||sh.off)return;
+      const brkTime=getBrkTplTime(s.id,dow);
+      if(!brkTime)return;
+      // 既存シフトに休憩を追加
+      shifts[sk(s.id,d)]={...sh,breakOn:true,breakStart:brkTime};
+      count++;
+    });
+    // 店長の銀行入金も適用
+    const sh=getShift("tencho",d);
+    if(sh&&!sh.off){
+      const bankTime=getBankTplTime("tencho",dow);
+      if(bankTime){
+        breaks[`tencho_bank_${Y}_${M+1}_${d}`]=bankTime; // 銀行入金記録
+      }
+    }
+  });
+  ls.set("sh2_shifts",shifts);
+  ls.set("sh2_breaks",breaks);
+  toast(`✅ ${count}件の休憩を設定しました`);
+  render();
+};
+
+// ── 休憩適用 ──
+window.applyBrk=(sid,d,val)=>{
+  if(FIXED_BREAK[sid]) return; // 固定は変更不可
+  setBrkData(sid,d,val||null);
+  render();
+};
+window.applyAllBrk=(d)=>{
+  const {suggestions}=checkBrkConflicts(d);
+  suggestions.forEach(sg=>setBrkData(sg.sid,d,sg.to));
+  toast("✅ 全員の休憩時間をずらしました");
+  render();
+};
+
+// ── モーダル ──
+function showModal(html){const ov=document.createElement("div");ov.innerHTML=html;document.body.appendChild(ov.firstChild);}
+window.closeModal=()=>{const ov=document.querySelector(".ov");if(ov)ov.remove();};
+
+// ── 起動 ──
+render();
+</script>
+</body>
+</html>
