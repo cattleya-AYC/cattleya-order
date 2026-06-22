@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>印刷通知</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0f0a05;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hiragino Kaku Gothic ProN', sans-serif;
+      padding: 24px;
+    }
+    h1 {
+      color: #c9952a;
+      font-size: 22px;
+      margin-bottom: 40px;
+      font-family: serif;
+    }
+    #sendBtn {
+      width: 100%;
+      max-width: 320px;
+      padding: 36px 20px;
+      background: #1a0a00;
+      border: 3px solid #ff6600;
+      border-radius: 20px;
+      color: #ff9944;
+      font-size: 22px;
+      font-weight: 900;
+      cursor: pointer;
+      line-height: 1.6;
+    }
+    #sendBtn:active { opacity: 0.7; }
+    #msg {
+      margin-top: 32px;
+      font-size: 20px;
+      font-weight: 900;
+      color: #4aaa5a;
+      min-height: 32px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>🖨️ 印刷通知</h1>
+  <button id="sendBtn" onclick="sendNotif()">
+    📄 印刷物を送りました<br/>スタッフに通知する
+  </button>
+  <div id="msg"></div>
+
+  <script>
+    const { createClient } = supabase;
+    const sb = createClient(
+      "https://zxdgiszrsmumjjxmvszb.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODM2MTksImV4cCI6MjA5NTI1OTYxOX0.vNndS7JEzIUsa007EPO2zRoYhUr-z01LM32BKIhMSz4"
+    );
+
+    async function sendNotif() {
+      const btn = document.getElementById("sendBtn");
+      const msg = document.getElementById("msg");
+      btn.disabled = true;
+      btn.style.opacity = "0.5";
+      msg.textContent = "送信中…";
+
+      const { error } = await sb.from("print_notifications").insert({ sent_at: new Date().toISOString() });
+
+      if (error) {
+        msg.textContent = "❌ エラーが発生しました";
+      } else {
+        msg.textContent = "✅ 通知を送りました！";
+        setTimeout(() => {
+          msg.textContent = "";
+          btn.disabled = false;
+          btn.style.opacity = "1";
+        }, 3000);
+      }
+    }
+  </script>
+</body>
+</html>
