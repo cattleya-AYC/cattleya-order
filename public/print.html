@@ -16,29 +16,38 @@
       justify-content: center;
       font-family: 'Hiragino Kaku Gothic ProN', sans-serif;
       padding: 24px;
+      gap: 20px;
     }
     h1 {
       color: #c9952a;
       font-size: 22px;
-      margin-bottom: 40px;
       font-family: serif;
+      margin-bottom: 10px;
     }
-    #sendBtn {
+    .btn {
       width: 100%;
       max-width: 320px;
       padding: 36px 20px;
-      background: #1a0a00;
-      border: 3px solid #ff6600;
       border-radius: 20px;
-      color: #ff9944;
       font-size: 22px;
       font-weight: 900;
       cursor: pointer;
       line-height: 1.6;
+      border-width: 3px;
+      border-style: solid;
     }
-    #sendBtn:active { opacity: 0.7; }
+    .btn:active { opacity: 0.7; }
+    .btn-print {
+      background: #1a0a00;
+      border-color: #ff6600;
+      color: #ff9944;
+    }
+    .btn-call {
+      background: #000d1a;
+      border-color: #3399ff;
+      color: #66bbff;
+    }
     #msg {
-      margin-top: 32px;
       font-size: 20px;
       font-weight: 900;
       color: #4aaa5a;
@@ -48,9 +57,12 @@
   </style>
 </head>
 <body>
-  <h1>🖨️ 印刷通知</h1>
-  <button id="sendBtn" onclick="sendNotif()">
+  <h1>📲 スタッフへの通知</h1>
+  <button class="btn btn-print" onclick="sendNotif('🖨️ 印刷のお知らせ', 'プリンターに印刷が届きました。ショートカットボタンから印刷してください。')">
     📄 印刷物を送りました<br/>スタッフに通知する
+  </button>
+  <button class="btn btn-call" onclick="sendNotif('📞 店長への連絡', '店長に電話するよう、オーナーから伝言があります。')">
+    📞 店長に電話するよう<br/>伝えてください
   </button>
   <div id="msg"></div>
 
@@ -61,23 +73,26 @@
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODM2MTksImV4cCI6MjA5NTI1OTYxOX0.vNndS7JEzIUsa007EPO2zRoYhUr-z01LM32BKIhMSz4"
     );
 
-    async function sendNotif() {
-      const btn = document.getElementById("sendBtn");
+    async function sendNotif(title, message) {
+      const btns = document.querySelectorAll(".btn");
       const msg = document.getElementById("msg");
-      btn.disabled = true;
-      btn.style.opacity = "0.5";
+      btns.forEach(b => { b.disabled = true; b.style.opacity = "0.5"; });
       msg.textContent = "送信中…";
+      msg.style.color = "#aaa";
 
-      const { error } = await sb.from("print_notifications").insert({ sent_at: new Date().toISOString() });
+      const { error } = await sb.from("print_notifications").insert({
+        sent_at: new Date().toISOString(),
+        message: JSON.stringify({ title, message })
+      });
 
       if (error) {
         msg.textContent = "❌ エラーが発生しました";
       } else {
         msg.textContent = "✅ 通知を送りました！";
+        msg.style.color = "#4aaa5a";
         setTimeout(() => {
           msg.textContent = "";
-          btn.disabled = false;
-          btn.style.opacity = "1";
+          btns.forEach(b => { b.disabled = false; b.style.opacity = "1"; });
         }, 3000);
       }
     }
