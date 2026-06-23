@@ -263,7 +263,7 @@ export default function App() {
             await supabase.from("print_notifications").update({ dismissed: true, dismissed_at: new Date().toISOString() }).eq("id", printNotif.id);
             setPrintNotif(null);
           }} style={{ padding: "10px 14px", background: "#ff6600", border: "none", borderRadius: 8, color: "#fff", fontSize: 14, fontWeight: 900, cursor: "pointer", whiteSpace: "nowrap" }}>
-            ✅ わかった
+            🖨️ 印刷した
           </button>
         </div>
       )}
