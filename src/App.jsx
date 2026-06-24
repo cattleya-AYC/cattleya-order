@@ -32,6 +32,8 @@ const MENU = {
     { id: 26, name: "アイスウーロン茶", price: 650 },
     { id: 27, name: "こんぶ茶（HOT）", price: 650 },
     { id: 28, name: "梅こん茶（HOT）", price: 650 },
+    { id: 29, name: "ストレートティ（HOT）", price: 650 },
+    { id: 30, name: "アイスストレートティ", price: 670 },
   ],
   ジュース: [
     { id: 31, name: "ミルク（HOT）", price: 650 },
@@ -75,13 +77,12 @@ const MENU = {
     { id: 67, name: "バニラアイスクリーム", price: 770 },
     { id: 68, name: "コーヒーゼリー", price: 770 },
   ],
-    モーニング: [
+  モーニング: [
     { id: 71, name: "モーニング（コーヒーHOT）", price: 890 },
     { id: 72, name: "モーニング（コーヒーICE）", price: 890 },
     { id: 73, name: "モーニング（紅茶HOT）", price: 890 },
     { id: 74, name: "モーニング（紅茶ICE）", price: 890 },
   ],
-
   おかわり: [
     { id: 91, name: "コーヒーホット（おかわり）", price: 300 },
     { id: 92, name: "アイスコーヒー（おかわり）", price: 300 },
@@ -92,10 +93,18 @@ const MENU = {
     { id: 97, name: "アイスミルクティー（おかわり）", price: 300 },
     { id: 98, name: "アイスウーロン（おかわり）", price: 300 },
     { id: 99, name: "烏龍茶（おかわり）", price: 300 },
+    { id: 100, name: "ストレートティー（おかわり）", price: 300 },
+    { id: 105, name: "アイスストレートティー（おかわり）", price: 300 },
   ],
   アルコール: [
     { id: 81, name: "オールド（水割り）", price: 790 },
     { id: 82, name: "バドワイザー", price: 800 },
+  ],
+  モーニング変更: [
+    { id: 101, name: "モーニング変更追加料金（アイスコーヒー）", price: 220 },
+    { id: 102, name: "モーニング変更追加料金（アイスティ）", price: 220 },
+    { id: 103, name: "モーニング変更追加料金（コーヒーHOT）", price: 240 },
+    { id: 104, name: "モーニング変更追加料金（紅茶HOT）", price: 240 },
   ],
 };
 
@@ -122,7 +131,7 @@ export default function App() {
   const [moveFrom, setMoveFrom] = useState(null);
   const [moveTo, setMoveTo] = useState(null);
   const [moveLoading, setMoveLoading] = useState(false);
-  const [printNotif, setPrintNotif] = useState(null); // { id, sent_at }
+  const [printNotif, setPrintNotif] = useState(null);
 
   const executeMoveTable = async () => {
     if (!moveFrom || !moveTo) return;
@@ -160,7 +169,6 @@ export default function App() {
       .select("*")
       .eq("status", "pending")
       .order("created_at", { ascending: true });
-    // テーブルごとに最古のcreated_atでソート（古いテーブルが上）
     const filtered = (data || []).filter(o => !o.item_name.startsWith("【人数"));
     const tableOldest = {};
     filtered.forEach(o => {
@@ -171,12 +179,9 @@ export default function App() {
     setUnservedOrders(filtered.sort((a, b) => (tableOldest[a.table_no] || "").localeCompare(tableOldest[b.table_no] || "")));
   };
 
-  // 起動時にallOrdersを取得
   useEffect(() => { fetchAllOrders(); }, []);
 
-  // 印刷通知のリアルタイム購読
   useEffect(() => {
-    // 起動時に未確認の通知があれば表示
     supabase.from("print_notifications").select("*").eq("dismissed", false).order("sent_at", { ascending: false }).limit(1)
       .then(({ data }) => { if (data && data.length > 0) setPrintNotif(data[0]); });
 
@@ -188,7 +193,6 @@ export default function App() {
     return () => supabase.removeChannel(channel);
   }, []);
 
-  // 30秒ごとに未提供リストを自動更新（10分超チェック用）
   useEffect(() => {
     const iv = setInterval(() => { fetchUnserved(); fetchAllOrders(); }, 30000);
     return () => clearInterval(iv);
@@ -200,7 +204,7 @@ export default function App() {
   };
 
   const sendOrder = async () => {
-    if (sending) return; // 二重送信防止
+    if (sending) return;
     setSending(true);
     try {
       for (const item of cart) {
@@ -235,7 +239,6 @@ export default function App() {
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
-  // 10分以上未提供のオーダーがあるか
   const now = new Date();
   const hasOverdue = unservedOrders.some(o => {
     if (!o.created_at) return false;
@@ -252,7 +255,6 @@ export default function App() {
         }
         .pulse-btn { animation: pulse-red 1.2s infinite; }
       `}</style>
-      {/* 印刷通知バナー */}
       {printNotif && (() => {
         let parsed = { title: "🖨️ 印刷のお知らせ", message: "プリンターに印刷が届きました。\nショートカットボタンから印刷してください。" };
         try { if (printNotif.message) parsed = JSON.parse(printNotif.message); } catch(e) {}
@@ -297,7 +299,6 @@ export default function App() {
         })}
       </div>
 
-      {/* 未提供ボタン */}
       {(() => {
         const hasUnserved = unservedOrders.length > 0;
         return (
@@ -317,7 +318,6 @@ export default function App() {
         );
       })()}
 
-      {/* 持ち帰りボタン */}
       <button onClick={() => {
         setSelectedTable("持ち帰り");
         setPeople(1);
@@ -337,13 +337,11 @@ export default function App() {
         🛍 持ち帰り（税8%）
       </button>
 
-      {/* 座席変更ボタン */}
       <button onClick={() => { setShowMoveTable(true); setMoveStep(1); setMoveFrom(null); setMoveTo(null); }}
         style={{ marginTop: 12, width: "100%", padding: "22px 0", background: "#1a0a2a", border: "3px solid #6a2aaa", borderRadius: 12, color: "#cc88ff", fontSize: 22, fontWeight: 900, cursor: "pointer" }}>
         🟣 座席変更
       </button>
 
-      {/* 座席変更モーダル */}
       {showMoveTable && (
         <div onClick={() => setShowMoveTable(false)} style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#1a0a2a", border: "2px solid #6a2aaa", borderRadius: 14, width: "100%", maxWidth: 400, maxHeight: "85vh", overflow: "auto", padding: 20 }}>
@@ -403,7 +401,6 @@ export default function App() {
         </div>
       )}
 
-      {/* 未提供パネル */}
       {showUnserved && (() => {
         const byTable = {};
         unservedOrders.forEach(o => {
@@ -421,7 +418,6 @@ export default function App() {
               {tables.length === 0 ? (
                 <div style={{ color: "#666", textAlign: "center", padding: 30 }}>未提供の注文はありません</div>
               ) : unservedTable === null ? (
-                /* テーブル一覧 */
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {tables.map(t => (
                     <button key={t} onClick={() => setUnservedTable(t)}
@@ -432,7 +428,6 @@ export default function App() {
                   ))}
                 </div>
               ) : (
-                /* 品目一覧 */
                 <div>
                   <button onClick={() => setUnservedTable(null)} style={{ background: "transparent", border: "none", color: "#5a8aca", fontSize: 14, cursor: "pointer", marginBottom: 10 }}>← 戻る</button>
                   <div style={{ color: "#fff", fontWeight: 900, fontSize: 20, marginBottom: 12 }}>テーブル {unservedTable}</div>
@@ -607,9 +602,15 @@ export default function App() {
       )}
 
       <div style={{ display: "flex", borderBottom: "1px solid #3d2c14", background: "#1c1208", overflowX: "auto" }}>
-        {Object.keys(MENU).map((cat) => (
+        {Object.keys(MENU).filter(cat => {
+          if (cat === "モーニング" || cat === "モーニング変更") {
+            const now = new Date();
+            return now.getHours() < 11 || (now.getHours() === 11 && now.getMinutes() <= 10);
+          }
+          return true;
+        }).map((cat) => (
           <button key={cat} onClick={() => setActiveCat(cat)}
-            style={{ padding: "14px 16px", border: "none", background: "none", color: activeCat === cat ? "#c9952a" : "#8a7050", borderBottom: activeCat === cat ? "3px solid #c9952a" : "3px solid transparent", cursor: "pointer", fontSize: 20, whiteSpace: "nowrap", flexShrink: 0, fontWeight: 700 }}>
+            style={{ padding: "14px 16px", border: "none", background: cat === "モーニング" || cat === "モーニング変更" ? (activeCat === cat ? "#1a0a00" : "#0f0500") : "none", color: activeCat === cat ? "#c9952a" : (cat === "モーニング" || cat === "モーニング変更" ? "#cc8800" : "#8a7050"), borderBottom: activeCat === cat ? "3px solid #c9952a" : "3px solid transparent", cursor: "pointer", fontSize: 20, whiteSpace: "nowrap", flexShrink: 0, fontWeight: 700 }}>
             {cat}
           </button>
         ))}
