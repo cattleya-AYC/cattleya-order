@@ -285,6 +285,70 @@ export default function App() {
         </div>
       )}
 
+      {showCorrectModal && (() => {
+        const doCancel = async () => {
+          await supabase.from("orders").delete().eq("table_no", String(lastSentTable)).eq("status", "pending");
+          await supabase.from("orders").delete().eq("table_no", String(lastSentTable)).eq("status", "info");
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          setCountdown(0); setShowCorrectModal(false); fetchUnserved(); fetchAllOrders();
+          alert(`テーブル${lastSentTable}の注文を取り消しました`);
+        };
+        const doTableChange = async () => {
+          if (!correctTableTarget) return;
+          setCorrectTableLoading(true);
+          await supabase.from("orders").update({ table_no: String(correctTableTarget) }).eq("table_no", String(lastSentTable)).eq("status", "pending");
+          await supabase.from("orders").update({ table_no: String(correctTableTarget) }).eq("table_no", String(lastSentTable)).eq("status", "info");
+          setCorrectTableLoading(false);
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          setCountdown(0); setShowCorrectModal(false); fetchUnserved(); fetchAllOrders();
+          alert(`テーブル${lastSentTable}→${correctTableTarget}に変更しました`);
+        };
+        const doMenuChange = async () => {
+          await supabase.from("orders").delete().eq("table_no", String(lastSentTable)).eq("status", "pending");
+          await supabase.from("orders").delete().eq("table_no", String(lastSentTable)).eq("status", "info");
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          setCountdown(0); setShowCorrectModal(false);
+          setSelectedTable(lastSentTable); setScreen("order");
+          fetchUnserved(); fetchAllOrders();
+        };
+        return (
+          <div onClick={() => setShowCorrectModal(false)} style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: "#1a0808", border: "2px solid #c95a5a", borderRadius: 14, width: "100%", maxWidth: 380, padding: 24 }}>
+              <div style={{ color: "#ff8888", fontSize: 20, fontWeight: 900, marginBottom: 6, textAlign: "center" }}>✏️ 注文の修正</div>
+              <div style={{ color: "#8a7050", fontSize: 13, marginBottom: 20, textAlign: "center" }}>テーブル {lastSentTable} の直前の注文</div>
+              {correctMode === null && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <button onClick={() => setShowCorrectModal(false)} style={{ padding: "18px 0", background: "#0a2010", border: "2px solid #4aaa5a", borderRadius: 12, color: "#4aaa5a", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>✅ 変更なし</button>
+                  <button onClick={doCancel} style={{ padding: "18px 0", background: "#2a0a0a", border: "2px solid #c95a5a", borderRadius: 12, color: "#ff8888", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>🗑 取消</button>
+                  <button onClick={() => { setCorrectMode("tableChange"); setCorrectTableTarget(null); }} style={{ padding: "18px 0", background: "#0a1a2a", border: "2px solid #5a8aca", borderRadius: 12, color: "#88bbff", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>🔄 テーブル変更</button>
+                  <button onClick={doMenuChange} style={{ padding: "18px 0", background: "#1a1008", border: "2px solid #c9952a", borderRadius: 12, color: "#c9952a", fontSize: 20, fontWeight: 900, cursor: "pointer" }}>📝 メニュー変更</button>
+                </div>
+              )}
+              {correctMode === "tableChange" && (
+                <>
+                  <div style={{ color: "#88bbff", fontSize: 15, fontWeight: 700, marginBottom: 12 }}>変更先のテーブルを選んでください</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8, marginBottom: 14 }}>
+                    {TABLES.filter(t => String(t) !== String(lastSentTable)).map(t => (
+                      <button key={t} onClick={() => setCorrectTableTarget(t)}
+                        style={{ padding: "12px 0", background: correctTableTarget === t ? "#2a4a8a" : "#251a0a", border: `2px solid ${correctTableTarget === t ? "#5a8aca" : "#3d2c14"}`, borderRadius: 8, color: correctTableTarget === t ? "#fff" : "#88bbff", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                  {correctTableTarget && (
+                    <button onClick={doTableChange} disabled={correctTableLoading}
+                      style={{ width: "100%", padding: "16px 0", background: "#2a4a8a", border: "none", borderRadius: 10, color: "#fff", fontSize: 18, fontWeight: 900, cursor: "pointer", marginBottom: 10 }}>
+                      {correctTableLoading ? "変更中..." : `→ テーブル${correctTableTarget}に変更する`}
+                    </button>
+                  )}
+                  <button onClick={() => setCorrectMode(null)} style={{ width: "100%", padding: 10, background: "transparent", border: "1px solid #3d2c14", borderRadius: 8, color: "#8a7050", cursor: "pointer" }}>← 戻る</button>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {printNotif && (() => {
         let parsed = { title: "🖨️ 印刷のお知らせ", message: "プリンターに印刷が届きました。\nショートカットボタンから印刷してください。" };
         try { if (printNotif.message) parsed = JSON.parse(printNotif.message); } catch(e) {}
