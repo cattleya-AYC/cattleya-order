@@ -304,11 +304,22 @@ export default function App() {
           alert(`テーブル${lastSentTable}→${correctTableTarget}に変更しました`);
         };
         const doMenuChange = async () => {
+          // DBから注文取得してカートに復元
+          const { data } = await supabase.from("orders").select("*").eq("table_no", String(lastSentTable)).eq("status", "pending");
+          const restoredCart = (data || []).map(o => ({
+            id: null,
+            name: o.item_name,
+            price: o.price,
+            qty: o.qty,
+          }));
+          // DBから削除
           await supabase.from("orders").delete().eq("table_no", String(lastSentTable)).eq("status", "pending");
           await supabase.from("orders").delete().eq("table_no", String(lastSentTable)).eq("status", "info");
           if (countdownRef.current) clearInterval(countdownRef.current);
           setCountdown(0); setShowCorrectModal(false);
-          setSelectedTable(lastSentTable); setScreen("order");
+          setSelectedTable(lastSentTable);
+          setCart(restoredCart);
+          setScreen("order");
           fetchUnserved(); fetchAllOrders();
         };
         return (
@@ -639,6 +650,10 @@ export default function App() {
           alert(`テーブル${lastSentTable}→${correctTableTarget}に変更しました`);
         };
         const doMenuChange = async () => {
+          const { data } = await supabase.from("orders").select("*").eq("table_no", String(lastSentTable)).eq("status", "pending");
+          const restoredCart = (data || []).map(o => ({
+            id: null, name: o.item_name, price: o.price, qty: o.qty,
+          }));
           await supabase.from("orders").delete().eq("table_no", String(lastSentTable)).eq("status", "pending");
           await supabase.from("orders").delete().eq("table_no", String(lastSentTable)).eq("status", "info");
           if (countdownRef.current) clearInterval(countdownRef.current);
@@ -646,6 +661,7 @@ export default function App() {
           setShowCorrectModal(false);
           setSent(false);
           setSelectedTable(lastSentTable);
+          setCart(restoredCart);
           setScreen("order");
           fetchUnserved();
           fetchAllOrders();
