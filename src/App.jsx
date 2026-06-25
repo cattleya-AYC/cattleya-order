@@ -272,6 +272,19 @@ export default function App() {
         }
         .pulse-btn { animation: pulse-red 1.2s infinite; }
       `}</style>
+      {countdown > 0 && (
+        <div style={{ background: "#1a0808", border: "3px solid #c95a5a", borderRadius: 12, padding: "14px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: "#ff8888", fontWeight: 900, fontSize: 17, marginBottom: 2 }}>✏️ 注文を修正できます</div>
+            <div style={{ color: "#c95a5a", fontSize: 14 }}>⏱ あと{countdown}秒</div>
+          </div>
+          <button onClick={() => { setShowCorrectModal(true); setCorrectMode(null); setCorrectTableTarget(null); }}
+            style={{ padding: "12px 16px", background: "#c95a5a", border: "none", borderRadius: 8, color: "#fff", fontSize: 16, fontWeight: 900, cursor: "pointer", whiteSpace: "nowrap" }}>
+            修正する
+          </button>
+        </div>
+      )}
+
       {printNotif && (() => {
         let parsed = { title: "🖨️ 印刷のお知らせ", message: "プリンターに印刷が届きました。\nショートカットボタンから印刷してください。" };
         try { if (printNotif.message) parsed = JSON.parse(printNotif.message); } catch(e) {}
@@ -307,7 +320,12 @@ export default function App() {
           return (
             <button key={t}
               className={occ ? "tbl-occ" : ""}
-              onClick={() => { setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setActiveCat("コーヒー"); setConfirming(false); setTakeout(false); }}
+              onClick={() => {
+                if (occ) {
+                  if (!window.confirm(`テーブル${t}は着席中です。\n追加注文ですか？`)) return;
+                }
+                setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setActiveCat("コーヒー"); setConfirming(false); setTakeout(false);
+              }}
               style={{ padding: "10px 0 8px", background: occ ? "#2a1c0a" : "#251a0a", border: `2px solid ${occ ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: occ ? "#c9952a" : "#8a7050", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
               {t}
               {occ && <div style={{ fontSize: 9, color: "#8a7050", marginTop: 2 }}>着席中</div>}
