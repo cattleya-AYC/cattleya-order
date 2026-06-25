@@ -7,11 +7,12 @@ const supabase = createClient(
 );
 
 const TOBACCO = [
-  { id: 1, name: "ピースライト ボックス" },
-  { id: 2, name: "セブンスター ボックス" },
-  { id: 3, name: "メビウス 1mg" },
-  { id: 4, name: "メビウス 3mg" },
-  { id: 5, name: "メビウス 6mg" },
+  { id: 1, name: "ピースライト "},
+  { id: 2, name: "セブンスター" },
+  { id: 3, name: "セブンスターBOX" },
+  { id: 4, name: "メビウス 1mg" },
+  { id: 5, name: "メビウス 3mg" },
+  { id: 6, name: "メビウス 6mg" },
 ];
 
 // PLU カテゴリー分類（レジアプリと同じ分類）
@@ -73,7 +74,7 @@ function changePct(cur, prev) {
 
 async function fetchSalesTotal(ym) {
   const { start, end } = monthRange(ym);
-  const { data } = await supabase.from("sales").select("amount").gte("sale_date", start).lte("sale_date", end);
+  const { data } = await supabase.from("sales").select("amount").gte("sale_date", start).lte("sale_date", end).limit(3000);
   return (data || []).reduce((a, s) => a + s.amount, 0);
 }
 
@@ -127,7 +128,7 @@ export default function Owner() {
       const { start, end } = monthRange(selectedMonth);
       try {
         const [{ data: s }, { data: t }, { data: it }, { data: cp }, { data: ic }, pt, yt] = await Promise.all([
-          supabase.from("sales").select("*").gte("sale_date", start).lte("sale_date", end).order("sale_date", { ascending: true }),
+          supabase.from("sales").select("*").gte("sale_date", start).lte("sale_date", end).order("sale_date", { ascending: true }).limit(3000),
           supabase.from("tobacco_sales").select("*").gte("sale_date", start).lte("sale_date", end),
           supabase.from("order_items").select("*").gte("sale_date", start).lte("sale_date", end),
           supabase.from("coupons").select("*").gte("used_at", start).lte("used_at", end + "T23:59:59").order("used_at", { ascending: false }),
