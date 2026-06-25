@@ -11,6 +11,7 @@ export default defineConfig({
         owner:    "owner.html",
         kitchen:  "kitchen.html",
         practice: "practice.html",
+        cake:     "cake.html",
       },
     },
   },
