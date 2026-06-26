@@ -756,7 +756,8 @@ function OwnerDailyView({ sales, tobacco, selectedMonth, C, yen }) {
                 </tr>
               );
             })}
-            <tr>
+            <tr style={{ background: "#181008" }}>
+
               <td colSpan={2} className="lbl" style={{ color: C.gold, padding: "10px 8px", fontWeight: 700, background: "#181008" }}>合計</td>
 <td className="val" style={{ color: C.gold, padding: "10px 8px", textAlign: "right", fontWeight: 700, background: "#181008" }}>{sales.reduce((a,s) => a + (s.people_count||0), 0)}</td>
 <td className="gold" style={{ color: C.gold, padding: "10px 8px", textAlign: "right", fontWeight: 700, background: "#181008" }}>{yen(sales.filter(s=>s.pay_method==="現金").reduce((a,s)=>a+s.amount,0))}</td>
