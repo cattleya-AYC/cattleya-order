@@ -716,7 +716,7 @@ function CouponView({ coupons, issuedCoupons = [], selectedMonth, C, yen }) {
 }
 
 // ===== 日計ビュー =====
-function OwnerDailyView({ sales, tobacco, selectedMonth, C, yen }) {
+function of OwnerDailyView({ sales, tobacco, selectedMonth, C, yen }) {
   const [yy, mm] = selectedMonth.split("-");
   // 日付ごとに集計
   const byDate = {};
@@ -770,7 +770,17 @@ function OwnerDailyView({ sales, tobacco, selectedMonth, C, yen }) {
 }
 
 // ===== 月次ビュー =====
-function OwnerMonthlyView({ sales, tobacco, selectedMonth, C, yen }) {
+function OwnerMonthlyView({ sales: _, tobacco: __, selectedMonth, C, yen }) {
+  const [sales, setSales] = useState([]);
+  const [tobacco, setTobacco] = useState([]);
+  useEffect(() => {
+    const { start, end } = monthRange(selectedMonth);
+    supabase.from("sales").select("*").gte("sale_date", start).lte("sale_date", end).range(0, 9999)
+      .then(({ data }) => setSales(data || []));
+    supabase.from("tobacco_sales").select("*").gte("sale_date", start).lte("sale_date", end).range(0, 9999)
+      .then(({ data }) => setTobacco(data || []));
+  }, [selectedMonth]);
+
   const total = sales.reduce((a, s) => a + s.amount, 0);
   const cash = sales.filter(s => s.pay_method === "現金").reduce((a, s) => a + s.amount, 0);
   const pay = sales.filter(s => s.pay_method === "ペイキャス").reduce((a, s) => a + s.amount, 0);
