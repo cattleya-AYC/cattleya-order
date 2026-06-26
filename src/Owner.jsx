@@ -745,13 +745,14 @@ function OwnerDailyView({ sales, tobacco, selectedMonth, C, yen }) {
               const r = byDate[d];
               const dow = ["日","月","火","水","木","金","土"][new Date(d).getDay()];
               return (
-                <tr key={d}>
+                <tr key={d} style={{ background: "#181008" }}>
+
                   <td className="lbl" style={{ color: C.cream, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, fontSize: 13 }}>{Number(d.split("-")[2])}日({dow})</td>
-                  <td className="lbl" style={{ color: C.sub, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontSize: 13 }}>{r.count}</td>
-                  <td className="lbl" style={{ color: C.sub, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontSize: 13 }}>{r.people}</td>
-                  <td className="val" style={{ color: C.cream, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontSize: 13 }}>{yen(r.cash)}</td>
-                  <td className="val" style={{ color: C.cream, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontSize: 13 }}>{yen(r.pay)}</td>
-                  <td className="gold" style={{ color: C.gold, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontWeight: 700, fontSize: 13 }}>{yen(r.cash + r.pay)}</td>
+                  <td className="lbl" style={{ color: C.sub, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontSize: 13 ,background: "#181008"}}>{r.count}</td>
+                  <td className="lbl" style={{ color: C.sub, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontSize: 13,background: "#181008"}}>{r.people}</td>
+                  <td className="val" style={{ color: C.cream, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontSize: 13,background: "#181008"}}>{yen(r.cash)}</td>
+                  <td className="val" style={{ color: C.cream, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontSize: 13,background: "#181008"}}>{yen(r.pay)}</td>
+                  <td className="gold" style={{ color: C.gold, padding: "8px 8px", borderBottom: `1px solid ${C.line}44`, textAlign: "right", fontWeight: 700, fontSize: 13,background: "#181008"}}>{yen(r.cash + r.pay)}</td>
                 </tr>
               );
             })}
