@@ -128,7 +128,8 @@ export default function Owner() {
       const { start, end } = monthRange(selectedMonth);
       try {
         const [{ data: s }, { data: t }, { data: it }, { data: cp }, { data: ic }, pt, yt] = await Promise.all([
-          supabase.from("sales").select("*").gte("sale_date", start).lte("sale_date", end).order("sale_date", { ascending: true }).limit(3000),
+supabase.from("sales").select("*").gte("sale_date", start).lte("sale_date", end).order("sale_date", { ascending: true }).range(0, 4999),
+
           supabase.from("tobacco_sales").select("*").gte("sale_date", start).lte("sale_date", end).limit(10000),
           supabase.from("order_items").select("*").gte("sale_date", start).lte("sale_date", end).limit(10000),
           supabase.from("coupons").select("*").gte("used_at", start).lte("used_at", end + "T23:59:59").order("used_at", { ascending: false }),
