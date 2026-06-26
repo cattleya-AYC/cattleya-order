@@ -243,7 +243,7 @@ supabase.from("sales").select("*").gte("sale_date", start).lte("sale_date", end)
   const [yy, mm] = selectedMonth.split("-");
 
   return (
-    <div style={{ minHeight: "100vh", background: C.ink, color: C.cream, overflowX: "hidden",fontFamily: "'Noto Sans JP', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: C.ink, color: C.cream ,fontFamily: "'Noto Sans JP', sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
         * { box-sizing: border-box; }
