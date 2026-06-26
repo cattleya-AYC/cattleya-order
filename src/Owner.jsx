@@ -731,7 +731,9 @@ function OwnerDailyView({ sales, tobacco, selectedMonth, C, yen }) {
   });
   const dates = Object.keys(byDate).sort();
   return (
-    <div style={{ marginTop: 16 }}>
+    <div style={{ marginTop: 16, background: "#181008" }}>
+
+
       <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 12 }}>{yy}年{Number(mm)}月　日別集計</div>
       {dates.length === 0 ? <div className="lbl" style={{ color: C.sub, textAlign: "center", padding: 40 }}>データなし</div> : (
         <table style={{ width: "100%", borderCollapse: "collapse", background: "#181008" }}>
