@@ -267,7 +267,7 @@ supabase.from("sales").select("*").gte("sale_date", start).lte("sale_date", end)
 
       {/* ツールバー（印刷では消える） */}
       <div className="no-print" style={{ position: "sticky", top: 0, zIndex: 10, background: C.ink,
-, borderBottom: `1px solid ${C.line}`, padding: "12px 16px", display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+ borderBottom: `1px solid ${C.line}`, padding: "12px 16px", display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
         <span className="mincho" style={{ color: C.gold, fontSize: 16, fontWeight: 700 }}>経営レポート</span>
         <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}
           style={{ padding: "8px 10px", background: C.ink, border: `1px solid ${C.line}`, borderRadius: 8, color: C.cream, fontSize: 14 }} />
