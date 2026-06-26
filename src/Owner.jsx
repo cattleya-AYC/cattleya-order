@@ -734,8 +734,8 @@ function OwnerDailyView({ sales, tobacco, selectedMonth, C, yen }) {
     <div style={{ marginTop: 16 }}>
       <div className="lbl" style={{ color: C.sub, fontSize: 12, marginBottom: 12 }}>{yy}年{Number(mm)}月　日別集計</div>
       {dates.length === 0 ? <div className="lbl" style={{ color: C.sub, textAlign: "center", padding: 40 }}>データなし</div> : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
+        <table style={{ width: "100%", borderCollapse: "collapse", background: "#181008" }}>
+<thead>
             <tr>{["日付","組数","人数","現金","ペイキャス","合計"].map(h => (
               <th key={h} className="lbl" style={{ color: C.sub, fontSize: 11, padding: "6px 8px", borderBottom: `1px solid ${C.line}`, textAlign: h === "日付" ? "left" : "right" }}>{h}</th>
             ))}</tr>
