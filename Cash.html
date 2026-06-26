@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Cattleya レジ現金</title>
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/count.PNG">
+<link rel="icon" href="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/count.PNG">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d0905;
+    color: #f0e6d0;
+    font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+    min-height: 100vh;
+  }
+  .header {
+    background: #181008;
+    border-bottom: 1px solid #3d2c14;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-title { font-size: 18px; color: #c9952a; font-weight: 700; }
+  .header-time { font-size: 12px; color: #8a7050; }
+
+  .tabs {
+    display: flex;
+    background: #181008;
+    border-bottom: 2px solid #3d2c14;
+  }
+  .tab {
+    flex: 1;
+    padding: 14px 8px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #8a7050;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+  }
+  .tab.active {
+    color: #c9952a;
+    border-bottom: 3px solid #c9952a;
+    background: #1a1008;
+  }
+
+  .content { padding: 14px 12px; }
+
+  /* 現金入力 */
+  .section-title {
+    font-size: 13px;
+    color: #8a7050;
+    margin: 16px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #3d2c14;
+    letter-spacing: 2px;
+  }
+  .cash-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #3d2c1433;
+    gap: 12px;
+  }
+  .cash-label {
+    font-size: 26px;
+    color: #c9952a;
+    font-weight: 900;
+    min-width: 110px;
+  }
+  .cash-unit {
+    font-size: 18px;
+    color: #8a7050;
+    width: 16px;
+  }
+  .cash-input {
+    width: 90px;
+    background: #251a0a;
+    border: 2px solid #3d2c14;
+    border-radius: 8px;
+    color: #f0e6d0;
+    padding: 12px 8px;
+    font-size: 28px;
+    font-weight: 900;
+    text-align: center;
+    -webkit-appearance: none;
+  }
+  .cash-input:focus {
+    outline: none;
+    border-color: #c9952a;
+  }
+  .cash-suffix {
+    font-size: 20px;
+    color: #8a7050;
+    min-width: 24px;
+  }
+  .cash-subtotal {
+    flex: 1;
+    text-align: right;
+    font-size: 18px;
+    color: #f0e6d0;
+    font-weight: 700;
+    font-family: serif;
+  }
+  .cash-subtotal.has-value { color: #c9952a; }
+
+  /* 合計エリア */
+  .total-area {
+    background: #181008;
+    border: 2px solid #c9952a;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 20px 0;
+  }
+  .total-label { font-size: 14px; color: #8a7050; margin-bottom: 6px; }
+  .total-amount { font-size: 42px; font-weight: 900; color: #c9952a; font-family: serif; }
+
+  /* 釣り銭比較 */
+  .compare-area {
+    background: #1a1008;
+    border: 1px solid #3d2c14;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+  .compare-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 14px;
+  }
+  .compare-row .cl { color: #8a7050; }
+  .compare-row .cv { color: #f0e6d0; font-weight: 700; }
+  .diff-plus { color: #5a8aca; font-weight: 900; font-size: 18px; }
+  .diff-minus { color: #c95a5a; font-weight: 900; font-size: 18px; }
+  .diff-zero { color: #4aaa5a; font-weight: 900; font-size: 18px; }
+
+  /* ボタン */
+  .btn-save {
+    width: 100%;
+    padding: 18px;
+    background: #c9952a;
+    border: none;
+    border-radius: 12px;
+    color: #0d0905;
+    font-size: 20px;
+    font-weight: 900;
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+  .btn-clear {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid #3d2c14;
+    border-radius: 10px;
+    color: #8a7050;
+    font-size: 15px;
+    cursor: pointer;
+    margin-bottom: 20px;
+  }
+
+  /* 履歴 */
+  .history-card {
+    background: #181008;
+    border: 1px solid #3d2c14;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .history-time { font-size: 13px; color: #8a7050; }
+  .history-total { font-size: 22px; font-weight: 900; color: #c9952a; }
+  .history-detail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .history-chip {
+    background: #251a0a;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: #f0e6d0;
+  }
+  .loading { text-align: center; color: #8a7050; padding: 40px; }
+  .empty { text-align: center; color: #3d2c14; padding: 40px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button onclick="window.close()" style="padding:10px 18px;background:#c9952a;border:none;border-radius:8px;color:#0d0905;font-size:16px;font-weight:900;cursor:pointer;">← レジに戻る</button>
+    <div class="header-title">💴 Cattleya レジ現金</div>
+  </div>
+  <div class="header-time" id="currentTime"></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('count')" id="tab-count">💴 現金カウント</div>
+  <div class="tab" onclick="switchTab('history')" id="tab-history">📋 記録履歴</div>
+</div>
+
+<!-- ページ1：名前選択 -->
+<div class="content" id="page-staff">
+  <div style="text-align:center;padding:24px 0 16px;">
+    <div style="font-size:22px;font-weight:900;color:#c9952a;margin-bottom:6px;">担当者を選んでください</div>
+    <div style="font-size:14px;color:#8a7050;">選択後にカウント画面に進みます</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;">
+    <button onclick="chooseStaff('店長')" style="padding:28px 0;background:transparent;border:2px solid #3d2c14;border-radius:12px;color:#8a7050;font-size:22px;font-weight:900;cursor:pointer;" id="sp-店長">佐々木店長</button>
+    <button onclick="chooseStaff('宮川')" style="padding:28px 0;background:transparent;border:2px solid #3d2c14;border-radius:12px;color:#8a7050;font-size:22px;font-weight:900;cursor:pointer;" id="sp-宮川">宮川</button>
+    <button onclick="chooseStaff('井淵')" style="padding:28px 0;background:transparent;border:2px solid #3d2c14;border-radius:12px;color:#8a7050;font-size:22px;font-weight:900;cursor:pointer;" id="sp-井淵">井淵</button>
+    <button onclick="chooseStaff('末永')" style="padding:28px 0;background:transparent;border:2px solid #3d2c14;border-radius:12px;color:#8a7050;font-size:22px;font-weight:900;cursor:pointer;" id="sp-末永">末永</button>
+  </div>
+</div>
+
+<!-- ページ2：現金カウント -->
+<div class="content" id="page-count" style="display:none;">
+
+  <!-- 担当者表示 -->
+  <div style="display:flex;justify-content:space-between;align-items:center;background:#1a1208;border:1px solid #3d2c14;border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+    <span style="color:#8a7050;font-size:14px;">担当者</span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="color:#c9952a;font-size:20px;font-weight:900;" id="selectedStaffLabel">—</span>
+      <button onclick="backToStaff()" style="padding:6px 12px;background:transparent;border:1px solid #3d2c14;border-radius:6px;color:#8a7050;font-size:13px;cursor:pointer;">変更</button>
+    </div>
+  </div>
+
+  <div class="section-title">お　札</div>
+
+  <div class="cash-row">
+    <div class="cash-label">1万円札</div>
+    <div class="cash-unit">×</div>
+    <input type="number" class="cash-input" id="v10000" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">枚</div>
+    <div class="cash-subtotal" id="s10000">—</div>
+  </div>
+  <div class="cash-row">
+    <div class="cash-label">5千円札</div>
+    <div class="cash-unit">×</div>
+    <input type="number" class="cash-input" id="v5000" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">枚</div>
+    <div class="cash-subtotal" id="s5000">—</div>
+  </div>
+  <div class="cash-row">
+    <div class="cash-label">千円札</div>
+    <div class="cash-unit">×</div>
+    <input type="number" class="cash-input" id="v1000" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">枚</div>
+    <div class="cash-subtotal" id="s1000">—</div>
+  </div>
+
+  <div class="section-title">コ イ ン</div>
+
+  <div class="cash-row">
+    <div class="cash-label">500円玉</div>
+    <div class="cash-unit">×</div>
+    <input type="number" class="cash-input" id="v500" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">個</div>
+    <div class="cash-subtotal" id="s500">—</div>
+  </div>
+  <div class="cash-row">
+    <div class="cash-label">100円玉</div>
+    <div class="cash-unit">×</div>
+    <input type="number" class="cash-input" id="v100" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">個</div>
+    <div class="cash-subtotal" id="s100">—</div>
+  </div>
+  <div class="cash-row">
+    <div class="cash-label">50円玉</div>
+    <div class="cash-unit">×</div>
+    <input type="number" class="cash-input" id="v50" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">個</div>
+    <div class="cash-subtotal" id="s50">—</div>
+  </div>
+  <div class="cash-row">
+    <div class="cash-label">10円玉</div>
+    <div class="cash-unit">×</div>
+    <input type="number" class="cash-input" id="v10" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">個</div>
+    <div class="cash-subtotal" id="s10">—</div>
+  </div>
+  <div class="cash-row">
+    <div class="cash-label">5円玉</div>
+    <div class="cash-unit">×</div>
+    <input type="number" class="cash-input" id="v5" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">個</div>
+    <div class="cash-subtotal" id="s5">—</div>
+  </div>
+  <div class="cash-row">
+    <div class="cash-label">1円玉</div>
+    <div class="cash-unit">×</div>
+    <input type="number" class="cash-input" id="v1" min="0" placeholder="0" oninput="calc()">
+    <div class="cash-suffix">個</div>
+    <div class="cash-subtotal" id="s1">—</div>
+  </div>
+
+  <div class="total-area">
+    <div class="total-label">合　計</div>
+    <div class="total-amount" id="totalAmount">¥0</div>
+  </div>
+
+  <!-- 15時入金ボタン -->
+  <div id="bankBtnArea" style="display:none;margin-bottom:12px">
+    <div style="font-size:13px;color:#8a7050;margin-bottom:8px">15時分の銀行入金</div>
+    <div style="display:flex;gap:10px">
+      <button id="btnNotDeposited" onclick="setDeposit(false)"
+        style="flex:1;padding:14px;background:#6a2a2a;border:2px solid #c95a5a;border-radius:10px;color:#fff;font-size:15px;font-weight:700;cursor:pointer">
+        ⏳ 未入金
+      </button>
+      <button id="btnDeposited" onclick="setDeposit(true)"
+        style="flex:1;padding:14px;background:transparent;border:2px solid #3d2c14;border-radius:10px;color:#8a7050;font-size:15px;font-weight:700;cursor:pointer">
+        ✅ 入金済み
+      </button>
+    </div>
+  </div>
+
+  <!-- レジあるべき金額との比較 -->
+  <div class="compare-area" id="compareArea" style="display:none">
+    <div class="compare-row" id="row-morning" style="display:none">
+      <span class="cl">15時までの現金</span>
+      <span class="cv" id="morningAmount">—</span>
+    </div>
+    <div class="compare-row" id="row-evening" style="display:none">
+      <span class="cl">15時以降の現金</span>
+      <span class="cv" id="eveningAmount">—</span>
+    </div>
+    <div class="compare-row">
+      <span class="cl">釣り銭（固定）</span>
+      <span class="cv">¥50,000</span>
+    </div>
+    <div class="compare-row" style="border-top:1px solid #3d2c14;margin-top:6px;padding-top:10px">
+      <span class="cl" id="shouldLabel">レジあるべき金額</span>
+      <span class="cv" id="shouldAmount">—</span>
+    </div>
+    <div class="compare-row">
+      <span class="cl">実際のカウント</span>
+      <span class="cv" id="actualAmount">—</span>
+    </div>
+    <div class="compare-row" style="border-top:1px solid #3d2c14;margin-top:6px;padding-top:10px">
+      <span class="cl">差　額</span>
+      <span id="diffAmount">—</span>
+    </div>
+  </div>
+
+  <button class="btn-save" onclick="saveRecord()">✅ チェック終了</button>
+  <button class="btn-clear" onclick="clearAll()">🗑 クリア</button>
+
+</div>
+
+<div class="content" id="content-history" style="display:none">
+  <div class="loading">読み込み中...</div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://zxdgiszrsmumjjxmvszb.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODM2MTksImV4cCI6MjA5NTI1OTYxOX0.vNndS7JEzIUsa007EPO2zRoYhUr-z01LM32BKIhMSz4";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const DENOMS = [10000, 5000, 1000, 500, 100, 50, 10, 5, 1];
+
+// 時刻表示
+function updateTime() {
+  const now = new Date();
+  const t = now.getFullYear() + '/' + String(now.getMonth()+1).padStart(2,'0') + '/' + String(now.getDate()).padStart(2,'0')
+    + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('currentTime').textContent = t;
+}
+updateTime();
+setInterval(updateTime, 10000);
+
+function switchTab(tab) {
+  document.getElementById('tab-count').className = 'tab' + (tab === 'count' ? ' active' : '');
+  document.getElementById('tab-history').className = 'tab' + (tab === 'history' ? ' active' : '');
+  if (tab === 'count') {
+    document.getElementById('page-staff').style.display = window._selectedStaff ? 'none' : '';
+    document.getElementById('page-count').style.display = window._selectedStaff ? '' : 'none';
+    document.getElementById('content-history').style.display = 'none';
+  } else {
+    document.getElementById('page-staff').style.display = 'none';
+    document.getElementById('page-count').style.display = 'none';
+    document.getElementById('content-history').style.display = '';
+    loadHistory();
+  }
+}
+
+function chooseStaff(name) {
+  window._selectedStaff = name;
+  ['店長','宮川','井淵','末永'].forEach(s => {
+    const btn = document.getElementById('sp-' + s);
+    if (btn) {
+      btn.style.background = s === name ? '#c9952a' : 'transparent';
+      btn.style.borderColor = s === name ? '#c9952a' : '#3d2c14';
+      btn.style.color = s === name ? '#0d0905' : '#8a7050';
+    }
+  });
+  setTimeout(() => {
+    document.getElementById('page-staff').style.display = 'none';
+    document.getElementById('page-count').style.display = '';
+    document.getElementById('selectedStaffLabel').textContent = name;
+  }, 300);
+}
+
+function backToStaff() {
+  document.getElementById('page-staff').style.display = '';
+  document.getElementById('page-count').style.display = 'none';
+}
+
+function selectStaff(name) {
+  window._selectedStaff = name;
+}
+
+function getValues() {
+  const vals = {};
+  DENOMS.forEach(d => {
+    vals[d] = parseInt(document.getElementById('v' + d).value) || 0;
+  });
+  return vals;
+}
+
+function calc() {
+  const vals = getValues();
+  let total = 0;
+  DENOMS.forEach(d => {
+    const sub = vals[d] * d;
+    total += sub;
+    const el = document.getElementById('s' + d);
+    if (vals[d] > 0) {
+      el.textContent = '¥' + sub.toLocaleString();
+      el.className = 'cash-subtotal has-value';
+    } else {
+      el.textContent = '—';
+      el.className = 'cash-subtotal';
+    }
+  });
+  document.getElementById('totalAmount').textContent = '¥' + total.toLocaleString();
+
+  // レジあるべき金額と比較（Supabaseから取得済みなら）
+  if (window._shouldCash !== undefined) {
+    const diff = total - window._shouldCash;
+    document.getElementById('shouldAmount').textContent = '¥' + window._shouldCash.toLocaleString();
+    if (window._shouldLabel) document.getElementById('shouldLabel').textContent = window._shouldLabel;
+    document.getElementById('actualAmount').textContent = '¥' + total.toLocaleString();
+    const diffEl = document.getElementById('diffAmount');
+    if (diff === 0) {
+      diffEl.innerHTML = '<span class="diff-zero">¥0（一致 ✅）</span>';
+    } else if (diff > 0) {
+      diffEl.innerHTML = `<span class="diff-plus">+¥${diff.toLocaleString()}（多い）</span>`;
+    } else {
+      diffEl.innerHTML = `<span class="diff-minus">-¥${Math.abs(diff).toLocaleString()}（不足）</span>`;
+    }
+    document.getElementById('compareArea').style.display = '';
+  }
+
+  return total;
+}
+
+const _nowHour = new Date().getHours();
+window._deposited = _nowHour >= 15;
+window._selectedStaff = null;
+
+function setDeposit(deposited) {
+  window._deposited = deposited;
+  document.getElementById('btnDeposited').style.background = deposited ? '#2a6a3a' : 'transparent';
+  document.getElementById('btnDeposited').style.borderColor = deposited ? '#4aaa5a' : '#3d2c14';
+  document.getElementById('btnDeposited').style.color = deposited ? '#fff' : '#8a7050';
+  document.getElementById('btnNotDeposited').style.background = deposited ? 'transparent' : '#6a2a2a';
+  document.getElementById('btnNotDeposited').style.borderColor = deposited ? '#3d2c14' : '#c95a5a';
+  document.getElementById('btnNotDeposited').style.color = deposited ? '#8a7050' : '#fff';
+  updateShouldCash();
+}
+
+function updateShouldCash() {
+  if (!window._salesData) return;
+  const data = window._salesData;
+  const now = new Date();
+  const currentHour = now.getHours();
+
+  const cashMorning = data.filter(s => s.pay_method === '現金' && (s.sale_time || '') < '15:00').reduce((a, s) => a + s.amount, 0);
+  const cashAll = data.filter(s => s.pay_method === '現金').reduce((a, s) => a + s.amount, 0);
+  const cashEvening = cashAll - cashMorning;
+
+  if (currentHour >= 15) {
+    if (window._deposited) {
+      // 入金済み：15時以降の現金のみ
+      window._shouldCash = cashEvening + 50000;
+      window._shouldLabel = 'レジあるべき金額（15時以降＋釣り銭）';
+      document.getElementById('row-morning').style.display = '';
+      document.getElementById('row-evening').style.display = '';
+      document.getElementById('morningAmount').textContent = '¥' + cashMorning.toLocaleString() + '（入金済み）';
+      document.getElementById('eveningAmount').textContent = '¥' + cashEvening.toLocaleString();
+    } else {
+      // 未入金：全現金
+      window._shouldCash = cashAll + 50000;
+      window._shouldLabel = 'レジあるべき金額（全現金＋釣り銭）';
+      document.getElementById('row-morning').style.display = '';
+      document.getElementById('row-evening').style.display = 'none';
+      document.getElementById('morningAmount').textContent = '¥' + cashMorning.toLocaleString() + '（未入金）';
+    }
+  } else {
+    window._shouldCash = cashAll + 50000;
+    window._shouldLabel = 'レジあるべき金額（全現金＋釣り銭）';
+    document.getElementById('row-morning').style.display = 'none';
+    document.getElementById('row-evening').style.display = 'none';
+  }
+  calc();
+}
+
+async function loadShouldCash() {
+  const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
+  const { data } = await sb.from("sales").select("amount,pay_method,sale_time").eq("sale_date", today);
+  if (data) {
+    window._salesData = data;
+    const now = new Date();
+    if (now.getHours() >= 15) {
+      document.getElementById('bankBtnArea').style.display = '';
+      // 15時以降は自動的に入金済みとしてUIを反映
+      setDeposit(true);
+    }
+    updateShouldCash();
+  }
+}
+
+loadShouldCash();
+
+async function saveRecord() {
+  const vals = getValues();
+  const total = calc();
+  if (total === 0) {
+    alert('金額を入力してください');
+    return;
+  }
+
+  const now = new Date();
+  const jst = now.toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" });
+  const date = jst.split(" ")[0];
+  const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+  const record = {
+    counted_at: now.toISOString(),
+    count_date: date,
+    count_time: timeStr,
+    total_amount: total,
+    staff: window._selectedStaff || null,
+    v10000: vals[10000],
+    v5000: vals[5000],
+    v1000: vals[1000],
+    v500: vals[500],
+    v100: vals[100],
+    v50: vals[50],
+    v10: vals[10],
+    v5: vals[5],
+    v1: vals[1],
+    should_amount: window._shouldCash || null,
+    diff_amount: window._shouldCash !== undefined ? total - window._shouldCash : null,
+  };
+
+  const { error: err1 } = await sb.from("cashcheck_logs").insert({
+    checked_at: now.toISOString(),
+    log_date: date,
+    staff: window._selectedStaff || null,
+    system_cash: window._shouldCash || null,
+    result: window._shouldCash !== undefined ? (total === window._shouldCash ? "same" : total > window._shouldCash ? "over" : "short") : null,
+    diff: window._shouldCash !== undefined ? total - window._shouldCash : null,
+  });
+  if (error) {
+    alert('保存エラー: ' + (err1?.message || err2?.message));
+  } else {
+    alert('✅ 保存しました！\n合計：¥' + total.toLocaleString());
+  }
+}
+
+function clearAll() {
+  DENOMS.forEach(d => {
+    document.getElementById('v' + d).value = '';
+    document.getElementById('s' + d).textContent = '—';
+    document.getElementById('s' + d).className = 'cash-subtotal';
+  });
+  document.getElementById('totalAmount').textContent = '¥0';
+}
+
+async function loadHistory() {
+  document.getElementById('content-history').innerHTML = '<div class="loading">読み込み中...</div>';
+  const { data, error } = await sb.from("cash_counts").select("*").order("counted_at", { ascending: false }).limit(30);
+
+  if (error) {
+    document.getElementById('content-history').innerHTML = '<div class="empty">テーブルが未作成です</div>';
+    return;
+  }
+  if (!data || data.length === 0) {
+    document.getElementById('content-history').innerHTML = '<div class="empty">記録なし</div>';
+    return;
+  }
+
+  let html = '';
+  data.forEach(r => {
+    const chips = [
+      r.v10000 && `1万×${r.v10000}`,
+      r.v5000 && `5千×${r.v5000}`,
+      r.v1000 && `千×${r.v1000}`,
+      r.v500 && `500×${r.v500}`,
+      r.v100 && `100×${r.v100}`,
+      r.v50 && `50×${r.v50}`,
+      r.v10 && `10×${r.v10}`,
+      r.v5 && `5×${r.v5}`,
+      r.v1 && `1×${r.v1}`,
+    ].filter(Boolean);
+
+    let diffHtml = '';
+    if (r.diff_amount !== null) {
+      if (r.diff_amount === 0) diffHtml = '<span style="color:#4aaa5a;font-size:12px">　✅ 一致</span>';
+      else if (r.diff_amount > 0) diffHtml = `<span style="color:#5a8aca;font-size:12px">　+¥${r.diff_amount.toLocaleString()}</span>`;
+      else diffHtml = `<span style="color:#c95a5a;font-size:12px">　-¥${Math.abs(r.diff_amount).toLocaleString()}</span>`;
+    }
+
+    html += `
+    <div class="history-card">
+      <div class="history-header">
+        <div>
+          <div class="history-time">${r.count_date} ${r.count_time}${r.staff ? "　" + r.staff : ""}</div>
+          ${diffHtml}
+        </div>
+        <div class="history-total">¥${r.total_amount.toLocaleString()}</div>
+      </div>
+      <div class="history-detail">
+        ${chips.map(c => `<div class="history-chip">${c}</div>`).join('')}
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('content-history').innerHTML = html;
+}
+</script>
+</body>
+</html>
