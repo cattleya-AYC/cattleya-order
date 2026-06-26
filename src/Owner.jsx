@@ -775,7 +775,8 @@ function OwnerMonthlyView({ sales: _, tobacco: __, selectedMonth, C, yen }) {
   const [tobacco, setTobacco] = useState([]);
   useEffect(() => {
     const { start, end } = monthRange(selectedMonth);
-    supabase.from("sales").select("*").gte("sale_date", start).lte("sale_date", end).range(0, 9999)
+    supabase.from("sales").select("*").gte("sale_date", start).lte("sale_date", end).limit(2000)
+
       .then(({ data }) => setSales(data || []));
     supabase.from("tobacco_sales").select("*").gte("sale_date", start).lte("sale_date", end).range(0, 9999)
       .then(({ data }) => setTobacco(data || []));
