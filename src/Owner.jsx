@@ -716,7 +716,7 @@ function CouponView({ coupons, issuedCoupons = [], selectedMonth, C, yen }) {
 }
 
 // ===== 日計ビュー =====
-function of OwnerDailyView({ sales, tobacco, selectedMonth, C, yen }) {
+function OwnerDailyView({ sales, tobacco, selectedMonth, C, yen }) {
   const [yy, mm] = selectedMonth.split("-");
   // 日付ごとに集計
   const byDate = {};
