@@ -488,12 +488,21 @@ function updateShouldCash() {
   const data = window._salesData;
   const now = new Date();
   const currentHour = now.getHours();
+  const currentMin = now.getMinutes();
 
   const cashMorning = data.filter(s => s.pay_method === '現金' && (s.sale_time || '') < '15:00').reduce((a, s) => a + s.amount, 0);
   const cashAll = data.filter(s => s.pay_method === '現金').reduce((a, s) => a + s.amount, 0);
   const cashEvening = cashAll - cashMorning;
 
-  if (currentHour >= 15) {
+  // 20:10以降は閉店モード：釣り銭¥50,000のみ
+  if (currentHour > 20 || (currentHour === 20 && currentMin >= 10)) {
+    window._shouldCash = 50000;
+    window._shouldLabel = 'レジあるべき金額（釣り銭のみ・閉店）';
+    document.getElementById('row-morning').style.display = 'none';
+    document.getElementById('row-evening').style.display = 'none';
+    document.getElementById('bankBtnArea').style.display = 'none';
+
+  } else if (currentHour >= 15) {
     if (window._deposited) {
       // 入金済み：15時以降の現金のみ
       window._shouldCash = cashEvening + 50000;
