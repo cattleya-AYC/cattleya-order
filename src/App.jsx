@@ -371,25 +371,7 @@ export default function App() {
         );
       })()}
 
-      {printNotif && (() => {
-        let parsed = { title: "🖨️ 印刷のお知らせ", message: "プリンターに印刷が届きました。\nショートカットボタンから印刷してください。" };
-        try { if (printNotif.message) parsed = JSON.parse(printNotif.message); } catch(e) {}
-        const isCall = parsed.title.includes("電話");
-        return (
-          <div style={{ background: isCall ? "#00080f" : "#1a0a00", border: `3px solid ${isCall ? "#3399ff" : "#ff6600"}`, borderRadius: 12, padding: "16px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ color: isCall ? "#66bbff" : "#ff9944", fontWeight: 900, fontSize: 17, marginBottom: 4 }}>{parsed.title}</div>
-              <div style={{ color: "#f0e6d0", fontSize: 15, lineHeight: 1.5 }}>{parsed.message.split("\n").map((l,i) => <span key={i}>{l}<br/></span>)}</div>
-            </div>
-            <button onClick={async () => {
-              await supabase.from("print_notifications").update({ dismissed: true, dismissed_at: new Date().toISOString() }).eq("id", printNotif.id);
-              setPrintNotif(null);
-            }} style={{ padding: "10px 14px", background: isCall ? "#3399ff" : "#ff6600", border: "none", borderRadius: 8, color: "#fff", fontSize: 14, fontWeight: 900, cursor: "pointer", whiteSpace: "nowrap" }}>
-              {isCall ? "📞 わかった" : "🖨️ 印刷した"}
-            </button>
-          </div>
-        );
-      })()}
+  
 
       <h1 style={{ color: "#c9952a", marginBottom: 16, fontFamily: "serif" }}>Lounge Cattleya</h1>
       <p style={{ color: "#8a7050", marginBottom: 12 }}>テーブルを選択</p>
