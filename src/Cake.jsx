@@ -22,16 +22,20 @@ function toJST(date = new Date()) {
     .slice(0, 10);
 }
 
-// order_itemsから日別・商品別販売数を集計（クライアント側でフィルタ）
+// order_itemsから日別・商品別販売数を集計（REST API直接）
+const SUPABASE_URL = "https://zxdgiszrsmumjjxmvszb.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk3MDEyMDAsImV4cCI6MjAyNTI3NzIwMH0.vSVV6_9bFCEMEJmgNuIMhbTpqylVhIqFiqKuDmhkVHc";
 const ITEMS_SET = new Set(ITEMS);
 
 async function fetchSoldFromOrderItems(from, to) {
-  const { data } = await supabase
-    .from("order_items")
-    .select("item_name, qty, sale_date")
-    .gte("sale_date", from)
-    .lte("sale_date", to)
-    .limit(5000);
+  const url = `${SUPABASE_URL}/rest/v1/order_items?select=item_name,qty,sale_date&sale_date=gte.${from}&sale_date=lte.${to}&limit=5000`;
+  const res = await fetch(url, {
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+    }
+  });
+  const data = await res.json();
 
   const byDateItem = {};
   const byItem = {};
