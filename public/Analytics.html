@@ -509,7 +509,8 @@ async function printPaycasMonthly() {
     const hasAdjust = (salesMonth || []).some(s => s.sale_date === date && s.table_no === '調整');
 
     rows += `<tr style="${hasDiff ? 'color:#cc3333;' : ''}">
-      <td>${date.substring(5).replace('-', '/')}</td>
+      <td>${date.substring(5).replace('-', '/')}${hasAdjust ? '🔧' : ''}</td>
+
       <td style="text-align:right">¥${dbTotal.toLocaleString()}</td>
       <td style="text-align:right">${icqrTotal !== null ? '¥' + icqrTotal.toLocaleString() : '---'}</td>
       <td style="text-align:right">${diff === null ? '---' : diff === 0 ? '✅' : (diff > 0 ? '+' : '') + '¥' + diff.toLocaleString()}</td>
