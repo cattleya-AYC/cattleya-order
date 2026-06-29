@@ -446,6 +446,8 @@ async function loadPaycasMonthly() {
     const icqrTotal = d ? (d.ic_amount || 0) + (d.qr_amount || 0) : null;
     const diff = icqrTotal !== null ? icqrTotal - dbTotal : null;
     const hasDiff = diff !== null && diff !== 0;
+    const hasAdjust = (salesMonth || []).some(s => s.sale_date === date && s.table_no === '調整');
+
     const dateDisp = date.substring(5).replace('-', '/'); // MM/DD
 
     listHtml += `
