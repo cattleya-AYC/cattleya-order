@@ -265,11 +265,10 @@ async function loadAll() {
 }
 
 function renderPaycas() {
-  // 調整レコードを除外したペイキャス売上
-  const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス' && s.table_no !== '調整');
+  const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス');
   const paycasTotal = paycasSales.reduce((a, s) => a + s.amount, 0);
-  const cashTotal = salesData.filter(s => s.pay_method === '現金' && s.table_no !== '調整').reduce((a, s) => a + s.amount, 0);
-  const grandTotal = salesData.filter(s => s.table_no !== '調整').reduce((a, s) => a + s.amount, 0);
+  const cashTotal = salesData.filter(s => s.pay_method === '現金').reduce((a, s) => a + s.amount, 0);
+  const grandTotal = salesData.reduce((a, s) => a + s.amount, 0);
 
   let html = '';
 
@@ -324,30 +323,22 @@ async function loadPaycasMonthly() {
   const lastDay = new Date(Number(year), Number(month), 0).getDate();
   const endDate = `${year}-${month}-${String(lastDay).padStart(2,'0')}`;
 
-  // paycas_dailyからIC/QRデータ取得
   const { data: paycasDaily } = await sb.from('paycas_daily')
     .select('*').gte('sale_date', startDate).lte('sale_date', endDate);
 
-  // 調整レコードを含む全ペイキャス（🔧判定用）
-  const { data: salesMonthAll } = await sb.from('sales')
+  const { data: salesMonth } = await sb.from('sales')
     .select('sale_date, amount, pay_method, table_no')
     .eq('pay_method', 'ペイキャス')
     .gte('sale_date', startDate).lte('sale_date', endDate);
 
-  // 調整レコードを除外したペイキャス（DB合計用）
-  const salesMonthClean = (salesMonthAll || []).filter(s => s.table_no !== '調整');
-
-  // 日ごとのペイキャス売上合計（調整除外）
   const salesByDate = {};
-  salesMonthClean.forEach(s => {
+  (salesMonth || []).forEach(s => {
     salesByDate[s.sale_date] = (salesByDate[s.sale_date] || 0) + s.amount;
   });
 
-  // paycas_dailyのデータをマップ
   const dailyMap = {};
   (paycasDaily || []).forEach(d => { dailyMap[d.sale_date] = d; });
 
-  // 全日付を結合
   const allDates = [...new Set([
     ...Object.keys(salesByDate),
     ...Object.keys(dailyMap)
@@ -366,13 +357,11 @@ async function loadPaycasMonthly() {
     const icqrTotal = d ? (d.ic_amount || 0) + (d.qr_amount || 0) : null;
     const diff = icqrTotal !== null ? icqrTotal - dbTotal : null;
     const hasDiff = diff !== null && diff !== 0;
-    // 調整レコードがあるか判定（salesMonthAllで判定）
-    const hasAdjust = (salesMonthAll || []).some(s => s.sale_date === date && s.table_no === '調整');
     const dateDisp = date.substring(5).replace('-', '/');
 
     listHtml += `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #3d2c1444;">
-      <span style="color:${hasDiff ? '#c95a5a' : '#8a7050'};font-size:15px;min-width:50px;">${dateDisp}${hasAdjust ? '<span style="color:#e07a10;font-size:11px;margin-left:4px;">🔧</span>' : ''}</span>
+      <span style="color:${hasDiff ? '#c95a5a' : '#8a7050'};font-size:15px;min-width:50px;">${dateDisp}</span>
       <span style="color:#a0e0a0;font-size:14px;min-width:80px;text-align:right;">¥${dbTotal.toLocaleString()}</span>
       <span style="color:#8a7050;font-size:14px;min-width:80px;text-align:right;">${icqrTotal !== null ? '¥' + icqrTotal.toLocaleString() : '---'}</span>
       <span style="font-size:15px;font-weight:700;min-width:80px;text-align:right;color:${diff === null ? '#8a7050' : hasDiff ? '#c95a5a' : '#4aaa5a'};">
@@ -404,16 +393,13 @@ async function printPaycasMonthly() {
 
   const { data: paycasDaily } = await sb.from('paycas_daily')
     .select('*').gte('sale_date', startDate).lte('sale_date', endDate);
-
-  const { data: salesMonthAll } = await sb.from('sales')
+  const { data: salesMonth } = await sb.from('sales')
     .select('sale_date, amount, pay_method, table_no')
     .eq('pay_method', 'ペイキャス')
     .gte('sale_date', startDate).lte('sale_date', endDate);
 
-  const salesMonthClean = (salesMonthAll || []).filter(s => s.table_no !== '調整');
-
   const salesByDate = {};
-  salesMonthClean.forEach(s => {
+  (salesMonth || []).forEach(s => {
     salesByDate[s.sale_date] = (salesByDate[s.sale_date] || 0) + s.amount;
   });
   const dailyMap = {};
@@ -428,10 +414,9 @@ async function printPaycasMonthly() {
     const icqrTotal = d ? (d.ic_amount || 0) + (d.qr_amount || 0) : null;
     const diff = icqrTotal !== null ? icqrTotal - dbTotal : null;
     const hasDiff = diff !== null && diff !== 0;
-    const hasAdjust = (salesMonthAll || []).some(s => s.sale_date === date && s.table_no === '調整');
 
     rows += `<tr style="${hasDiff ? 'color:#cc3333;' : ''}">
-      <td>${date.substring(5).replace('-', '/')}${hasAdjust ? '🔧' : ''}</td>
+      <td>${date.substring(5).replace('-', '/')}</td>
       <td style="text-align:right">¥${dbTotal.toLocaleString()}</td>
       <td style="text-align:right">${icqrTotal !== null ? '¥' + icqrTotal.toLocaleString() : '---'}</td>
       <td style="text-align:right">${diff === null ? '---' : diff === 0 ? '✅' : (diff > 0 ? '+' : '') + '¥' + diff.toLocaleString()}</td>
@@ -445,7 +430,6 @@ async function printPaycasMonthly() {
     th,td{border:1px solid #ccc;padding:6px 8px;}
     th{background:#f5f5f5;text-align:center;}
     td:not(:first-child){text-align:right;}
-    .diff{color:#cc3333;font-weight:700;}
   </style></head><body>
     <h2>ペイキャス差額一覧　${year}年${month}月</h2>
     <table>
@@ -462,7 +446,7 @@ async function printPaycasMonthly() {
 
 function calcDiff() {
   const actual = parseInt(document.getElementById('actualPaycas').value) || 0;
-  const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス' && s.table_no !== '調整');
+  const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス');
   const systemTotal = paycasSales.reduce((a, s) => a + s.amount, 0);
   const diff = actual - systemTotal;
 
@@ -491,14 +475,14 @@ function calcDiff() {
 
 async function doAdjust() {
   const actual = parseInt(document.getElementById('actualPaycas').value) || 0;
-  const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス' && s.table_no !== '調整');
+  const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス');
   const systemTotal = paycasSales.reduce((a, s) => a + s.amount, 0);
   const diff = actual - systemTotal;
 
   if (diff === 0) return;
 
   const targetPay = [...paycasSales].sort((a, b) => b.amount - a.amount)[0];
-  const cashSales = salesData.filter(s => s.pay_method === '現金' && s.table_no !== '調整');
+  const cashSales = salesData.filter(s => s.pay_method === '現金');
   const targetCash = [...cashSales].sort((a, b) => b.amount - a.amount)[0];
 
   if (!targetPay || !targetCash) {
@@ -523,7 +507,7 @@ function renderVisit() {
     return;
   }
 
-  const sorted = [...salesData].filter(s => s.table_no !== '調整').sort((a, b) => (a.sale_time || '').localeCompare(b.sale_time || ''));
+  const sorted = [...salesData].sort((a, b) => (a.sale_time || '').localeCompare(b.sale_time || ''));
 
   let html = `
   <div style="margin-bottom:12px">
@@ -576,7 +560,7 @@ function renderVisit() {
 }
 
 function printVisitPDF() {
-  const sorted = [...salesData].filter(s => s.table_no !== '調整').sort((a, b) => (a.sale_time || '').localeCompare(b.sale_time || ''));
+  const sorted = [...salesData].sort((a, b) => (a.sale_time || '').localeCompare(b.sale_time || ''));
 
   const rows = sorted.map((sale, i) => {
     const items = orderItemsData.filter(o =>
@@ -600,9 +584,9 @@ function printVisitPDF() {
   }).join('');
 
   const today = selectedDate || new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
-  const cashTotal = salesData.filter(s => s.pay_method === '現金' && s.table_no !== '調整').reduce((a, s) => a + s.amount, 0);
-  const payTotal = salesData.filter(s => s.pay_method === 'ペイキャス' && s.table_no !== '調整').reduce((a, s) => a + s.amount, 0);
-  const grandTotal = salesData.filter(s => s.table_no !== '調整').reduce((a, s) => a + s.amount, 0);
+  const cashTotal = salesData.filter(s => s.pay_method === '現金').reduce((a, s) => a + s.amount, 0);
+  const payTotal = salesData.filter(s => s.pay_method === 'ペイキャス').reduce((a, s) => a + s.amount, 0);
+  const grandTotal = salesData.reduce((a, s) => a + s.amount, 0);
 
   const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
 <style>
@@ -613,7 +597,7 @@ function printVisitPDF() {
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   col.c1 { width: 4%; } col.c2 { width: 7%; } col.c3 { width: 5%; }
   col.c4 { width: 5%; } col.c5 { width: 63%; } col.c6 { width: 9%; } col.c7 { width: 7%; }
-  th { background: #222; color: #fff; padding: 3px 3px; font-size: 8px; text-align: left; white-space: nowrap; }
+  th { background: #222; color: #fff; padding: 3px; font-size: 8px; text-align: left; white-space: nowrap; }
   td { padding: 2px 3px; border-bottom: 1px solid #ddd; font-size: 8px; vertical-align: middle; word-break: break-all; }
   tr:nth-child(even) td { background: #f9f9f9; }
   .total-row td { font-weight: 900; font-size: 10px; border-top: 2px solid #999; background: #f0f0f0; }
@@ -652,20 +636,20 @@ function printVisitPDF() {
 }
 
 function renderSummary() {
-  const cashSales = salesData.filter(s => s.pay_method === '現金' && s.table_no !== '調整');
-  const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス' && s.table_no !== '調整');
+  const cashSales = salesData.filter(s => s.pay_method === '現金');
+  const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス');
   const cashTotal = cashSales.reduce((a, s) => a + s.amount, 0);
   const paycasTotal = paycasSales.reduce((a, s) => a + s.amount, 0);
-  const grandTotal = salesData.filter(s => s.table_no !== '調整').reduce((a, s) => a + s.amount, 0);
-  const totalCount = salesData.filter(s => s.table_no !== '調整').length;
-  const totalPeople = salesData.filter(s => s.table_no !== '調整').reduce((a, s) => a + (s.people_count || 0), 0);
+  const grandTotal = salesData.reduce((a, s) => a + s.amount, 0);
+  const totalCount = salesData.length;
+  const totalPeople = salesData.reduce((a, s) => a + (s.people_count || 0), 0);
   const cashCount = cashSales.length;
   const paycasCount = paycasSales.length;
   const cashMorning = cashSales.filter(s => (s.sale_time || '') < '15:00').reduce((a, s) => a + s.amount, 0);
   const cashEvening = cashSales.filter(s => (s.sale_time || '') >= '15:00').reduce((a, s) => a + s.amount, 0);
 
   const groups = {};
-  salesData.filter(s => s.table_no !== '調整').forEach(s => {
+  salesData.forEach(s => {
     const h = (s.sale_time || '').split(':')[0] || '不明';
     if (!groups[h]) groups[h] = { count: 0, amount: 0 };
     groups[h].count++;
@@ -713,20 +697,20 @@ function renderSummary() {
 }
 
 function printSummary() {
-  const cashSales = salesData.filter(s => s.pay_method === '現金' && s.table_no !== '調整');
-  const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス' && s.table_no !== '調整');
+  const cashSales = salesData.filter(s => s.pay_method === '現金');
+  const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス');
   const cashTotal = cashSales.reduce((a, s) => a + s.amount, 0);
   const paycasTotal = paycasSales.reduce((a, s) => a + s.amount, 0);
-  const grandTotal = salesData.filter(s => s.table_no !== '調整').reduce((a, s) => a + s.amount, 0);
-  const totalCount = salesData.filter(s => s.table_no !== '調整').length;
-  const totalPeople = salesData.filter(s => s.table_no !== '調整').reduce((a, s) => a + (s.people_count || 0), 0);
+  const grandTotal = salesData.reduce((a, s) => a + s.amount, 0);
+  const totalCount = salesData.length;
+  const totalPeople = salesData.reduce((a, s) => a + (s.people_count || 0), 0);
   const cashCount = cashSales.length;
   const paycasCount = paycasSales.length;
   const cashMorningP = cashSales.filter(s => (s.sale_time || '') < '15:00').reduce((a, s) => a + s.amount, 0);
   const cashEveningP = cashSales.filter(s => (s.sale_time || '') >= '15:00').reduce((a, s) => a + s.amount, 0);
 
   const groups = {};
-  salesData.filter(s => s.table_no !== '調整').forEach(s => {
+  salesData.forEach(s => {
     const h = (s.sale_time || '').split(':')[0] || '不明';
     if (!groups[h]) groups[h] = { count: 0, amount: 0 };
     groups[h].count++;
