@@ -335,8 +335,12 @@ async function loadPaycasMonthly() {
     .eq('pay_method', 'ペイキャス')
     .gte('sale_date', startDate).lte('sale_date', endDate);
 
+  // 調整レコード判定用（table_no='調整'を含む全データ）
+  const adjustDates = new Set((salesMonth || []).filter(s => s.table_no === '調整').map(s => s.sale_date));
+
+  // DB合計は調整レコードを除外
   const salesByDate = {};
-  (salesMonth || []).forEach(s => {
+  (salesMonth || []).filter(s => s.table_no !== '調整').forEach(s => {
     salesByDate[s.sale_date] = (salesByDate[s.sale_date] || 0) + s.amount;
   });
 
@@ -361,11 +365,12 @@ async function loadPaycasMonthly() {
     const icqrTotal = d ? (d.ic_amount || 0) + (d.qr_amount || 0) : null;
     const diff = icqrTotal !== null ? icqrTotal - dbTotal : null;
     const hasDiff = diff !== null && diff !== 0;
+    const hasAdjust = adjustDates.has(date);
     const dateDisp = date.substring(5).replace('-', '/');
 
     listHtml += `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #3d2c1444;">
-      <span style="color:${hasDiff ? '#c95a5a' : '#8a7050'};font-size:15px;min-width:50px;">${dateDisp}</span>
+      <span style="color:${hasDiff ? '#c95a5a' : '#8a7050'};font-size:15px;min-width:50px;">${dateDisp}${hasAdjust ? ' 🔧' : ''}</span>
       <span style="color:#a0e0a0;font-size:14px;min-width:80px;text-align:right;">¥${dbTotal.toLocaleString()}</span>
       <span style="color:#8a7050;font-size:14px;min-width:80px;text-align:right;">${icqrTotal !== null ? '¥' + icqrTotal.toLocaleString() : '---'}</span>
       <span style="font-size:15px;font-weight:700;min-width:80px;text-align:right;color:${diff === null ? '#8a7050' : hasDiff ? '#c95a5a' : '#4aaa5a'};">
