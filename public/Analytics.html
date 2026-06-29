@@ -17,8 +17,6 @@
     font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif;
     min-height: 100vh;
   }
-
-  /* ヘッダー */
   .header {
     background: #181008;
     border-bottom: 1px solid #3d2c14;
@@ -27,18 +25,8 @@
     justify-content: space-between;
     align-items: center;
   }
-  .header-title {
-    font-size: 18px;
-    color: #c9952a;
-    font-weight: 700;
-    letter-spacing: 2px;
-  }
-  .header-date {
-    font-size: 12px;
-    color: #8a7050;
-  }
-
-  /* 日付選択 */
+  .header-title { font-size: 18px; color: #c9952a; font-weight: 700; letter-spacing: 2px; }
+  .header-date { font-size: 12px; color: #8a7050; }
   .date-bar {
     background: #181008;
     padding: 10px 16px;
@@ -66,8 +54,6 @@
     font-weight: 700;
     cursor: pointer;
   }
-
-  /* タブ */
   .tabs {
     display: flex;
     background: #181008;
@@ -75,9 +61,9 @@
   }
   .tab {
     flex: 1;
-    padding: 14px 8px;
+    padding: 12px 4px;
     text-align: center;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
     color: #8a7050;
     cursor: pointer;
@@ -89,11 +75,7 @@
     border-bottom: 3px solid #c9952a;
     background: #1a1008;
   }
-
-  /* コンテンツ */
   .content { padding: 14px 12px; }
-
-  /* サマリーカード */
   .summary-card {
     background: #181008;
     border: 1px solid #3d2c14;
@@ -101,16 +83,8 @@
     padding: 16px;
     margin-bottom: 14px;
   }
-  .summary-card .label {
-    font-size: 12px;
-    color: #8a7050;
-    margin-bottom: 4px;
-  }
-  .summary-card .amount {
-    font-size: 32px;
-    font-weight: 900;
-    color: #c9952a;
-  }
+  .summary-card .label { font-size: 12px; color: #8a7050; margin-bottom: 4px; }
+  .summary-card .amount { font-size: 32px; font-weight: 900; color: #c9952a; }
   .summary-row {
     display: flex;
     justify-content: space-between;
@@ -122,8 +96,6 @@
   .summary-row:last-child { border-bottom: none; }
   .summary-row .slabel { color: #8a7050; }
   .summary-row .sval { color: #c9952a; font-weight: 700; }
-
-  /* ペイキャス取引リスト */
   .pay-item {
     background: #181008;
     border: 1px solid #3d2c14;
@@ -137,8 +109,6 @@
   .pay-item .time { color: #8a7050; font-size: 13px; }
   .pay-item .table { color: #f0e6d0; font-size: 15px; font-weight: 700; margin-top: 2px; }
   .pay-item .pamount { color: #c9952a; font-size: 20px; font-weight: 900; }
-
-  /* 来店者カード */
   .visit-card {
     background: #181008;
     border: 1px solid #3d2c14;
@@ -153,29 +123,11 @@
     justify-content: space-between;
     align-items: center;
   }
-  .visit-header .vtable {
-    font-size: 20px;
-    font-weight: 900;
-    color: #c9952a;
-  }
-  .visit-header .vinfo {
-    font-size: 12px;
-    color: #8a7050;
-    margin-top: 2px;
-  }
-  .visit-header .vtotal {
-    text-align: right;
-  }
-  .visit-header .vtotal-amount {
-    font-size: 22px;
-    font-weight: 900;
-    color: #c9952a;
-  }
-  .visit-header .vtotal-pay {
-    font-size: 12px;
-    color: #8a7050;
-    margin-top: 2px;
-  }
+  .visit-header .vtable { font-size: 20px; font-weight: 900; color: #c9952a; }
+  .visit-header .vinfo { font-size: 12px; color: #8a7050; margin-top: 2px; }
+  .visit-header .vtotal { text-align: right; }
+  .visit-header .vtotal-amount { font-size: 22px; font-weight: 900; color: #c9952a; }
+  .visit-header .vtotal-pay { font-size: 12px; color: #8a7050; margin-top: 2px; }
   .visit-body { padding: 10px 14px; }
   .order-row {
     display: flex;
@@ -189,22 +141,8 @@
   .order-qty { color: #8a7050; margin: 0 10px; }
   .order-price { color: #c9952a; }
   .order-price.discount { color: #4aaa5a; }
-
-  /* ローディング・エラー */
-  .loading {
-    text-align: center;
-    color: #8a7050;
-    padding: 40px;
-    font-size: 14px;
-  }
-  .empty {
-    text-align: center;
-    color: #3d2c14;
-    padding: 40px;
-    font-size: 14px;
-  }
-
-  /* ペイキャス精算ボタン */
+  .loading { text-align: center; color: #8a7050; padding: 40px; font-size: 14px; }
+  .empty { text-align: center; color: #3d2c14; padding: 40px; font-size: 14px; }
   .paycas-adjust {
     background: #1a2510;
     border: 1px solid #2a6a3a;
@@ -212,12 +150,7 @@
     padding: 16px;
     margin-bottom: 14px;
   }
-  .paycas-adjust .adj-title {
-    color: #4aaa5a;
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 12px;
-  }
+  .paycas-adjust .adj-title { color: #4aaa5a; font-size: 14px; font-weight: 700; margin-bottom: 12px; }
   .paycas-adjust input {
     width: 100%;
     background: #0d1a0a;
@@ -230,12 +163,7 @@
     text-align: right;
     margin-bottom: 10px;
   }
-  .adj-info {
-    display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    margin-bottom: 8px;
-  }
+  .adj-info { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
   .adj-info .al { color: #8a7050; }
   .adj-info .av { color: #f0e6d0; font-weight: 700; }
   .adj-diff-pos { color: #5a8aca; font-weight: 700; }
@@ -252,11 +180,7 @@
     cursor: pointer;
     margin-top: 6px;
   }
-  .btn-adjust:disabled {
-    background: #3d2c14;
-    color: #8a7050;
-    cursor: not-allowed;
-  }
+  .btn-adjust:disabled { background: #3d2c14; color: #8a7050; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -275,6 +199,7 @@
   <div class="tab active" onclick="switchTab('paycas')" id="tab-paycas">💳 ペイキャス</div>
   <div class="tab" onclick="switchTab('visit')" id="tab-visit">👥 来店者</div>
   <div class="tab" onclick="switchTab('summary')" id="tab-summary">📊 途中集計</div>
+  <div class="tab" onclick="switchTab('monthly')" id="tab-monthly">📅 月別</div>
 </div>
 
 <div class="content" id="content-paycas">
@@ -289,6 +214,10 @@
   <div class="loading">読み込み中...</div>
 </div>
 
+<div class="content" id="content-monthly" style="display:none">
+  <div class="loading">読み込み中...</div>
+</div>
+
 <script>
 const SUPABASE_URL = "https://zxdgiszrsmumjjxmvszb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODM2MTksImV4cCI6MjA5NTI1OTYxOX0.vNndS7JEzIUsa007EPO2zRoYhUr-z01LM32BKIhMSz4";
@@ -299,7 +228,6 @@ let salesData = [];
 let orderItemsData = [];
 let selectedDate = '';
 
-// 今日の日付をセット
 const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
 document.getElementById('dateInput').value = today;
 document.getElementById('headerDate').textContent = today;
@@ -309,9 +237,12 @@ function switchTab(tab) {
   document.getElementById('tab-paycas').className = 'tab' + (tab === 'paycas' ? ' active' : '');
   document.getElementById('tab-visit').className = 'tab' + (tab === 'visit' ? ' active' : '');
   document.getElementById('tab-summary').className = 'tab' + (tab === 'summary' ? ' active' : '');
+  document.getElementById('tab-monthly').className = 'tab' + (tab === 'monthly' ? ' active' : '');
   document.getElementById('content-paycas').style.display = tab === 'paycas' ? '' : 'none';
   document.getElementById('content-visit').style.display = tab === 'visit' ? '' : 'none';
   document.getElementById('content-summary').style.display = tab === 'summary' ? '' : 'none';
+  document.getElementById('content-monthly').style.display = tab === 'monthly' ? '' : 'none';
+  if (tab === 'monthly') loadPaycasMonthly();
 }
 
 async function loadAll() {
@@ -321,6 +252,7 @@ async function loadAll() {
   document.getElementById('content-paycas').innerHTML = '<div class="loading">読み込み中...</div>';
   document.getElementById('content-visit').innerHTML = '<div class="loading">読み込み中...</div>';
   document.getElementById('content-summary').innerHTML = '<div class="loading">読み込み中...</div>';
+  document.getElementById('content-monthly').innerHTML = '<div class="loading">読み込み中...</div>';
 
   const [{ data: sales }, { data: items }] = await Promise.all([
     sb.from("sales").select("*").eq("sale_date", selectedDate).order("sale_time", { ascending: true }),
@@ -343,7 +275,6 @@ function renderPaycas() {
 
   let html = '';
 
-  // ペイキャス精算ボタン
   html += `
   <div class="paycas-adjust">
     <div class="adj-title">🔧 ペイキャス精算（閉店時）</div>
@@ -356,7 +287,6 @@ function renderPaycas() {
     <div id="adjustMsg" style="color:#4aaa5a;font-size:13px;margin-top:8px;text-align:center;"></div>
   </div>`;
 
-  // サマリー
   html += `
   <div class="summary-card">
     <div class="label">本日ペイキャス合計</div>
@@ -368,7 +298,6 @@ function renderPaycas() {
     </div>
   </div>`;
 
-  // ペイキャス取引一覧
   if (paycasSales.length === 0) {
     html += '<div class="empty">ペイキャス取引なし</div>';
   } else {
@@ -386,6 +315,138 @@ function renderPaycas() {
   }
 
   document.getElementById('content-paycas').innerHTML = html;
+}
+
+async function loadPaycasMonthly() {
+  document.getElementById('content-monthly').innerHTML = '<div class="loading">読み込み中...</div>';
+
+  const dateVal = document.getElementById('dateInput').value;
+  const ym = dateVal ? dateVal.substring(0, 7) : new Date().toISOString().substring(0, 7);
+  const [year, month] = ym.split('-');
+  const startDate = `${year}-${month}-01`;
+  const lastDay = new Date(Number(year), Number(month), 0).getDate();
+  const endDate = `${year}-${month}-${String(lastDay).padStart(2,'0')}`;
+
+  const { data: paycasDaily } = await sb.from('paycas_daily')
+    .select('*').gte('sale_date', startDate).lte('sale_date', endDate);
+
+  const { data: salesMonth } = await sb.from('sales')
+    .select('sale_date, amount, pay_method, table_no')
+    .eq('pay_method', 'ペイキャス')
+    .gte('sale_date', startDate).lte('sale_date', endDate);
+
+  const salesByDate = {};
+  (salesMonth || []).forEach(s => {
+    salesByDate[s.sale_date] = (salesByDate[s.sale_date] || 0) + s.amount;
+  });
+
+  const dailyMap = {};
+  (paycasDaily || []).forEach(d => { dailyMap[d.sale_date] = d; });
+
+  const allDates = [...new Set([
+    ...Object.keys(salesByDate),
+    ...Object.keys(dailyMap)
+  ])].sort().reverse();
+
+  if (allDates.length === 0) {
+    document.getElementById('content-monthly').innerHTML =
+      '<div style="color:#8a7050;font-size:14px;text-align:center;padding:16px;">この月のデータはありません</div>';
+    return;
+  }
+
+  let listHtml = '';
+  allDates.forEach(date => {
+    const dbTotal = salesByDate[date] || 0;
+    const d = dailyMap[date];
+    const icqrTotal = d ? (d.ic_amount || 0) + (d.qr_amount || 0) : null;
+    const diff = icqrTotal !== null ? icqrTotal - dbTotal : null;
+    const hasDiff = diff !== null && diff !== 0;
+    const dateDisp = date.substring(5).replace('-', '/');
+
+    listHtml += `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #3d2c1444;">
+      <span style="color:${hasDiff ? '#c95a5a' : '#8a7050'};font-size:15px;min-width:50px;">${dateDisp}</span>
+      <span style="color:#a0e0a0;font-size:14px;min-width:80px;text-align:right;">¥${dbTotal.toLocaleString()}</span>
+      <span style="color:#8a7050;font-size:14px;min-width:80px;text-align:right;">${icqrTotal !== null ? '¥' + icqrTotal.toLocaleString() : '---'}</span>
+      <span style="font-size:15px;font-weight:700;min-width:80px;text-align:right;color:${diff === null ? '#8a7050' : hasDiff ? '#c95a5a' : '#4aaa5a'};">
+        ${diff === null ? '---' : diff === 0 ? '✅' : (diff > 0 ? '+' : '') + '¥' + diff.toLocaleString()}
+      </span>
+    </div>`;
+  });
+
+  document.getElementById('content-monthly').innerHTML = `
+    <div style="color:#c9952a;font-size:15px;font-weight:700;margin-bottom:10px;letter-spacing:1px;">📊 ペイキャス差額 ${year}年${month}月</div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #3d2c14;margin-bottom:4px;">
+      <span style="color:#8a7050;font-size:12px;min-width:50px;">日付</span>
+      <span style="color:#8a7050;font-size:12px;min-width:80px;text-align:right;">DB合計</span>
+      <span style="color:#8a7050;font-size:12px;min-width:80px;text-align:right;">IC+QR</span>
+      <span style="color:#8a7050;font-size:12px;min-width:80px;text-align:right;">差額</span>
+    </div>
+    ${listHtml}
+    <button onclick="printPaycasMonthly()" style="width:100%;margin-top:14px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">
+      📄 PDF印刷
+    </button>`;
+}
+
+async function printPaycasMonthly() {
+  const dateVal = document.getElementById('dateInput').value;
+  const ym = dateVal ? dateVal.substring(0, 7) : new Date().toISOString().substring(0, 7);
+  const [year, month] = ym.split('-');
+  const startDate = `${year}-${month}-01`;
+  const lastDay = new Date(Number(year), Number(month), 0).getDate();
+  const endDate = `${year}-${month}-${String(lastDay).padStart(2,'0')}`;
+
+  const { data: paycasDaily } = await sb.from('paycas_daily')
+    .select('*').gte('sale_date', startDate).lte('sale_date', endDate);
+  const { data: salesMonth } = await sb.from('sales')
+    .select('sale_date, amount, pay_method, table_no')
+    .eq('pay_method', 'ペイキャス')
+    .gte('sale_date', startDate).lte('sale_date', endDate);
+
+  const salesByDate = {};
+  (salesMonth || []).forEach(s => {
+    salesByDate[s.sale_date] = (salesByDate[s.sale_date] || 0) + s.amount;
+  });
+  const dailyMap = {};
+  (paycasDaily || []).forEach(d => { dailyMap[d.sale_date] = d; });
+
+  const allDates = [...new Set([...Object.keys(salesByDate), ...Object.keys(dailyMap)])].sort();
+
+  let rows = '';
+  allDates.forEach(date => {
+    const dbTotal = salesByDate[date] || 0;
+    const d = dailyMap[date];
+    const icqrTotal = d ? (d.ic_amount || 0) + (d.qr_amount || 0) : null;
+    const diff = icqrTotal !== null ? icqrTotal - dbTotal : null;
+    const hasDiff = diff !== null && diff !== 0;
+
+    rows += `<tr style="${hasDiff ? 'color:#cc3333;' : ''}">
+      <td>${date.substring(5).replace('-', '/')}</td>
+      <td style="text-align:right">¥${dbTotal.toLocaleString()}</td>
+      <td style="text-align:right">${icqrTotal !== null ? '¥' + icqrTotal.toLocaleString() : '---'}</td>
+      <td style="text-align:right">${diff === null ? '---' : diff === 0 ? '✅' : (diff > 0 ? '+' : '') + '¥' + diff.toLocaleString()}</td>
+    </tr>`;
+  });
+
+  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
+    body{font-family:'Hiragino Mincho ProN',serif;padding:16px;color:#000;}
+    h2{text-align:center;margin-bottom:12px;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th,td{border:1px solid #ccc;padding:6px 8px;}
+    th{background:#f5f5f5;text-align:center;}
+    td:not(:first-child){text-align:right;}
+  </style></head><body>
+    <h2>ペイキャス差額一覧　${year}年${month}月</h2>
+    <table>
+      <tr><th>日付</th><th>DB合計</th><th>IC+QR</th><th>差額</th></tr>
+      ${rows}
+    </table>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.print();
 }
 
 function calcDiff() {
@@ -425,9 +486,7 @@ async function doAdjust() {
 
   if (diff === 0) return;
 
-  // 一番金額の大きいペイキャスレコードを調整
   const targetPay = [...paycasSales].sort((a, b) => b.amount - a.amount)[0];
-  // 一番金額の大きい現金レコードを調整
   const cashSales = salesData.filter(s => s.pay_method === '現金');
   const targetCash = [...cashSales].sort((a, b) => b.amount - a.amount)[0];
 
@@ -439,14 +498,11 @@ async function doAdjust() {
   document.getElementById('btnAdjust').disabled = true;
   document.getElementById('adjustMsg').textContent = '処理中...';
 
-  // ペイキャスにdiff加算
   await sb.from("sales").update({ amount: targetPay.amount + diff }).eq("id", targetPay.id);
-  // 現金からdiff減算
   await sb.from("sales").update({ amount: targetCash.amount - diff }).eq("id", targetCash.id);
 
   document.getElementById('adjustMsg').textContent = `✅ 調整完了！ペイキャス¥${actual.toLocaleString()}に修正しました`;
 
-  // 再読込
   await loadAll();
 }
 
@@ -456,18 +512,14 @@ function renderVisit() {
     return;
   }
 
-  // テーブル×時間でグループ化（同じテーブルでも時間が違えば別客）
-  // salesを来店順に並べる
   const sorted = [...salesData].sort((a, b) => (a.sale_time || '').localeCompare(b.sale_time || ''));
 
   let html = `<div style="color:#8a7050;font-size:12px;margin-bottom:10px">${sorted.length}組 来店</div>`;
 
   sorted.forEach(sale => {
-    // そのテーブルの注文をsale_timeで紐付け（同じ退店時間のもの）
     const items = orderItemsData.filter(o =>
       String(o.table_no) === String(sale.table_no) && o.sale_time === sale.sale_time
     );
-
     const payColor = sale.pay_method === 'ペイキャス' ? '#5a8aca' : '#4aaa5a';
 
     html += `
@@ -508,7 +560,6 @@ function renderVisit() {
   document.getElementById('content-visit').innerHTML = html;
 }
 
-
 function renderSummary() {
   const cashSales = salesData.filter(s => s.pay_method === '現金');
   const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス');
@@ -522,7 +573,6 @@ function renderSummary() {
   const cashMorning = cashSales.filter(s => (s.sale_time || '') < '15:00').reduce((a, s) => a + s.amount, 0);
   const cashEvening = cashSales.filter(s => (s.sale_time || '') >= '15:00').reduce((a, s) => a + s.amount, 0);
 
-  // 時間帯別
   const groups = {};
   salesData.forEach(s => {
     const h = (s.sale_time || '').split(':')[0] || '不明';
@@ -535,18 +585,12 @@ function renderSummary() {
   const timeStr = now.getFullYear() + '年' + (now.getMonth()+1) + '月' + now.getDate() + '日　'
     + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
 
-  let html = '';
-
-  // 印刷ボタン
-  html += `
+  let html = `
   <div style="margin-bottom:14px">
     <button onclick="printSummary()" style="width:100%;padding:16px;background:#c9952a;border:none;border-radius:12px;color:#0d0905;font-size:18px;font-weight:900;cursor:pointer;">
       🖨 レシート印刷（PassPRNT）
     </button>
-  </div>`;
-
-  // サマリー
-  html += `
+  </div>
   <div class="summary-card">
     <div class="label">集計時刻：${timeStr}</div>
     <div class="amount" style="margin-top:8px">¥${grandTotal.toLocaleString()}</div>
@@ -560,7 +604,6 @@ function renderSummary() {
     </div>
   </div>`;
 
-  // 時間帯別
   html += `<div class="summary-card"><div class="label" style="margin-bottom:10px">時間帯別売上</div>`;
   Object.entries(groups).sort().forEach(([h, g]) => {
     html += `<div class="summary-row">
@@ -635,7 +678,6 @@ function printSummary() {
   window.location.href = url;
 }
 
-// 初回読込
 loadAll();
 </script>
 </body>
