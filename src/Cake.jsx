@@ -70,12 +70,13 @@ export default function Cake() {
 
   const [loading, setLoading] = useState(true);
 
-  // 今日の解凍数
+  // 今日の解凍数（REST API）
   const fetchTodayStock = useCallback(async () => {
-    const { data } = await supabase
-      .from("cake_stock")
-      .select("item_name, thawed")
-      .eq("date", today);
+    const url = `${SUPABASE_URL}/rest/v1/cake_stock?select=item_name,thawed&date=eq.${today}`;
+    const res = await fetch(url, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY }
+    });
+    const data = await res.json();
     const map = {};
     (data || []).forEach((r) => (map[r.item_name] = r.thawed));
     setStockMap(map);
