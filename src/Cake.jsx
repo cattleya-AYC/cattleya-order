@@ -22,20 +22,23 @@ function toJST(date = new Date()) {
     .slice(0, 10);
 }
 
-// order_itemsから日別・商品別販売数を集計
+// order_itemsから日別・商品別販売数を集計（クライアント側でフィルタ）
+const ITEMS_SET = new Set(ITEMS);
+
 async function fetchSoldFromOrderItems(from, to) {
   const { data } = await supabase
     .from("order_items")
     .select("item_name, qty, sale_date")
     .gte("sale_date", from)
     .lte("sale_date", to)
-    .in("item_name", ITEMS);
+    .limit(5000);
 
   const byDateItem = {};
   const byItem = {};
   ITEMS.forEach((item) => (byItem[item] = 0));
 
   (data || []).forEach((row) => {
+    if (!ITEMS_SET.has(row.item_name)) return;
     const key = row.sale_date + "__" + row.item_name;
     byDateItem[key] = (byDateItem[key] || 0) + (row.qty || 1);
     byItem[row.item_name] = (byItem[row.item_name] || 0) + (row.qty || 1);
