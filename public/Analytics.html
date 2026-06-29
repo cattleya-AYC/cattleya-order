@@ -413,7 +413,8 @@ async function loadPaycasMonthly() {
 
   // salesからペイキャス売上を日ごとに集計
   const { data: salesMonth } = await sb.from('sales')
-    .select('sale_date, amount, pay_method')
+   .select('sale_date, amount, pay_method, table_no')
+
     .eq('pay_method', 'ペイキャス')
     .gte('sale_date', startDate).lte('sale_date', endDate);
 
