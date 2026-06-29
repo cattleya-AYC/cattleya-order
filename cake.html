@@ -1,17 +1,399 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>スイーツ管理 | Lounge Cattleya</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module">
-      import { createElement } from "react";
-      import { createRoot } from "react-dom/client";
-      import App from "./src/Cake.jsx";
-      createRoot(document.getElementById("root")).render(createElement(App));
-    </script>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スイーツ管理 | Lounge Cattleya</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif; background: #fdf8f4; min-height: 100vh; }
+  header { background: #3d2b1f; color: #fff; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+  header .icon { font-size: 28px; }
+  header h1 { font-size: 20px; font-weight: bold; letter-spacing: 2px; }
+  header p { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+  .tabs { display: flex; background: #fff; border-bottom: 2px solid #e8ddd5; }
+  .tab { flex: 1; padding: 13px 0; border: none; cursor: pointer; font-size: 14px; font-weight: bold; background: #fff; color: #999; border-bottom: 3px solid transparent; transition: all 0.2s; font-family: inherit; }
+  .tab.active { background: #fdf8f4; color: #3d2b1f; border-bottom-color: #8b5e3c; }
+  .content { padding: 16px 12px; max-width: 700px; margin: 0 auto; }
+  .loading { text-align: center; padding: 60px 20px; color: #999; font-size: 15px; }
+  .error { text-align: center; padding: 40px 20px; color: #c0392b; font-size: 14px; line-height: 1.8; }
+
+  /* 今日タブ */
+  .date-label { text-align: center; color: #8b5e3c; font-size: 14px; margin-bottom: 16px; }
+  .item-card { background: #fff; border: 2px solid #e8ddd5; border-radius: 12px; margin-bottom: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+  .item-card.low { border-color: #f39c12; background: #fffbf0; }
+  .item-card.out { border-color: #e74c3c; background: #fff5f5; }
+  .item-name { font-weight: bold; font-size: 16px; color: #3d2b1f; }
+  .item-sold { font-size: 13px; color: #888; margin-top: 4px; }
+  .item-info { flex: 1; }
+  .thawed-wrap { text-align: center; }
+  .thawed-label { font-size: 10px; color: #999; margin-bottom: 3px; }
+  .thawed-input { width: 56px; height: 44px; text-align: center; font-size: 20px; font-weight: bold; border: 2px solid #c9a882; border-radius: 8px; color: #3d2b1f; background: #fdf8f4; font-family: inherit; }
+  .remain-wrap { text-align: center; min-width: 52px; }
+  .remain-label { font-size: 10px; color: #999; margin-bottom: 3px; }
+  .remain-val { font-size: 22px; font-weight: bold; border-radius: 8px; padding: 6px 10px; }
+  .remain-ok { color: #27ae60; background: #eafaf1; }
+  .remain-low { color: #e67e22; background: #fef9e7; }
+  .remain-out { color: #e74c3c; background: #fde8e8; }
+  .remain-none { color: #ccc; background: #f5f5f5; }
+  .save-btn { width: 100%; padding: 16px 0; margin-top: 8px; background: #3d2b1f; color: #fff; border: none; border-radius: 12px; font-size: 17px; font-weight: bold; cursor: pointer; letter-spacing: 1px; font-family: inherit; }
+  .save-btn:disabled { background: #ccc; cursor: not-allowed; }
+  .saved-msg { text-align: center; color: #27ae60; font-weight: bold; margin-top: 10px; font-size: 16px; }
+
+  /* 月次・日別共通 */
+  .month-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .month-btn { background: #3d2b1f; border: none; color: #fff; width: 34px; height: 34px; border-radius: 7px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .month-label { flex: 1; text-align: center; font-size: 16px; font-weight: bold; color: #3d2b1f; background: #fff; border: 2px solid #c9a882; border-radius: 8px; padding: 8px; }
+  .pdf-btn { background: #3d2b1f; color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-size: 14px; font-weight: bold; cursor: pointer; font-family: inherit; white-space: nowrap; }
+
+  /* 月次カード */
+  .month-cards { background: #fff; border: 2px solid #e8ddd5; border-radius: 12px; padding: 14px 16px; }
+  .month-cards-title { font-size: 13px; font-weight: bold; color: #8b5e3c; margin-bottom: 10px; }
+  .month-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .month-card { background: #fdf8f4; border: 1px solid #e8ddd5; border-radius: 8px; padding: 8px 12px; text-align: center; min-width: 88px; }
+  .month-card-name { font-size: 11px; color: #999; margin-bottom: 3px; }
+  .month-card-val { font-size: 22px; font-weight: bold; color: #3d2b1f; }
+  .month-card-unit { font-size: 10px; color: #aaa; }
+
+  /* 日別テーブル */
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #e8ddd5; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; }
+  thead th { background: #3d2b1f; color: #fff; padding: 10px 6px; text-align: center; font-size: 12px; white-space: nowrap; }
+  thead th:first-child { min-width: 48px; }
+  tbody tr:nth-child(even) { background: #fdf8f4; }
+  tbody td { padding: 9px 5px; text-align: center; color: #ccc; white-space: nowrap; }
+  tbody td:first-child { font-weight: bold; color: #3d2b1f; }
+  tbody td.has-val { color: #27ae60; font-weight: bold; }
+  tfoot td { background: #fff3e0; font-weight: bold; color: #3d2b1f; padding: 10px 5px; text-align: center; border-top: 2px solid #e8ddd5; }
+  tfoot td.total-val { color: #27ae60; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🎂</div>
+  <div>
+    <h1>スイーツ管理</h1>
+    <p>Lounge Cattleya</p>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-tab="today">📋 今日の状況</button>
+  <button class="tab" data-tab="month">📊 月次集計</button>
+  <button class="tab" data-tab="daily">📅 日別売上</button>
+</div>
+
+<div id="today-content" class="content">
+  <div class="loading" id="today-loading">読み込み中...</div>
+  <div id="today-body" style="display:none"></div>
+</div>
+
+<div id="month-content" class="content" style="display:none">
+  <div class="month-bar">
+    <button class="month-btn" id="month-prev">‹</button>
+    <div class="month-label" id="month-label"></div>
+    <button class="month-btn" id="month-next">›</button>
+  </div>
+  <div class="loading" id="month-loading">読み込み中...</div>
+  <div id="month-body" style="display:none"></div>
+</div>
+
+<div id="daily-content" class="content" style="display:none">
+  <div class="month-bar">
+    <button class="month-btn" id="daily-prev">‹</button>
+    <div class="month-label" id="daily-label"></div>
+    <button class="month-btn" id="daily-next">›</button>
+    <button class="pdf-btn" id="daily-pdf">🖨 PDF</button>
+  </div>
+  <div class="loading" id="daily-loading">読み込み中...</div>
+  <div id="daily-body" style="display:none"></div>
+</div>
+
+<script>
+const SUPA_URL = 'https://zxdgiszrsmumjjxmvszb.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk3MDEyMDAsImV4cCI6MjAyNTI3NzIwMH0.vSVV6_9bFCEMEJmgNuIMhbTpqylVhIqFiqKuDmhkVHc';
+
+const ITEMS = ['ミルクレープ','ガトーショコラ','フォンダンショコラ','チーズケーキ','紅茶のシフォン','栗のモンブラン','コーヒーゼリー'];
+const ITEMS_SET = new Set(ITEMS);
+
+function toJST() {
+  return new Date(Date.now() + 9*60*60*1000).toISOString().slice(0,10);
+}
+const TODAY = toJST();
+
+function pad(n) { return String(n).padStart(2,'0'); }
+
+async function supaFetch(path) {
+  const res = await fetch(SUPA_URL + path, {
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+  });
+  return res.json();
+}
+
+// 月管理
+let currentMonth = TODAY.slice(0,7);
+function monthLabel(ym) {
+  return ym.slice(0,4) + '年' + parseInt(ym.slice(5,7)) + '月';
+}
+function prevMonth(ym) {
+  const d = new Date(ym + '-01');
+  d.setMonth(d.getMonth()-1);
+  return d.toISOString().slice(0,7);
+}
+function nextMonth(ym) {
+  const d = new Date(ym + '-01');
+  d.setMonth(d.getMonth()+1);
+  return d.toISOString().slice(0,7);
+}
+function lastDay(ym) {
+  return new Date(parseInt(ym.slice(0,4)), parseInt(ym.slice(5,7)), 0).getDate();
+}
+
+// タブ切替
+let currentTab = 'today';
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentTab = btn.dataset.tab;
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ['today','month','daily'].forEach(t => {
+      document.getElementById(t+'-content').style.display = t === currentTab ? 'block' : 'none';
+    });
+    if (currentTab === 'month') loadMonth();
+    if (currentTab === 'daily') loadDaily();
+  });
+});
+
+// ========== 今日タブ ==========
+let stockMap = {}, soldMap = {}, inputMap = {};
+
+async function loadToday() {
+  document.getElementById('today-loading').style.display = 'block';
+  document.getElementById('today-body').style.display = 'none';
+
+  const [stocks, sales] = await Promise.all([
+    supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + TODAY),
+    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + TODAY + '&limit=1000')
+  ]);
+
+  stockMap = {};
+  (stocks||[]).forEach(r => stockMap[r.item_name] = r.thawed);
+
+  soldMap = {};
+  ITEMS.forEach(item => soldMap[item] = 0);
+  (sales||[]).forEach(r => {
+    if (ITEMS_SET.has(r.item_name)) soldMap[r.item_name] += (r.qty||1);
+  });
+
+  inputMap = {};
+  ITEMS.forEach(item => inputMap[item] = stockMap[item] != null ? stockMap[item] : '');
+
+  renderToday();
+  document.getElementById('today-loading').style.display = 'none';
+  document.getElementById('today-body').style.display = 'block';
+}
+
+function renderToday() {
+  let html = '<div class="date-label">📅 ' + TODAY.replace(/-/g,'/') + '</div>';
+  ITEMS.forEach(item => {
+    const thawed = parseInt(inputMap[item]) || 0;
+    const sold = soldMap[item] || 0;
+    const rem = thawed - sold;
+    const hasThawed = inputMap[item] !== '' && parseInt(inputMap[item]) > 0;
+    const isOut = hasThawed && rem <= 0;
+    const isLow = hasThawed && rem === 1;
+    const cardClass = isOut ? 'out' : isLow ? 'low' : '';
+    const remClass = !hasThawed ? 'remain-none' : isOut ? 'remain-out' : isLow ? 'remain-low' : 'remain-ok';
+    const remVal = hasThawed ? rem : '-';
+    html += `
+      <div class="item-card ${cardClass}">
+        <div class="item-info">
+          <div class="item-name">${item}</div>
+          <div class="item-sold">販売済み: <strong>${sold}</strong> 個</div>
+        </div>
+        <div class="thawed-wrap">
+          <div class="thawed-label">解凍数</div>
+          <input class="thawed-input" type="number" min="0" value="${inputMap[item]}" data-item="${item}" />
+        </div>
+        <div class="remain-wrap">
+          <div class="remain-label">残数</div>
+          <div class="remain-val ${remClass}" id="rem-${item.replace(/[^\w]/g,'_')}">${remVal}</div>
+        </div>
+      </div>`;
+  });
+  html += '<button class="save-btn" id="save-btn">💾 解凍数を保存</button>';
+  html += '<div class="saved-msg" id="saved-msg" style="display:none">保存しました ✓</div>';
+  document.getElementById('today-body').innerHTML = html;
+
+  // 入力イベント
+  document.querySelectorAll('.thawed-input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const item = e.target.dataset.item;
+      inputMap[item] = e.target.value;
+      const thawed = parseInt(e.target.value) || 0;
+      const sold = soldMap[item] || 0;
+      const rem = thawed - sold;
+      const hasThawed = e.target.value !== '' && thawed > 0;
+      const isOut = hasThawed && rem <= 0;
+      const isLow = hasThawed && rem === 1;
+      const remClass = !hasThawed ? 'remain-none' : isOut ? 'remain-out' : isLow ? 'remain-low' : 'remain-ok';
+      const key = item.replace(/[^\w]/g,'_');
+      const remEl = document.getElementById('rem-'+key);
+      if (remEl) { remEl.className = 'remain-val ' + remClass; remEl.textContent = hasThawed ? rem : '-'; }
+    });
+  });
+
+  // 保存ボタン
+  document.getElementById('save-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true; btn.textContent = '保存中...';
+    const upserts = ITEMS.map(item => ({
+      date: TODAY, item_name: item,
+      thawed: parseInt(inputMap[item]) || 0,
+      sold: soldMap[item] || 0
+    }));
+    await fetch(SUPA_URL + '/rest/v1/cake_stock', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify(upserts)
+    });
+    btn.disabled = false; btn.textContent = '💾 解凍数を保存';
+    const msg = document.getElementById('saved-msg');
+    msg.style.display = 'block';
+    setTimeout(() => msg.style.display = 'none', 2500);
+    await loadToday();
+  });
+}
+
+// ========== 月次タブ ==========
+document.getElementById('month-prev').addEventListener('click', () => { currentMonth = prevMonth(currentMonth); loadMonth(); });
+document.getElementById('month-next').addEventListener('click', () => { currentMonth = nextMonth(currentMonth); loadMonth(); });
+
+async function loadMonth() {
+  document.getElementById('month-label').textContent = monthLabel(currentMonth);
+  document.getElementById('month-loading').style.display = 'block';
+  document.getElementById('month-body').style.display = 'none';
+
+  const from = currentMonth + '-01';
+  const to = currentMonth + '-' + pad(lastDay(currentMonth));
+  const data = await supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=gte.' + from + '&sale_date=lte.' + to + '&limit=5000');
+
+  const totals = {};
+  ITEMS.forEach(item => totals[item] = 0);
+  (data||[]).forEach(r => {
+    if (ITEMS_SET.has(r.item_name)) totals[r.item_name] += (r.qty||1);
+  });
+
+  let html = '<div class="month-cards"><div class="month-cards-title">📊 月間販売合計</div><div class="month-grid">';
+  ITEMS.forEach(item => {
+    html += `<div class="month-card"><div class="month-card-name">${item}</div><div class="month-card-val">${totals[item]}</div><div class="month-card-unit">個</div></div>`;
+  });
+  html += '</div></div>';
+  document.getElementById('month-body').innerHTML = html;
+  document.getElementById('month-loading').style.display = 'none';
+  document.getElementById('month-body').style.display = 'block';
+}
+
+// ========== 日別タブ ==========
+let dailyMonth = TODAY.slice(0,7);
+let dailyData = [];
+
+document.getElementById('daily-prev').addEventListener('click', () => { dailyMonth = prevMonth(dailyMonth); loadDaily(); });
+document.getElementById('daily-next').addEventListener('click', () => { dailyMonth = nextMonth(dailyMonth); loadDaily(); });
+document.getElementById('daily-pdf').addEventListener('click', printDaily);
+
+async function loadDaily() {
+  document.getElementById('daily-label').textContent = monthLabel(dailyMonth);
+  document.getElementById('daily-loading').style.display = 'block';
+  document.getElementById('daily-body').style.display = 'none';
+
+  const from = dailyMonth + '-01';
+  const last = lastDay(dailyMonth);
+  const to = dailyMonth + '-' + pad(last);
+  const data = await supaFetch('/rest/v1/order_items?select=item_name,qty,sale_date&sale_date=gte.' + from + '&sale_date=lte.' + to + '&limit=5000');
+
+  // 日別集計
+  const byDateItem = {};
+  const totals = {};
+  ITEMS.forEach(item => totals[item] = 0);
+
+  (data||[]).forEach(r => {
+    if (!ITEMS_SET.has(r.item_name)) return;
+    const key = r.sale_date + '__' + r.item_name;
+    byDateItem[key] = (byDateItem[key]||0) + (r.qty||1);
+    totals[r.item_name] += (r.qty||1);
+  });
+
+  // 全日付生成
+  dailyData = [];
+  for (let d = 1; d <= last; d++) {
+    const date = dailyMonth + '-' + pad(d);
+    const sold = {};
+    ITEMS.forEach(item => sold[item] = byDateItem[date+'__'+item]||0);
+    dailyData.push({ date, sold });
+  }
+
+  // テーブル描画
+  let thead = '<thead><tr><th>日付</th>';
+  ITEMS.forEach(item => thead += '<th>' + item + '</th>');
+  thead += '<th>合計</th></tr></thead>';
+
+  let tbody = '<tbody>';
+  dailyData.forEach(row => {
+    const total = ITEMS.reduce((s,item) => s + row.sold[item], 0);
+    tbody += '<tr><td>' + row.date.slice(5) + '</td>';
+    ITEMS.forEach(item => {
+      const v = row.sold[item];
+      tbody += '<td class="' + (v>0?'has-val':'') + '">' + (v>0?v:'-') + '</td>';
+    });
+    tbody += '<td class="' + (total>0?'has-val':'') + '">' + (total>0?total:'-') + '</td></tr>';
+  });
+  tbody += '</tbody>';
+
+  const grandTotal = ITEMS.reduce((s,item) => s+totals[item], 0);
+  let tfoot = '<tfoot><tr><td>合計</td>';
+  ITEMS.forEach(item => tfoot += '<td class="total-val">' + totals[item] + '</td>');
+  tfoot += '<td class="total-val">' + grandTotal + '</td></tr></tfoot>';
+
+  document.getElementById('daily-body').innerHTML = '<div class="table-wrap"><table>' + thead + tbody + tfoot + '</table></div>';
+  document.getElementById('daily-loading').style.display = 'none';
+  document.getElementById('daily-body').style.display = 'block';
+}
+
+function printDaily() {
+  const ym = dailyMonth;
+  const year = ym.slice(0,4), month = parseInt(ym.slice(5,7));
+  const totals = {};
+  ITEMS.forEach(item => totals[item] = 0);
+  dailyData.forEach(row => ITEMS.forEach(item => totals[item] += row.sold[item]));
+  const grandTotal = ITEMS.reduce((s,item)=>s+totals[item],0);
+
+  const rows = dailyData.map(row => {
+    const total = ITEMS.reduce((s,item)=>s+row.sold[item],0);
+    return '<tr><td>' + row.date.slice(5) + '</td>' +
+      ITEMS.map(item => { const v=row.sold[item]; return '<td style="color:'+(v>0?'#27ae60':'#ccc')+'">'+(v>0?v:'-')+'</td>'; }).join('') +
+      '<td><strong>'+(total>0?total:'-')+'</strong></td></tr>';
+  }).join('');
+
+  const win = window.open('','_blank');
+  win.document.write(`<html><head><title>スイーツ日別売上 ${year}年${month}月</title>
+  <style>body{font-family:'Hiragino Sans',sans-serif;padding:20px;font-size:12px}h2{text-align:center;color:#3d2b1f;margin-bottom:4px}p{text-align:center;color:#666;margin-bottom:16px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #ddd;padding:5px 4px;text-align:center}thead th{background:#3d2b1f;color:#fff}tr:nth-child(even){background:#fafafa}.total{background:#fff3e0;font-weight:bold}@media print{@page{size:A4 landscape;margin:10mm}}</style>
+  </head><body>
+  <h2>🎂 スイーツ日別売上</h2><p>${year}年${month}月</p>
+  <table><thead><tr><th>日付</th>${ITEMS.map(i=>'<th>'+i+'</th>').join('')}<th>合計</th></tr></thead>
+  <tbody>${rows}</tbody>
+  <tfoot><tr class="total"><td>合計</td>${ITEMS.map(item=>'<td>'+totals[item]+'</td>').join('')}<td>${grandTotal}</td></tr></tfoot>
+  </table></body></html>`);
+  win.document.close();
+  win.print();
+}
+
+// 初期ロード
+loadToday();
+</script>
+</body>
 </html>
