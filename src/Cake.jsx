@@ -22,6 +22,28 @@ function toJST(date = new Date()) {
     .slice(0, 10);
 }
 
+// order_itemsから日別・商品別販売数を集計
+async function fetchSoldFromOrderItems(from, to) {
+  const { data } = await supabase
+    .from("order_items")
+    .select("item_name, qty, sale_date")
+    .gte("sale_date", from)
+    .lte("sale_date", to)
+    .in("item_name", ITEMS);
+
+  const byDateItem = {};
+  const byItem = {};
+  ITEMS.forEach((item) => (byItem[item] = 0));
+
+  (data || []).forEach((row) => {
+    const key = row.sale_date + "__" + row.item_name;
+    byDateItem[key] = (byDateItem[key] || 0) + (row.qty || 1);
+    byItem[row.item_name] = (byItem[row.item_name] || 0) + (row.qty || 1);
+  });
+
+  return { byDateItem, byItem };
+}
+
 export default function Cake() {
   const [tab, setTab] = useState("today");
   const [today] = useState(toJST());
@@ -31,11 +53,17 @@ export default function Cake() {
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
   const [monthYear, setMonthYear] = useState(today.slice(0, 7));
-  const [monthData, setMonthData] = useState([]);
+
+  // 月次集計
   const [monthSold, setMonthSold] = useState({});
+
+  // 日別売上
+  const [dailyRows, setDailyRows] = useState([]);
+  const [dailyLoading, setDailyLoading] = useState(false);
+
   const [loading, setLoading] = useState(true);
 
-  // 今日の解凍数を取得
+  // 今日の解凍数
   const fetchTodayStock = useCallback(async () => {
     const { data } = await supabase
       .from("cake_stock")
@@ -49,94 +77,39 @@ export default function Cake() {
     setInputMap(init);
   }, [today]);
 
-  // 今日の販売数をordersから集計
+  // 今日の販売数（order_items）
   const fetchTodaySold = useCallback(async () => {
-    const start = today + "T00:00:00+09:00";
-    const end = today + "T23:59:59+09:00";
-    const { data } = await supabase
-      .from("orders")
-      .select("items")
-      .gte("created_at", start)
-      .lte("created_at", end)
-      .eq("status", "served");
-
-    const soldCount = {};
-    ITEMS.forEach((item) => (soldCount[item] = 0));
-    (data || []).forEach((order) => {
-      (order.items || []).forEach((item) => {
-        if (ITEMS.includes(item.name)) {
-          soldCount[item.name] = (soldCount[item.name] || 0) + (item.qty || item.quantity || 1);
-        }
-      });
-    });
-    setSoldMap(soldCount);
+    const { byItem } = await fetchSoldFromOrderItems(today, today);
+    setSoldMap(byItem);
     setLoading(false);
   }, [today]);
 
-  // 月次データ取得
+  // 月次・日別データ取得
   const fetchMonthData = useCallback(async () => {
+    setDailyLoading(true);
     const from = monthYear + "-01";
-    const to = monthYear + "-31";
-    const { data: stocks } = await supabase
-      .from("cake_stock")
-      .select("date, item_name, thawed, sold")
-      .gte("date", from)
-      .lte("date", to)
-      .order("date");
+    const lastDay = new Date(
+      parseInt(monthYear.slice(0, 4)),
+      parseInt(monthYear.slice(5, 7)),
+      0
+    ).getDate();
+    const to = monthYear + "-" + String(lastDay).padStart(2, "0");
 
-    // ordersから月次販売数を集計
-    const start = monthYear + "-01T00:00:00+09:00";
-    const end = monthYear + "-31T23:59:59+09:00";
-    const { data: orders } = await supabase
-      .from("orders")
-      .select("items, created_at")
-      .gte("created_at", start)
-      .lte("created_at", end)
-      .eq("status", "served");
+    const { byDateItem, byItem } = await fetchSoldFromOrderItems(from, to);
+    setMonthSold(byItem);
 
-    // 日別・商品別の販売数
-    const soldByDateItem = {};
-    (orders || []).forEach((order) => {
-      const d = toJST(new Date(order.created_at));
-      (order.items || []).forEach((item) => {
-        if (ITEMS.includes(item.name)) {
-          const key = d + "__" + item.name;
-          soldByDateItem[key] = (soldByDateItem[key] || 0) + (item.qty || item.quantity || 1);
-        }
+    // 全日付を生成（売上ゼロの日も含む）
+    const rows = [];
+    for (let d = 1; d <= lastDay; d++) {
+      const date = monthYear + "-" + String(d).padStart(2, "0");
+      const sold = {};
+      ITEMS.forEach((item) => {
+        sold[item] = byDateItem[date + "__" + item] || 0;
       });
-    });
-
-    // 月間商品別合計販売数
-    const totalSold = {};
-    ITEMS.forEach((item) => (totalSold[item] = 0));
-    Object.entries(soldByDateItem).forEach(([key, cnt]) => {
-      const itemName = key.split("__")[1];
-      if (totalSold[itemName] !== undefined) totalSold[itemName] += cnt;
-    });
-    setMonthSold(totalSold);
-
-    // 日別一覧用データ構築
-    const dateMap = {};
-    (stocks || []).forEach((r) => {
-      if (!dateMap[r.date]) dateMap[r.date] = {};
-      dateMap[r.date][r.item_name] = r.thawed;
-    });
-    // ordersの日付も含める
-    Object.keys(soldByDateItem).forEach((key) => {
-      const d = key.split("__")[0];
-      if (!dateMap[d]) dateMap[d] = {};
-    });
-
-    const rows = Object.keys(dateMap)
-      .sort()
-      .map((date) => ({
-        date,
-        thawed: dateMap[date],
-        sold: Object.fromEntries(
-          ITEMS.map((item) => [item, soldByDateItem[date + "__" + item] || 0])
-        ),
-      }));
-    setMonthData(rows);
+      rows.push({ date, sold });
+    }
+    setDailyRows(rows);
+    setDailyLoading(false);
   }, [monthYear]);
 
   useEffect(() => {
@@ -145,7 +118,7 @@ export default function Cake() {
   }, [fetchTodayStock, fetchTodaySold]);
 
   useEffect(() => {
-    if (tab === "month") fetchMonthData();
+    if (tab === "month" || tab === "daily") fetchMonthData();
   }, [tab, fetchMonthData, monthYear]);
 
   // 解凍数保存
@@ -168,70 +141,58 @@ export default function Cake() {
     }
   };
 
-  // 残数計算
-  const getRemaining = (item) => {
-    const thawed = parseInt(inputMap[item]) || stockMap[item] || 0;
-    const sold = soldMap[item] || 0;
-    return thawed - sold;
-  };
-
-  // PDF印刷
-  const printPDF = () => {
+  // PDF印刷（日別）
+  const printDailyPDF = () => {
     const win = window.open("", "_blank");
     const year = monthYear.slice(0, 4);
     const month = monthYear.slice(5, 7);
 
-    const tableRows = monthData
-      .map((row) => {
-        const cells = ITEMS.map((item) => {
-          const t = row.thawed[item] ?? "-";
-          const s = row.sold[item] ?? 0;
-          const r = t !== "-" ? t - s : "-";
-          return `<td>${t}</td><td>${s}</td><td style="color:${r < 2 && r !== "-" ? "#c0392b" : "#333"}">${r}</td>`;
-        }).join("");
-        return `<tr><td><strong>${row.date.slice(5)}</strong></td>${cells}</tr>`;
-      })
-      .join("");
-
-    const headerCells = ITEMS.map(
-      (item) =>
-        `<th colspan="3" style="background:#3d2b1f;color:#fff;padding:6px 2px;font-size:11px">${item}</th>`
-    ).join("");
-    const subHeaders = ITEMS.map(
-      () =>
-        `<th style="font-size:9px;background:#f5f0eb">解凍</th><th style="font-size:9px;background:#f5f0eb">販売</th><th style="font-size:9px;background:#f5f0eb">残</th>`
-    ).join("");
-
-    const totalRow = ITEMS.map((item) => {
-      const t = monthData.reduce((sum, r) => sum + (r.thawed[item] || 0), 0);
-      const s = monthSold[item] || 0;
-      return `<td><strong>${t}</strong></td><td><strong>${s}</strong></td><td><strong>${t - s}</strong></td>`;
+    const tableRows = dailyRows.map((row) => {
+      const total = ITEMS.reduce((s, item) => s + (row.sold[item] || 0), 0);
+      const cells = ITEMS.map((item) => {
+        const s = row.sold[item] || 0;
+        return `<td style="color:${s > 0 ? "#27ae60" : "#ccc"}">${s > 0 ? s : "-"}</td>`;
+      }).join("");
+      return `<tr><td><strong>${row.date.slice(5)}</strong></td>${cells}<td><strong>${total > 0 ? total : "-"}</strong></td></tr>`;
     }).join("");
 
+    const headerCells = ITEMS.map(
+      (item) => `<th style="background:#3d2b1f;color:#fff;padding:6px 4px;font-size:11px">${item}</th>`
+    ).join("");
+
+    const totalCells = ITEMS.map((item) => {
+      const s = dailyRows.reduce((sum, r) => sum + (r.sold[item] || 0), 0);
+      return `<td><strong>${s}</strong></td>`;
+    }).join("");
+    const grandTotal = ITEMS.reduce((s, item) => s + (monthSold[item] || 0), 0);
+
     win.document.write(`
-      <html><head><title>スイーツ月次集計 ${year}年${month}月</title>
+      <html><head><title>スイーツ日別売上 ${year}年${month}月</title>
       <style>
         body{font-family:'Hiragino Sans',sans-serif;padding:20px;font-size:12px;}
         h2{text-align:center;color:#3d2b1f;margin-bottom:4px;}
         p{text-align:center;color:#666;margin-bottom:16px;}
         table{width:100%;border-collapse:collapse;font-size:11px;}
-        th,td{border:1px solid #ddd;padding:5px 3px;text-align:center;}
+        th,td{border:1px solid #ddd;padding:5px 4px;text-align:center;}
         tr:nth-child(even){background:#fafafa;}
         .total-row{background:#fff3e0;font-weight:bold;}
         @media print{@page{size:A4 landscape;margin:10mm;}}
       </style></head>
       <body>
-        <h2>🎂 スイーツ月次集計</h2>
+        <h2>🎂 スイーツ日別売上</h2>
         <p>${year}年${month}月</p>
         <table>
           <thead>
-            <tr><th rowspan="2" style="background:#3d2b1f;color:#fff">日付</th>${headerCells}</tr>
-            <tr>${subHeaders}</tr>
+            <tr>
+              <th style="background:#3d2b1f;color:#fff">日付</th>
+              ${headerCells}
+              <th style="background:#3d2b1f;color:#fff">合計</th>
+            </tr>
           </thead>
           <tbody>
             ${tableRows}
             <tr class="total-row">
-              <td><strong>合計</strong></td>${totalRow}
+              <td><strong>合計</strong></td>${totalCells}<td><strong>${grandTotal}</strong></td>
             </tr>
           </tbody>
         </table>
@@ -242,6 +203,14 @@ export default function Cake() {
   };
 
   const today_display = today.replace(/-/g, "/");
+
+  const tabStyle = (key) => ({
+    flex: 1, padding: "12px 0", border: "none", cursor: "pointer", fontSize: 14, fontWeight: "bold",
+    background: tab === key ? "#fdf8f4" : "#fff",
+    color: tab === key ? "#3d2b1f" : "#999",
+    borderBottom: tab === key ? "3px solid #8b5e3c" : "3px solid transparent",
+    transition: "all 0.2s",
+  });
 
   return (
     <div style={{ minHeight: "100vh", background: "#fdf8f4", fontFamily: "'Hiragino Sans', sans-serif" }}>
@@ -256,21 +225,9 @@ export default function Cake() {
 
       {/* タブ */}
       <div style={{ display: "flex", background: "#fff", borderBottom: "2px solid #e8ddd5" }}>
-        {[["today", "📋 今日の状況"], ["month", "📊 月次集計"]].map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            style={{
-              flex: 1, padding: "14px 0", border: "none", cursor: "pointer", fontSize: 15, fontWeight: "bold",
-              background: tab === key ? "#fdf8f4" : "#fff",
-              color: tab === key ? "#3d2b1f" : "#999",
-              borderBottom: tab === key ? "3px solid #8b5e3c" : "3px solid transparent",
-              transition: "all 0.2s",
-            }}
-          >
-            {label}
-          </button>
-        ))}
+        <button onClick={() => setTab("today")} style={tabStyle("today")}>📋 今日の状況</button>
+        <button onClick={() => setTab("month")} style={tabStyle("month")}>📊 月次集計</button>
+        <button onClick={() => setTab("daily")} style={tabStyle("daily")}>📅 日別売上</button>
       </div>
 
       {/* 今日の状況 */}
@@ -279,83 +236,60 @@ export default function Cake() {
           <div style={{ textAlign: "center", color: "#8b5e3c", fontSize: 14, marginBottom: 16 }}>
             📅 {today_display}
           </div>
-
           {loading ? (
             <div style={{ textAlign: "center", padding: 40, color: "#999" }}>読み込み中...</div>
           ) : (
             <>
-              {/* 商品カード */}
               {ITEMS.map((item) => {
                 const thawed = parseInt(inputMap[item]) || 0;
                 const sold = soldMap[item] || 0;
                 const remaining = thawed - sold;
                 const isLow = thawed > 0 && remaining <= 1;
                 const isOut = thawed > 0 && remaining <= 0;
-
                 return (
-                  <div
-                    key={item}
-                    style={{
-                      background: isOut ? "#fff5f5" : isLow ? "#fffbf0" : "#fff",
-                      border: `2px solid ${isOut ? "#e74c3c" : isLow ? "#f39c12" : "#e8ddd5"}`,
-                      borderRadius: 12, marginBottom: 10, padding: "14px 16px",
-                      display: "flex", alignItems: "center", gap: 12,
-                    }}
-                  >
+                  <div key={item} style={{
+                    background: isOut ? "#fff5f5" : isLow ? "#fffbf0" : "#fff",
+                    border: `2px solid ${isOut ? "#e74c3c" : isLow ? "#f39c12" : "#e8ddd5"}`,
+                    borderRadius: 12, marginBottom: 10, padding: "14px 16px",
+                    display: "flex", alignItems: "center", gap: 12,
+                  }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: "bold", fontSize: 16, color: "#3d2b1f" }}>{item}</div>
                       <div style={{ fontSize: 13, color: "#888", marginTop: 4 }}>
                         販売済み: <strong style={{ color: "#555" }}>{sold}</strong> 個
                       </div>
                     </div>
-
-                    {/* 解凍数入力 */}
                     <div style={{ textAlign: "center" }}>
                       <div style={{ fontSize: 10, color: "#999", marginBottom: 3 }}>解凍数</div>
                       <input
-                        type="number"
-                        min="0"
-                        value={inputMap[item] ?? ""}
-                        onChange={(e) =>
-                          setInputMap((prev) => ({ ...prev, [item]: e.target.value }))
-                        }
+                        type="number" min="0" value={inputMap[item] ?? ""}
+                        onChange={(e) => setInputMap((prev) => ({ ...prev, [item]: e.target.value }))}
                         style={{
                           width: 56, height: 44, textAlign: "center", fontSize: 20, fontWeight: "bold",
-                          border: "2px solid #c9a882", borderRadius: 8, color: "#3d2b1f",
-                          background: "#fdf8f4",
+                          border: "2px solid #c9a882", borderRadius: 8, color: "#3d2b1f", background: "#fdf8f4",
                         }}
                       />
                     </div>
-
-                    {/* 残数 */}
                     <div style={{ textAlign: "center", minWidth: 52 }}>
                       <div style={{ fontSize: 10, color: "#999", marginBottom: 3 }}>残数</div>
-                      <div
-                        style={{
-                          fontSize: 22, fontWeight: "bold",
-                          color: isOut ? "#e74c3c" : isLow ? "#e67e22" : "#27ae60",
-                          background: isOut ? "#fde" : isLow ? "#fef9e7" : "#eafaf1",
-                          borderRadius: 8, padding: "6px 10px",
-                        }}
-                      >
+                      <div style={{
+                        fontSize: 22, fontWeight: "bold",
+                        color: isOut ? "#e74c3c" : isLow ? "#e67e22" : "#27ae60",
+                        background: isOut ? "#fde" : isLow ? "#fef9e7" : "#eafaf1",
+                        borderRadius: 8, padding: "6px 10px",
+                      }}>
                         {thawed > 0 ? remaining : "-"}
                       </div>
                     </div>
                   </div>
                 );
               })}
-
-              {/* 保存ボタン */}
-              <button
-                onClick={saveThawed}
-                disabled={saving}
-                style={{
-                  width: "100%", padding: "16px 0", marginTop: 8,
-                  background: saving ? "#ccc" : "#3d2b1f", color: "#fff",
-                  border: "none", borderRadius: 12, fontSize: 17, fontWeight: "bold",
-                  cursor: saving ? "not-allowed" : "pointer", letterSpacing: 1,
-                }}
-              >
+              <button onClick={saveThawed} disabled={saving} style={{
+                width: "100%", padding: "16px 0", marginTop: 8,
+                background: saving ? "#ccc" : "#3d2b1f", color: "#fff",
+                border: "none", borderRadius: 12, fontSize: 17, fontWeight: "bold",
+                cursor: saving ? "not-allowed" : "pointer", letterSpacing: 1,
+              }}>
                 {saving ? "保存中..." : "💾 解凍数を保存"}
               </button>
               {savedMsg && (
@@ -371,30 +305,13 @@ export default function Cake() {
       {/* 月次集計 */}
       {tab === "month" && (
         <div style={{ padding: "16px 12px", maxWidth: 900, margin: "0 auto" }}>
-          {/* 月選択 */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <input
-              type="month"
-              value={monthYear}
+            <input type="month" value={monthYear}
               onChange={(e) => setMonthYear(e.target.value)}
-              style={{
-                flex: 1, padding: "10px 14px", border: "2px solid #c9a882",
-                borderRadius: 8, fontSize: 16, color: "#3d2b1f", background: "#fff",
-              }}
+              style={{ flex: 1, padding: "10px 14px", border: "2px solid #c9a882", borderRadius: 8, fontSize: 16, color: "#3d2b1f", background: "#fff" }}
             />
-            <button
-              onClick={printPDF}
-              style={{
-                padding: "10px 20px", background: "#3d2b1f", color: "#fff",
-                border: "none", borderRadius: 8, fontSize: 15, fontWeight: "bold", cursor: "pointer",
-              }}
-            >
-              🖨 PDF印刷
-            </button>
           </div>
-
-          {/* 月間合計サマリー */}
-          <div style={{ background: "#fff", border: "2px solid #e8ddd5", borderRadius: 12, padding: "14px 16px", marginBottom: 16 }}>
+          <div style={{ background: "#fff", border: "2px solid #e8ddd5", borderRadius: 12, padding: "14px 16px" }}>
             <div style={{ fontSize: 13, fontWeight: "bold", color: "#8b5e3c", marginBottom: 10 }}>📊 月間販売合計</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {ITEMS.map((item) => (
@@ -409,67 +326,76 @@ export default function Cake() {
               ))}
             </div>
           </div>
+        </div>
+      )}
 
-          {/* 日別一覧 */}
-          {monthData.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 40, color: "#aaa" }}>データがありません</div>
+      {/* 日別売上 */}
+      {tab === "daily" && (
+        <div style={{ padding: "16px 12px", maxWidth: 900, margin: "0 auto" }}>
+          {/* 月選択＋PDF */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+            <input type="month" value={monthYear}
+              onChange={(e) => setMonthYear(e.target.value)}
+              style={{ flex: 1, padding: "10px 14px", border: "2px solid #c9a882", borderRadius: 8, fontSize: 16, color: "#3d2b1f", background: "#fff" }}
+            />
+            <button onClick={printDailyPDF} style={{
+              padding: "10px 20px", background: "#3d2b1f", color: "#fff",
+              border: "none", borderRadius: 8, fontSize: 15, fontWeight: "bold", cursor: "pointer",
+            }}>
+              🖨 PDF印刷
+            </button>
+          </div>
+
+          {dailyLoading ? (
+            <div style={{ textAlign: "center", padding: 40, color: "#999" }}>読み込み中...</div>
           ) : (
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, background: "#fff", borderRadius: 12, overflow: "hidden" }}>
                 <thead>
                   <tr>
-                    <th style={{ background: "#3d2b1f", color: "#fff", padding: "10px 8px", textAlign: "center", minWidth: 50 }}>日付</th>
+                    <th style={{ background: "#3d2b1f", color: "#fff", padding: "10px 8px", textAlign: "center", minWidth: 48 }}>日付</th>
                     {ITEMS.map((item) => (
-                      <th key={item} colSpan={3} style={{ background: "#3d2b1f", color: "#fff", padding: "10px 4px", textAlign: "center", fontSize: 12 }}>
+                      <th key={item} style={{ background: "#3d2b1f", color: "#fff", padding: "10px 6px", textAlign: "center", fontSize: 12, minWidth: 72 }}>
                         {item}
                       </th>
                     ))}
-                  </tr>
-                  <tr>
-                    <th style={{ background: "#6b4226", color: "#ddd", padding: "6px 4px", fontSize: 11 }}></th>
-                    {ITEMS.map((item) => (
-                      ["解凍", "販売", "残"].map((label) => (
-                        <th key={item + label} style={{ background: "#6b4226", color: "#ddd", padding: "6px 3px", fontSize: 10 }}>{label}</th>
-                      ))
-                    ))}
+                    <th style={{ background: "#3d2b1f", color: "#fff", padding: "10px 8px", textAlign: "center", minWidth: 48 }}>合計</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {monthData.map((row, i) => (
-                    <tr key={row.date} style={{ background: i % 2 === 0 ? "#fff" : "#fdf8f4" }}>
-                      <td style={{ textAlign: "center", fontWeight: "bold", color: "#3d2b1f", padding: "8px 4px" }}>
-                        {row.date.slice(5)}
-                      </td>
-                      {ITEMS.map((item) => {
-                        const t = row.thawed[item] ?? null;
-                        const s = row.sold[item] || 0;
-                        const r = t !== null ? t - s : null;
-                        return (
-                          <>
-                            <td key={item + "t"} style={{ textAlign: "center", padding: "8px 3px" }}>{t ?? "-"}</td>
-                            <td key={item + "s"} style={{ textAlign: "center", padding: "8px 3px", color: s > 0 ? "#27ae60" : "#ccc" }}>{s || "-"}</td>
-                            <td key={item + "r"} style={{ textAlign: "center", padding: "8px 3px", fontWeight: "bold", color: r !== null ? (r <= 0 ? "#e74c3c" : r <= 1 ? "#e67e22" : "#333") : "#ccc" }}>
-                              {r !== null ? r : "-"}
+                  {dailyRows.map((row, i) => {
+                    const total = ITEMS.reduce((s, item) => s + (row.sold[item] || 0), 0);
+                    return (
+                      <tr key={row.date} style={{ background: i % 2 === 0 ? "#fff" : "#fdf8f4" }}>
+                        <td style={{ textAlign: "center", fontWeight: "bold", color: "#3d2b1f", padding: "9px 4px" }}>
+                          {row.date.slice(5)}
+                        </td>
+                        {ITEMS.map((item) => {
+                          const s = row.sold[item] || 0;
+                          return (
+                            <td key={item} style={{ textAlign: "center", padding: "9px 4px", color: s > 0 ? "#27ae60" : "#ccc", fontWeight: s > 0 ? "bold" : "normal" }}>
+                              {s > 0 ? s : "-"}
                             </td>
-                          </>
-                        );
-                      })}
-                    </tr>
-                  ))}
+                          );
+                        })}
+                        <td style={{ textAlign: "center", padding: "9px 4px", fontWeight: "bold", color: total > 0 ? "#3d2b1f" : "#ccc" }}>
+                          {total > 0 ? total : "-"}
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {/* 合計行 */}
                   <tr style={{ background: "#fff3e0", fontWeight: "bold" }}>
                     <td style={{ textAlign: "center", color: "#3d2b1f", padding: "10px 4px" }}>合計</td>
                     {ITEMS.map((item) => {
-                      const t = monthData.reduce((sum, r) => sum + (r.thawed[item] || 0), 0);
                       const s = monthSold[item] || 0;
                       return (
-                        <>
-                          <td key={item + "tt"} style={{ textAlign: "center", padding: "10px 3px" }}>{t}</td>
-                          <td key={item + "ts"} style={{ textAlign: "center", padding: "10px 3px", color: "#27ae60" }}>{s}</td>
-                          <td key={item + "tr"} style={{ textAlign: "center", padding: "10px 3px" }}>{t - s}</td>
-                        </>
+                        <td key={item} style={{ textAlign: "center", padding: "10px 4px", color: "#27ae60" }}>{s}</td>
                       );
                     })}
+                    <td style={{ textAlign: "center", padding: "10px 4px", color: "#3d2b1f" }}>
+                      {ITEMS.reduce((s, item) => s + (monthSold[item] || 0), 0)}
+                    </td>
                   </tr>
                 </tbody>
               </table>
