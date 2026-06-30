@@ -1153,12 +1153,18 @@ export default function Register() {
     const drinkCount = orders.filter(o => !isFood(o.item_name) && !o.item_name.includes("モーニング") && !o.item_name.includes("おかわり") && o.price > 0).reduce((a, o) => a + (o.qty || 1), 0);
     const initCount = foodCount > 0 && drinkCount > 0 ? Math.min(foodCount, drinkCount) : 0;
     setSetCount(initCount);
+    // クーポンは毎回テーブルごとにリセット（前のテーブルの適用が残らないように）
+    setCouponApplied(false);
+    setCouponDiscount(0);
+    setCouponType(null);
+    setCouponNo("");
+    setCouponError("");
     // 既存の値引き行を一旦削除してsetCountで管理
     const discountIds = orders.filter(o => o.price < 0).map(o => o.id);
     if (discountIds.length > 0) {
       supabase.from("orders").delete().in("id", discountIds).then(() => fetchOrders());
     }
-  }, [confirming]);
+  }, [confirming, selected]);
 
   const addDiscount = () => {
     supabase.from("orders").insert({ table_no: String(selected), item_name: "セット値引き", price: -150, qty: 1, status: "pending" }).then(() => fetchOrders());
