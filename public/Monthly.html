@@ -63,9 +63,10 @@
   </select>
 </div>
 <button class="btn btn-reload" onclick="loadData()">🔄 更新する</button>
-<button class="btn btn-all" onclick="printAll()">📑 まとめて印刷（給与・売上・入金）</button>
-<button class="btn btn-gold" onclick="printA4()">プリントする🖨</button>
-<button class="btn" style="background:#1a3a1a;border:2px solid #3aaa8a;color:#3aaa8a;" onclick="printBank()">銀行入金額🏦</button>
+<button class="btn btn-all" onclick="printAll()">📑 まとめて印刷①売上月次から開始</button>
+<button class="btn btn-gold" onclick="printA4()">①プリントする🖨（売上月次）</button>
+<button class="btn" style="background:#1a3a1a;border:2px solid #3aaa8a;color:#3aaa8a;" onclick="printBank()">②銀行入金額🏦</button>
+<button class="btn" style="background:#3a2a1a;border:2px solid #ffae42;color:#ffae42;" onclick="printPayroll()">③給与明細を開く👔</button>
 <button class="btn btn-blue" onclick="sendEmail()">メールを送る✉️</button>
 <button class="btn" style="background:#1a1a3a;border:2px solid #8a7aff;color:#c8b8ff;" onclick="window.open('https://timecard-owner.vercel.app/wish.html','_blank')">シフト希望入力 📅</button>
 <button class="btn" style="background:#1a2a1a;border:2px solid #4aaa4a;color:#8aff8a;" onclick="window.open('https://timecard-tencho.vercel.app/','_blank')">タイムカード記録 👔</button>
@@ -175,10 +176,13 @@ function render(year, month) {
   document.getElementById('mainContent').innerHTML = html;
 }
 
-// 印刷画面の先頭に付ける共通の閉じるバー（戻れないバグ対策）
+// 印刷画面の先頭に付ける共通の戻るバー（ホーム画面アプリだと新しいタブが開かず
+// 同じ画面が上書きされることがあるため、window.close()に頼らず必ず動く方法を用意）
+const MONTHLY_URL = location.href.split('?')[0];
 function closeBarHtml(){
-  return '<div style="position:sticky;top:0;background:#222;padding:8px 12px;display:flex;justify-content:flex-end;z-index:999;" class="noprint">' +
-    '<button onclick="window.close()" style="background:#666;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer;">✕ 閉じる</button>' +
+  return '<div style="position:sticky;top:0;background:#222;padding:8px 12px;display:flex;justify-content:flex-end;gap:8px;z-index:999;" class="noprint">' +
+    '<button onclick="if(history.length>1){history.back();}else{window.close();}" style="background:#3E8EDE;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer;">← 戻る</button>' +
+    '<a href="' + MONTHLY_URL + '" style="background:#666;color:#fff;border-radius:6px;padding:8px 16px;font-size:14px;font-weight:700;text-decoration:none;">📋 月次画面へ</a>' +
     '</div>';
 }
 function closeBarStyle(){
@@ -319,18 +323,24 @@ function printA4() {
   return w;
 }
 
-// 「まとめて印刷」: 売上月次・銀行入金・給与明細(別アプリ)を1ボタンでまとめて開く
+// 「まとめて印刷」: 自動で3つ連鎖させると、ホーム画面に追加したアプリでは
+// 2つ目以降が開かない/画面が上書きされる不具合があったため、
+// 1つ目だけ直接開き、残り2つは案内を出して手動で押してもらう方式にしています。
 function printAll() {
   if (salesData.length === 0) { alert('先に更新するを押してください'); return; }
   const year = document.getElementById('yearPicker').value;
   const month = document.getElementById('monthPicker').value;
   const monthIndex = parseInt(month) - 1; // 給与明細側は0始まりの月
 
+  alert('① まず「売上月次」を開きます。\n印刷が終わったら「← 戻る」でこの画面に戻り、\n② 「銀行入金額🏦」ボタン\n③ 「給与明細」ボタン\nを順番に押してください。');
   printA4();
-  setTimeout(() => { printBank(); }, 600);
-  setTimeout(() => {
-    window.open(PAYROLL_URL + '?y=' + year + '&m=' + monthIndex + '&auto=1', '_blank');
-  }, 1200);
+}
+
+function printPayroll() {
+  const year = document.getElementById('yearPicker').value;
+  const month = document.getElementById('monthPicker').value;
+  const monthIndex = parseInt(month) - 1;
+  window.open(PAYROLL_URL + '?y=' + year + '&m=' + monthIndex + '&auto=1', '_blank');
 }
 
 function sendEmail() {
