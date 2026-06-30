@@ -1098,13 +1098,13 @@ export default function Register() {
     window.location.href = url;
   };
 
-  // クーポン有効期間チェック（7月1日〜7月31日）
+  // クーポン有効期間チェック（7月1日〜7月31日／日本時間基準）
   const isCouponPeriod = () => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const start = new Date(`${y}-07-01`);
-    const end   = new Date(`${y}-07-31T23:59:59`);
-    return now >= start && now <= end;
+    const jstDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0]; // "YYYY-MM-DD"
+    const y = jstDate.split("-")[0];
+    const start = `${y}-06-30`;
+    const end   = `${y}-07-31`;
+    return jstDate >= start && jstDate <= end;
   };
 
   const applyCoupon = async () => {
@@ -1112,7 +1112,7 @@ export default function Register() {
     if (!couponType) { setCouponError("AまたはBを選んでください"); return; }
     const no = couponNo.trim();
     if (!no || !/^\d{5}$/.test(no)) { setCouponError("5桁の数字を入力してください"); return; }
-    if (!isCouponPeriod()) { setCouponError("クーポンの利用期間外です（7月1日〜31日）"); return; }
+    if (!isCouponPeriod()) { setCouponError("クーポンの利用期間外です（6月30日〜7月31日）"); return; }
     const fullNo = `${couponType}${no}`;
     // Supabaseで重複チェック
     const { data } = await supabase.from("coupons").select("*").eq("coupon_no", fullNo).eq("is_used", true);
@@ -1474,7 +1474,7 @@ export default function Register() {
               style={{ width: "100%", padding: "14px", background: "#0d0d1a", border: "1px solid #5a5ac9", borderRadius: 8, color: "#f0f0ff", fontSize: 22, fontWeight: 700, boxSizing: "border-box", marginBottom: 8, textAlign: "center" }} />
             {couponError && <div style={{ color: "#c95a5a", fontSize: 13, marginBottom: 8 }}>{couponError}</div>}
             <div style={{ color: "#6a6a9a", fontSize: 12, marginBottom: 14 }}>
-              5%割引（1の位切り捨て）・1,000円以上のみ・7/1〜7/31
+              5%割引（1の位切り捨て）・1,000円以上のみ・6/30〜7/31
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { setShowCoupon(false); setCouponError(""); }}
