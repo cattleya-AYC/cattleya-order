@@ -55,7 +55,8 @@ const pct = (n) => (n == null ? "—" : (n >= 0 ? "+" : "") + n.toFixed(1) + "%"
 function monthRange(ym) {
   const [y, m] = ym.split("-").map(Number);
   const start = `${y}-${String(m).padStart(2, "0")}-01`;
-  const end = new Date(y, m, 0).toISOString().split("T")[0];
+  const lastDay = new Date(y, m, 0).getDate();
+  const end = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
   return { start, end };
 }
 function prevMonth(ym) {
