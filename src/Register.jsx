@@ -1771,6 +1771,12 @@ export default function Register() {
                 </button>
               );
             })()}
+            
+            {/* ケーキ解凍数アプリリンク */}
+<button onClick={() => window.open("https://cattleya-order.vercel.app/cake.html", "_blank")}
+  style={{ padding: "0", background: "#fdf0f2", border: "none", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
+  <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/cake.PNG" style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }} />
+</button>
 
             {/* 更新ボタン */}
             <button onClick={() => fetchOrders()}
