@@ -187,18 +187,26 @@ async function loadToday() {
 
   const YESTERDAY = prevDate(TODAY);
 
-  // 前日のcake_stock（残数 = thawed - sold）
-  const [ystockRaw, todayStockRaw, salesRaw] = await Promise.all([
+  // 前日のcake_stock（残数 = thawed - 実売上）
+  const [ystockRaw, todayStockRaw, salesRaw, yesterdaySalesRaw] = await Promise.all([
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold&date=eq.' + YESTERDAY),
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold&date=eq.' + TODAY),
-    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + TODAY + '&limit=1000')
+    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + TODAY + '&limit=1000'),
+    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + YESTERDAY + '&limit=1000')
   ]);
+
+  // 前日の実売上を集計（保存された sold 列ではなく order_items から都度計算）
+  const soldYesterday = {};
+  ITEMS.forEach(item => soldYesterday[item] = 0);
+  (yesterdaySalesRaw||[]).forEach(r => {
+    if (ITEMS_SET.has(r.item_name)) soldYesterday[r.item_name] += (r.qty||1);
+  });
 
   // 前日残数を在庫として設定
   stockMap = {};
   ITEMS.forEach(item => stockMap[item] = 0);
   (ystockRaw||[]).forEach(r => {
-    const remain = (r.thawed||0) - (r.sold||0);
+    const remain = (r.thawed||0) - (soldYesterday[r.item_name]||0);
     stockMap[r.item_name] = Math.max(0, remain);
   });
 
