@@ -93,17 +93,26 @@ async function load() {
   document.getElementById('loading').style.display = 'block';
   document.getElementById('body').style.display = 'none';
 
-  const [ystockRaw, todayStockRaw, salesRaw, tomorrowStockRaw] = await Promise.all([
+  const [ystockRaw, todayStockRaw, salesRaw, tomorrowStockRaw, yesterdaySalesRaw] = await Promise.all([
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold&date=eq.' + YESTERDAY),
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + TODAY),
     supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + TODAY + '&limit=1000'),
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + TOMORROW),
+    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + YESTERDAY + '&limit=1000'),
   ]);
 
   const leftoverFromYesterday = {};
   ITEMS.forEach(item => leftoverFromYesterday[item] = 0);
   (ystockRaw||[]).forEach(r => {
-    if (ITEMS_SET.has(r.item_name)) leftoverFromYesterday[r.item_name] = Math.max(0, (r.thawed||0) - (r.sold||0));
+    if (ITEMS_SET.has(r.item_name)) leftoverFromYesterday[r.item_name] = r.thawed || 0;
+  });
+  const soldYesterday = {};
+  ITEMS.forEach(item => soldYesterday[item] = 0);
+  (yesterdaySalesRaw||[]).forEach(r => {
+    if (ITEMS_SET.has(r.item_name)) soldYesterday[r.item_name] += (r.qty||1);
+  });
+  ITEMS.forEach(item => {
+    leftoverFromYesterday[item] = Math.max(0, leftoverFromYesterday[item] - soldYesterday[item]);
   });
 
   const todayAdded = {};
