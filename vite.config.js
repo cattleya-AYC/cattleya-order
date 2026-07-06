@@ -12,6 +12,7 @@ export default defineConfig({
         kitchen:  "kitchen.html",
         practice: "practice.html",
         cake:     "cake.html",
+        cakeAdmin: "cake-admin.html",
       },
     },
   },
