@@ -200,6 +200,7 @@
   <div class="tab" onclick="switchTab('visit')" id="tab-visit">👥 来店者</div>
   <div class="tab" onclick="switchTab('summary')" id="tab-summary">📊 途中集計</div>
   <div class="tab" onclick="switchTab('monthly')" id="tab-monthly">📅 月別</div>
+  <div class="tab" onclick="switchTab('tax')" id="tab-tax">🧾 消費税</div>
 </div>
 
 <div class="content" id="content-paycas">
@@ -215,6 +216,10 @@
 </div>
 
 <div class="content" id="content-monthly" style="display:none">
+  <div class="loading">読み込み中...</div>
+</div>
+
+<div class="content" id="content-tax" style="display:none">
   <div class="loading">読み込み中...</div>
 </div>
 
@@ -261,11 +266,14 @@ function switchTab(tab) {
   document.getElementById('tab-visit').className = 'tab' + (tab === 'visit' ? ' active' : '');
   document.getElementById('tab-summary').className = 'tab' + (tab === 'summary' ? ' active' : '');
   document.getElementById('tab-monthly').className = 'tab' + (tab === 'monthly' ? ' active' : '');
+  document.getElementById('tab-tax').className = 'tab' + (tab === 'tax' ? ' active' : '');
   document.getElementById('content-paycas').style.display = tab === 'paycas' ? '' : 'none';
   document.getElementById('content-visit').style.display = tab === 'visit' ? '' : 'none';
   document.getElementById('content-summary').style.display = tab === 'summary' ? '' : 'none';
   document.getElementById('content-monthly').style.display = tab === 'monthly' ? '' : 'none';
+  document.getElementById('content-tax').style.display = tab === 'tax' ? '' : 'none';
   if (tab === 'monthly') loadPaycasMonthly();
+  if (tab === 'tax') loadTaxSummary();
 }
 
 async function loadAll() {
@@ -289,6 +297,7 @@ async function loadAll() {
   renderVisit();
   renderSummary();
   if (currentTab === 'monthly') loadPaycasMonthly();
+  if (currentTab === 'tax') loadTaxSummary();
 }
 
 function renderPaycas() {
@@ -438,6 +447,101 @@ function handleCsvImport(event) {
     loadPaycasMonthly();
   };
   reader.readAsText(file, 'shift_jis');
+}
+
+// ========== 🧾 消費税集計 ==========
+async function loadTaxSummary() {
+  document.getElementById('content-tax').innerHTML = '<div class="loading">読み込み中...</div>';
+
+  const dateVal = document.getElementById('dateInput').value;
+  const ym = dateVal ? dateVal.substring(0, 7) : new Date().toISOString().substring(0, 7);
+  const [year, month] = ym.split('-');
+  const startDate = `${year}-${month}-01`;
+  const lastDay = new Date(Number(year), Number(month), 0).getDate();
+  const endDate = `${year}-${month}-${String(lastDay).padStart(2,'0')}`;
+
+  const { data: salesMonth } = await sb.from('sales')
+    .select('amount, takeout, sale_date')
+    .gte('sale_date', startDate).lte('sale_date', endDate)
+    .limit(5000);
+
+  const rows = salesMonth || [];
+
+  let dineInGross = 0, dineInTax = 0, dineInCount = 0;
+  let takeoutGross = 0, takeoutTax = 0, takeoutCount = 0;
+
+  rows.forEach(s => {
+    if (s.takeout) {
+      takeoutGross += s.amount;
+      takeoutTax += Math.round(s.amount * 8 / 108);
+      takeoutCount += 1;
+    } else {
+      dineInGross += s.amount;
+      dineInTax += Math.round(s.amount / 11);
+      dineInCount += 1;
+    }
+  });
+
+  const totalGross = dineInGross + takeoutGross;
+  const totalTax = dineInTax + takeoutTax;
+  const dineInBase = dineInGross - dineInTax;
+  const takeoutBase = takeoutGross - takeoutTax;
+  const totalBase = dineInBase + takeoutBase;
+
+  document.getElementById('content-tax').innerHTML = `
+    <div style="color:#c9952a;font-size:15px;font-weight:700;margin-bottom:14px;letter-spacing:1px;">🧾 消費税集計 ${year}年${parseInt(month)}月</div>
+
+    <div style="background:#181008;border:2px solid #c9952a;border-radius:12px;padding:16px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="color:#c9952a;font-size:14px;font-weight:700;">消費税合計</span>
+        <span style="color:#c9952a;font-family:serif;font-size:26px;font-weight:900;">¥${totalTax.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#8a7050;">
+        <span>税込売上合計 ¥${totalGross.toLocaleString()}</span>
+        <span>税抜売上合計 ¥${totalBase.toLocaleString()}</span>
+      </div>
+    </div>
+
+    <div style="background:#181008;border:1px solid #3d2c14;border-radius:10px;padding:16px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="color:#f0e6d0;font-size:14px;font-weight:700;">🍽 店内飲食（10%）</span>
+        <span style="color:#8a7050;font-size:12px;">${dineInCount}件</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="color:#8a7050;font-size:12px;">税込売上</span>
+        <span style="color:#f0e6d0;font-size:13px;">¥${dineInGross.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="color:#8a7050;font-size:12px;">税抜売上</span>
+        <span style="color:#f0e6d0;font-size:13px;">¥${dineInBase.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid #3d2c14;padding-top:6px;margin-top:6px;">
+        <span style="color:#c9952a;font-size:13px;font-weight:700;">消費税（10%）</span>
+        <span style="color:#c9952a;font-size:16px;font-weight:900;font-family:serif;">¥${dineInTax.toLocaleString()}</span>
+      </div>
+    </div>
+
+    <div style="background:#181008;border:1px solid #3d2c14;border-radius:10px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="color:#f0e6d0;font-size:14px;font-weight:700;">🛍 持ち帰り（8%）</span>
+        <span style="color:#8a7050;font-size:12px;">${takeoutCount}件</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="color:#8a7050;font-size:12px;">税込売上</span>
+        <span style="color:#f0e6d0;font-size:13px;">¥${takeoutGross.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="color:#8a7050;font-size:12px;">税抜売上</span>
+        <span style="color:#f0e6d0;font-size:13px;">¥${takeoutBase.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid #3d2c14;padding-top:6px;margin-top:6px;">
+        <span style="color:#c9952a;font-size:13px;font-weight:700;">消費税（8%）</span>
+        <span style="color:#c9952a;font-size:16px;font-weight:900;font-family:serif;">¥${takeoutTax.toLocaleString()}</span>
+      </div>
+    </div>
+
+    <div style="color:#8a7050;font-size:10px;margin-top:12px;text-align:center;">各取引ごとに端数処理してから合計しています（レシート印字時と同じ計算方法）</div>
+  `;
 }
 
 async function loadPaycasMonthly() {
