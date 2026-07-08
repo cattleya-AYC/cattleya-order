@@ -541,7 +541,73 @@ async function loadTaxSummary() {
     </div>
 
     <div style="color:#8a7050;font-size:10px;margin-top:12px;text-align:center;">各取引ごとに端数処理してから合計しています（レシート印字時と同じ計算方法）</div>
+
+    <button onclick="printTaxSummary()" style="width:100%;margin-top:14px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">
+      📄 PDF印刷
+    </button>
   `;
+}
+
+async function printTaxSummary() {
+  const dateVal = document.getElementById('dateInput').value;
+  const ym = dateVal ? dateVal.substring(0, 7) : new Date().toISOString().substring(0, 7);
+  const [year, month] = ym.split('-');
+  const startDate = `${year}-${month}-01`;
+  const lastDay = new Date(Number(year), Number(month), 0).getDate();
+  const endDate = `${year}-${month}-${String(lastDay).padStart(2,'0')}`;
+
+  const { data: salesMonth } = await sb.from('sales')
+    .select('amount, takeout')
+    .gte('sale_date', startDate).lte('sale_date', endDate)
+    .limit(5000);
+
+  const rows = salesMonth || [];
+  let dineInGross = 0, dineInTax = 0, dineInCount = 0;
+  let takeoutGross = 0, takeoutTax = 0, takeoutCount = 0;
+
+  rows.forEach(s => {
+    if (s.takeout) {
+      takeoutGross += s.amount;
+      takeoutTax += Math.round(s.amount * 8 / 108);
+      takeoutCount += 1;
+    } else {
+      dineInGross += s.amount;
+      dineInTax += Math.round(s.amount / 11);
+      dineInCount += 1;
+    }
+  });
+
+  const totalGross = dineInGross + takeoutGross;
+  const totalTax = dineInTax + takeoutTax;
+  const dineInBase = dineInGross - dineInTax;
+  const takeoutBase = takeoutGross - takeoutTax;
+  const totalBase = dineInBase + takeoutBase;
+
+  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
+    body{font-family:'Hiragino Mincho ProN',serif;padding:20px;color:#000;}
+    h2{text-align:center;margin-bottom:4px;}
+    p.sub{text-align:center;color:#555;font-size:12px;margin-bottom:20px;}
+    table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px;}
+    th,td{border:1px solid #ccc;padding:8px 10px;}
+    th{background:#f5f5f5;text-align:center;}
+    td:not(:first-child){text-align:right;}
+    .total-row td{font-weight:900;font-size:16px;background:#f0f0f0;}
+  </style></head><body>
+    <h2>消費税集計　${year}年${parseInt(month)}月</h2>
+    <p class="sub">出力日: ${new Date().toLocaleString('ja-JP')}</p>
+    <table>
+      <tr><th>区分</th><th>件数</th><th>税込売上</th><th>税抜売上</th><th>消費税額</th></tr>
+      <tr><td>店内飲食（10%）</td><td>${dineInCount}件</td><td>¥${dineInGross.toLocaleString()}</td><td>¥${dineInBase.toLocaleString()}</td><td>¥${dineInTax.toLocaleString()}</td></tr>
+      <tr><td>持ち帰り（8%）</td><td>${takeoutCount}件</td><td>¥${takeoutGross.toLocaleString()}</td><td>¥${takeoutBase.toLocaleString()}</td><td>¥${takeoutTax.toLocaleString()}</td></tr>
+      <tr class="total-row"><td>合計</td><td>${dineInCount + takeoutCount}件</td><td>¥${totalGross.toLocaleString()}</td><td>¥${totalBase.toLocaleString()}</td><td>¥${totalTax.toLocaleString()}</td></tr>
+    </table>
+    <p style="font-size:11px;color:#777;">※各取引ごとに端数処理してから合計しています（レシート印字時と同じ計算方法）</p>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.print();
 }
 
 async function loadPaycasMonthly() {
