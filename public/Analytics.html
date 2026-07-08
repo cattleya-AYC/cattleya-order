@@ -265,6 +265,7 @@ async function loadAll() {
   renderPaycas();
   renderVisit();
   renderSummary();
+  if (currentTab === 'monthly') loadPaycasMonthly();
 }
 
 function renderPaycas() {
