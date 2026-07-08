@@ -32,13 +32,18 @@
   /* 明日の解凍数入力 */
   .thaw-card { background: #fff; border: 2px solid #e8ddd5; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
   .thaw-top { font-weight: bold; font-size: 16px; color: #3d2b1f; margin-bottom: 10px; }
-  .thaw-bottom { display: flex; align-items: center; gap: 10px; }
+  .thaw-bottom { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
   .thaw-col { text-align: center; flex: 1; }
   .thaw-label { font-size: 10px; color: #999; margin-bottom: 4px; }
   .thaw-val { font-size: 18px; font-weight: bold; border-radius: 8px; padding: 8px; background: #f0ece6; color: #3d2b1f; }
-  .thaw-input { width: 100%; height: 46px; text-align: center; font-size: 20px; font-weight: bold; border: 2px solid #c9a882; border-radius: 8px; color: #3d2b1f; background: #fdf8f4; font-family: inherit; }
+  .thaw-val.selected { background: #fdf3e4; color: #c9822c; border: 2px solid #c9a882; }
   .plus-sign, .eq-sign { color: #c9a882; font-size: 18px; font-weight: bold; }
   .thaw-total { font-size: 18px; font-weight: bold; border-radius: 8px; padding: 8px; background: #eafaf1; color: #27ae60; }
+
+  .num-btn-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .num-btn { flex: 0 0 auto; min-width: 42px; height: 42px; padding: 0 4px; border-radius: 8px; border: 2px solid #e8ddd5; background: #fdf8f4; font-size: 17px; font-weight: bold; color: #3d2b1f; font-family: inherit; }
+  .num-btn.active { background: #3d2b1f; border-color: #3d2b1f; color: #fff; }
+  .num-btn:active { opacity: 0.7; }
 
   .save-btn { width: 100%; padding: 18px 0; margin-top: 16px; background: #3d2b1f; color: #fff; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; letter-spacing: 1px; font-family: inherit; }
   .save-btn:disabled { background: #ccc; cursor: not-allowed; }
@@ -68,6 +73,9 @@ const SUPA_KEY = 'sb_publishable_LLIkeICkSI-IS-2xMKO9_A_I8MAo2IT';
 const ITEMS = ['ミルクレープ','ガトーショコラ','チーズケーキ','栗のモンブラン','コーヒーゼリー'];
 const ITEMS_SET = new Set(ITEMS);
 
+// 各商品ボタンの最大数（コーヒーゼリーはまとめて作るので0〜9）
+function maxButtonFor(item) { return item === 'コーヒーゼリー' ? 9 : 4; }
+
 function itemKey(item) { return 'w' + ITEMS.indexOf(item); }
 
 function toJST() { return new Date(Date.now() + 9*60*60*1000).toISOString().slice(0,10); }
@@ -87,7 +95,7 @@ async function supaFetch(path) {
 }
 
 let remainMap = {};      // 今日の売れ残り（見るだけ）
-let tomorrowMap = {};    // 明日の解凍数入力
+let tomorrowMap = {};    // 明日の解凍数入力（数値）
 
 async function load() {
   document.getElementById('loading').style.display = 'block';
@@ -133,10 +141,11 @@ async function load() {
     remainMap[item] = Math.max(0, total - soldToday[item]);
   });
 
+  // 既に登録済みの明日の解凍数があればそれを初期値に、なければ0
   tomorrowMap = {};
-  ITEMS.forEach(item => tomorrowMap[item] = '');
+  ITEMS.forEach(item => tomorrowMap[item] = 0);
   (tomorrowStockRaw||[]).forEach(r => {
-    if (ITEMS_SET.has(r.item_name) && r.thawed) tomorrowMap[r.item_name] = String(r.thawed);
+    if (ITEMS_SET.has(r.item_name)) tomorrowMap[r.item_name] = r.thawed || 0;
   });
 
   render();
@@ -163,12 +172,19 @@ function render() {
       </div>`;
   });
 
-  // ② 明日の解凍数を入力
+  // ② 明日の解凍数を入力（ボタン方式）
   html += '<div class="section-title">🧊 明日の解凍数を入力</div>';
   ITEMS.forEach(item => {
     const key = itemKey(item);
     const remain = remainMap[item] || 0;
-    const val = tomorrowMap[item];
+    const selected = tomorrowMap[item] || 0;
+    const max = maxButtonFor(item);
+
+    let buttonsHtml = '';
+    for (let n = 0; n <= max; n++) {
+      buttonsHtml += `<button type="button" class="num-btn${n === selected ? ' active' : ''}" data-item="${item}" data-val="${n}">${n}</button>`;
+    }
+
     html += `
       <div class="thaw-card">
         <div class="thaw-top">${item}</div>
@@ -180,14 +196,15 @@ function render() {
           <div class="plus-sign">+</div>
           <div class="thaw-col">
             <div class="thaw-label">解凍数</div>
-            <input class="thaw-input" type="number" min="0" placeholder="0" value="${val}" data-item="${item}" id="tinput-${key}" onkeydown="if(event.key==='-')event.preventDefault()" />
+            <div class="thaw-val selected" id="tsel-${key}">${selected}</div>
           </div>
           <div class="eq-sign">=</div>
           <div class="thaw-col">
             <div class="thaw-label">明日の準備数</div>
-            <div class="thaw-total" id="ttotal-${key}">${remain + (parseInt(val)||0)}</div>
+            <div class="thaw-total" id="ttotal-${key}">${remain + selected}</div>
           </div>
         </div>
+        <div class="num-btn-row" id="btnrow-${key}">${buttonsHtml}</div>
       </div>`;
   });
 
@@ -196,14 +213,22 @@ function render() {
 
   document.getElementById('body').innerHTML = html;
 
-  document.querySelectorAll('.thaw-input').forEach(inp => {
-    inp.addEventListener('input', e => {
+  document.querySelectorAll('.num-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
       const item = e.target.dataset.item;
+      const val = parseInt(e.target.dataset.val);
       const key = itemKey(item);
-      tomorrowMap[item] = e.target.value;
+
+      tomorrowMap[item] = val;
+
+      // ボタンのハイライト切り替え
+      document.querySelectorAll('#btnrow-' + key + ' .num-btn').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+
+      // 表示更新
+      document.getElementById('tsel-' + key).textContent = val;
       const remain = remainMap[item] || 0;
-      const total = remain + (parseInt(e.target.value)||0);
-      document.getElementById('ttotal-'+key).textContent = total;
+      document.getElementById('ttotal-' + key).textContent = remain + val;
     });
   });
 
