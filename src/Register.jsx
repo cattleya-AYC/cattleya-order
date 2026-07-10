@@ -79,7 +79,7 @@ function getNextReceiptNo() {
 // =========================================================
 // PassPRNT 用レシートHTML生成（mPOP 約48mm印字 / mm基準）
 // =========================================================
-const RECEIPT_LOGO = "https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/receipt.PNG";
+const RECEIPT_LOGO = "https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/receipt.PNG?v=2";
 const COUPON_IMG = "https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/coupon1.jpg";
 
 function buildInvoiceHTML(info) {
@@ -155,6 +155,7 @@ function buildReceiptHTML(info) {
   .no{ text-align:right; font-size:19px; margin-bottom:4px; }
   .inv-title{ font-size:38px; font-weight:900; letter-spacing:12px; margin-bottom:6px; }
   .logo{ width:100%; height:auto; display:block; margin:4px 0 8px; }
+  .storeinfo{ font-size:16px; line-height:1.7; margin:2px 0 12px; font-weight:700; }
   .addr{ width:100%; height:auto; display:block; margin:4px 0 10px; }
   .dt{ font-size:26px; font-weight:bold; margin:8px 0; }
   .atena{ text-align:right; font-size:48px; margin:8px 24px 4px; }
@@ -170,7 +171,12 @@ function buildReceiptHTML(info) {
   <div class="no">No.${receiptNo}</div>
   ${isInvoice ? '<div class="inv-title">領\u3000収\u3000書</div>' : ''}
   <img class="logo" src="${RECEIPT_LOGO}"/>
-  ${isInvoice ? '<img class="addr" src="' + RECEIPT_ADDR + '"/>' : ''}
+  <div class="storeinfo">
+    東京都港区新橋2丁目16-1-3階<br/>
+    株式会社エー・ワイ・シー<br/>
+    ☎ 03-3504-2200<br/>
+    登録番号　T1010401004300
+  </div>
   <div class="dt">${dateStr}</div>
   ${isInvoice ? '<div class="atena">\u6a19</div>' : ''}
   <hr class="dline"/>
