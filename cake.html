@@ -15,6 +15,8 @@
   .loading { text-align: center; padding: 60px 20px; color: #999; font-size: 15px; }
   .date-label { text-align: center; color: #8b5e3c; font-size: 14px; margin-bottom: 16px; }
 
+  .notice-box { background: #fff3e0; border: 2px solid #f0c987; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #8b5e3c; margin-bottom: 14px; line-height: 1.5; }
+
   .section-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: bold; color: #3d2b1f; margin: 22px 0 12px; }
   .section-title .badge { font-size: 12px; font-weight: normal; color: #999; background: #f0ece6; border-radius: 6px; padding: 3px 8px; }
 
@@ -39,6 +41,7 @@
   .thaw-val.selected { background: #fdf3e4; color: #c9822c; border: 2px solid #c9a882; }
   .plus-sign, .eq-sign { color: #c9a882; font-size: 18px; font-weight: bold; }
   .thaw-total { font-size: 18px; font-weight: bold; border-radius: 8px; padding: 8px; background: #eafaf1; color: #27ae60; }
+  .rec-note { text-align: center; font-size: 13px; color: #c9822c; background: #fdf3e4; border-radius: 6px; padding: 5px 8px; margin-bottom: 10px; }
 
   .num-btn-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
   .num-btn { flex: 0 0 auto; min-width: 42px; height: 42px; padding: 0 4px; border-radius: 8px; border: 2px solid #e8ddd5; background: #fdf8f4; font-size: 17px; font-weight: bold; color: #3d2b1f; font-family: inherit; }
@@ -61,6 +64,7 @@
 </header>
 
 <div class="content">
+  <div class="notice-box">🍫 フォンダンショコラは冷凍から直接温めるため、在庫は常に15個以上あります</div>
   <div class="loading" id="loading">読み込み中...</div>
   <div id="body" style="display:none"></div>
 </div>
@@ -96,6 +100,7 @@ async function supaFetch(path) {
 
 let remainMap = {};      // 今日の売れ残り（見るだけ）
 let tomorrowMap = {};    // 明日の解凍数入力（数値）
+let recommendedMap = {}; // 明日の推奨準備数（まりが設定・見るだけ）
 
 async function load() {
   document.getElementById('loading').style.display = 'block';
@@ -105,7 +110,7 @@ async function load() {
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold&date=eq.' + YESTERDAY),
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + TODAY),
     supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + TODAY + '&limit=1000'),
-    supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + TOMORROW),
+    supaFetch('/rest/v1/cake_stock?select=item_name,thawed,recommended&date=eq.' + TOMORROW),
     supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + YESTERDAY + '&limit=1000'),
   ]);
 
@@ -144,8 +149,13 @@ async function load() {
   // 既に登録済みの明日の解凍数があればそれを初期値に、なければ0
   tomorrowMap = {};
   ITEMS.forEach(item => tomorrowMap[item] = 0);
+  recommendedMap = {};
+  ITEMS.forEach(item => recommendedMap[item] = 0);
   (tomorrowStockRaw||[]).forEach(r => {
-    if (ITEMS_SET.has(r.item_name)) tomorrowMap[r.item_name] = r.thawed || 0;
+    if (ITEMS_SET.has(r.item_name)) {
+      tomorrowMap[r.item_name] = r.thawed || 0;
+      recommendedMap[r.item_name] = r.recommended || 0;
+    }
   });
 
   render();
@@ -179,6 +189,9 @@ function render() {
     const remain = remainMap[item] || 0;
     const selected = tomorrowMap[item] || 0;
     const max = maxButtonFor(item);
+    const recommended = recommendedMap[item] || 0;
+    const isCoffeeJelly = item === 'コーヒーゼリー';
+    const numLabel = isCoffeeJelly ? '作った数' : '解凍数';
 
     let buttonsHtml = '';
     for (let n = 0; n <= max; n++) {
@@ -188,6 +201,7 @@ function render() {
     html += `
       <div class="thaw-card">
         <div class="thaw-top">${item}</div>
+        ${recommended > 0 ? `<div class="rec-note">👍 明日の推奨準備数: ${recommended}個</div>` : ''}
         <div class="thaw-bottom">
           <div class="thaw-col">
             <div class="thaw-label">今日の残り</div>
@@ -195,7 +209,7 @@ function render() {
           </div>
           <div class="plus-sign">+</div>
           <div class="thaw-col">
-            <div class="thaw-label">解凍数</div>
+            <div class="thaw-label">${numLabel}</div>
             <div class="thaw-val selected" id="tsel-${key}">${selected}</div>
           </div>
           <div class="eq-sign">=</div>
