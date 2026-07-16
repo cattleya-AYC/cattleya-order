@@ -576,31 +576,40 @@ async function recountFrozen(idx) {
 }
 
 // 初期ロード
-// ========== 明日の予定タブ（ウエイトレスが入力した内容を見るだけ） ==========
+// ========== 明日の予定タブ（ウエイトレスが入力した内容を見る＋推奨準備数を入力） ==========
+let recommendedMap = {};   // 推奨準備数（このタブで入力・保存）
+let tomorrowDateForRec = '';
+
 async function loadTomorrow() {
   document.getElementById('tomorrow-loading').style.display = 'block';
   document.getElementById('tomorrow-body').style.display = 'none';
 
   const YESTERDAY_T = prevDate(TODAY);
   const TOMORROW_T = nextDate(TODAY);
+  tomorrowDateForRec = TOMORROW_T;
 
   const [ystockRaw, todayStockRaw, todaySalesRaw, yesterdaySalesRaw, tomorrowStockRaw] = await Promise.all([
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + YESTERDAY_T),
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + TODAY),
     supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + TODAY + '&limit=1000'),
     supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + YESTERDAY_T + '&limit=1000'),
-    supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + TOMORROW_T),
+    supaFetch('/rest/v1/cake_stock?select=item_name,thawed,recommended&date=eq.' + TOMORROW_T),
   ]);
 
   const yesterdayThawed = {}, todayAdded = {}, soldToday = {}, soldYesterday = {}, tomorrowThawed = {};
   WAITRESS_ITEMS.forEach(item => {
     yesterdayThawed[item] = 0; todayAdded[item] = 0; soldToday[item] = 0; soldYesterday[item] = 0; tomorrowThawed[item] = 0;
   });
+  recommendedMap = {};
+  WAITRESS_ITEMS.forEach(item => recommendedMap[item] = '');
   (ystockRaw||[]).forEach(r => { if (yesterdayThawed[r.item_name] !== undefined) yesterdayThawed[r.item_name] = r.thawed || 0; });
   (todayStockRaw||[]).forEach(r => { if (todayAdded[r.item_name] !== undefined) todayAdded[r.item_name] = r.thawed || 0; });
   (todaySalesRaw||[]).forEach(r => { if (soldToday[r.item_name] !== undefined) soldToday[r.item_name] += (r.qty||1); });
   (yesterdaySalesRaw||[]).forEach(r => { if (soldYesterday[r.item_name] !== undefined) soldYesterday[r.item_name] += (r.qty||1); });
-  (tomorrowStockRaw||[]).forEach(r => { if (tomorrowThawed[r.item_name] !== undefined) tomorrowThawed[r.item_name] = r.thawed || 0; });
+  (tomorrowStockRaw||[]).forEach(r => {
+    if (tomorrowThawed[r.item_name] !== undefined) tomorrowThawed[r.item_name] = r.thawed || 0;
+    if (recommendedMap[r.item_name] !== undefined && r.recommended) recommendedMap[r.item_name] = String(r.recommended);
+  });
 
   const remainToday = {};
   WAITRESS_ITEMS.forEach(item => {
@@ -609,15 +618,23 @@ async function loadTomorrow() {
     remainToday[item] = Math.max(0, total - soldToday[item]);
   });
 
-  let html = '<div class="date-label">🌙 ' + TOMORROW_T.replace(/-/g,'/') + ' の準備予定（ウエイトレス入力・見るだけ）</div>';
+  renderTomorrow(remainToday, tomorrowThawed, TOMORROW_T);
+  document.getElementById('tomorrow-loading').style.display = 'none';
+  document.getElementById('tomorrow-body').style.display = 'block';
+}
+
+function renderTomorrow(remainToday, tomorrowThawed, TOMORROW_T) {
+  let html = '<div class="date-label">🌙 ' + TOMORROW_T.replace(/-/g,'/') + ' の準備予定</div>';
   WAITRESS_ITEMS.forEach(item => {
     const remain = remainToday[item];
     const thaw = tomorrowThawed[item];
     const prep = remain + thaw;
+    const key = itemKey(item);
     html += `
       <div class="item-card">
         <div class="item-top">
           <div class="item-name">${item}</div>
+          <div class="item-sold">ウエイトレス入力・見るだけ</div>
         </div>
         <div class="item-bottom">
           <div class="col">
@@ -626,7 +643,7 @@ async function loadTomorrow() {
           </div>
           <div class="plus-sign">+</div>
           <div class="col">
-            <div class="col-label">解凍数</div>
+            <div class="col-label">${item === 'コーヒーゼリー' ? '作った数' : '解凍数'}</div>
             <div class="col-val col-stock">${thaw}</div>
           </div>
           <div class="eq-sign">=</div>
@@ -635,12 +652,48 @@ async function loadTomorrow() {
             <div class="col-val col-remain-ok">${prep}</div>
           </div>
         </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+          <div class="col-label" style="flex:0 0 auto;white-space:nowrap;">👍 推奨準備数</div>
+          <input class="col-input" style="flex:1" type="number" min="0" placeholder="推奨数（未入力なら非表示）" value="${recommendedMap[item]}" data-item="${item}" id="rec-input-${key}" onkeydown="if(event.key==='-')event.preventDefault()" />
+        </div>
       </div>`;
   });
 
+  html += '<button class="save-btn" id="rec-save-btn">💾 推奨準備数を保存</button>';
+  html += '<div class="saved-msg" id="rec-saved-msg" style="display:none">保存しました ✓</div>';
+
   document.getElementById('tomorrow-body').innerHTML = html;
-  document.getElementById('tomorrow-loading').style.display = 'none';
-  document.getElementById('tomorrow-body').style.display = 'block';
+
+  document.querySelectorAll('[id^="rec-input-"]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      recommendedMap[e.target.dataset.item] = e.target.value;
+    });
+  });
+
+  document.getElementById('rec-save-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('rec-save-btn');
+    btn.disabled = true; btn.textContent = '保存中...';
+
+    const upserts = WAITRESS_ITEMS.map(item => ({
+      date: tomorrowDateForRec,
+      item_name: item,
+      recommended: Math.max(0, parseInt(recommendedMap[item]) || 0)
+    }));
+
+    await fetch(SUPA_URL + '/rest/v1/cake_stock', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify(upserts)
+    });
+
+    btn.disabled = false; btn.textContent = '💾 推奨準備数を保存';
+    const msg = document.getElementById('rec-saved-msg');
+    msg.style.display = 'block';
+    setTimeout(() => msg.style.display = 'none', 2500);
+  });
 }
 
 loadToday();
