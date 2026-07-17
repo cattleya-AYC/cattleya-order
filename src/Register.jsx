@@ -911,14 +911,15 @@ export default function Register() {
   const tableTotal = (tableNo) =>
     tableOrders(tableNo).reduce((s, o) => s + o.price * o.qty, 0);
 
+  // 人数は注文のたびに追加分が記録されるため、そのテーブルの全「info」レコードを合計する
   const tablePeople = (tableNo) => {
-    const info = orders.find((o) => String(o.table_no) === String(tableNo) && o.status === "info");
-    return info ? parseInt(info.item_name.replace("【人数：", "").replace("名】", "")) || 0 : 0;
+    const infos = orders.filter((o) => String(o.table_no) === String(tableNo) && o.status === "info");
+    return infos.reduce((sum, info) => sum + (parseInt(info.item_name.replace("【人数：", "").replace("名】", "")) || 0), 0);
   };
 
   const tablePeopleStr = (tableNo) => {
-    const info = orders.find((o) => String(o.table_no) === String(tableNo) && o.status === "info");
-    return info ? info.item_name.replace("【人数：", "").replace("名】", "") : "-";
+    const total = tablePeople(tableNo);
+    return total > 0 ? String(total) : "-";
   };
 
   const occupiedTables = TABLES.filter((t) => tableOrders(t).length > 0);
@@ -977,14 +978,8 @@ export default function Register() {
     const checkinTime = firstOrder && firstOrder[0] ? firstOrder[0].created_at : null;
     const couponDisc = couponApplied ? couponDiscount : 0;
     const setDisc = setCount * 150;
-    const amount = tableTotal(t) - couponDisc - setDisc;
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-    const nowMs = Date.now();
-    if (lastCheckout && lastCheckout.table === t && lastCheckout.amount === amount && (nowMs - lastCheckout.timestamp) < 120000) {
-      setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); return;
-    }
     const chg = payMethod === "現金" ? change : null;
-    const people = peopleZero ? 0 : tablePeople(t);
     const receiptType = "レシート"; // 常に自動レシート印刷
 
     // setCount 分の値引きをSupabaseに反映してから会計
@@ -996,11 +991,20 @@ export default function Register() {
       await supabase.from("orders").insert({ table_no: String(t), item_name: "セット値引き", price: -150, qty: 1, status: "pending" });
     }
     await fetchOrders();
-    // stateの更新を待たずSupabaseから直接取得（値引き確実に含める）
+    // stateの更新を待たずSupabaseから直接取得（値引き・人数の追加分も確実に含める）
+    // ★修正: 会計金額・人数は、この最新データ取得後に計算する（取得前の古いデータを使わない）
     const { data: freshOrders } = await supabase.from("orders")
       .select("*").eq("table_no", String(t))
-      .in("status", ["pending", "served"]);
-    const tableOrderItems = (freshOrders || []).filter(o => !o.item_name.startsWith("【人数"));
+      .in("status", ["pending", "served", "info"]);
+    const tableOrderItems = (freshOrders || []).filter(o => o.status !== "info" && !o.item_name.startsWith("【人数"));
+    const amount = tableOrderItems.reduce((s, o) => s + o.price * o.qty, 0) - couponDisc - setDisc;
+    const freshInfos = (freshOrders || []).filter(o => o.status === "info");
+    const freshPeopleTotal = freshInfos.reduce((sum, o) => sum + (parseInt(o.item_name.replace("【人数：", "").replace("名】", "")) || 0), 0);
+    const people = peopleZero ? 0 : freshPeopleTotal;
+    const nowMs = Date.now();
+    if (lastCheckout && lastCheckout.table === t && lastCheckout.amount === amount && (nowMs - lastCheckout.timestamp) < 120000) {
+      setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); setCheckingOut(false); return;
+    }
     for (const item of tableOrderItems) {
       await supabase.from("order_items").insert({
         table_no: String(t),
@@ -1033,7 +1037,7 @@ export default function Register() {
         coupon_type: couponType,
         used_at: new Date().toISOString(),
         is_used: true,
-        amount_before: tableTotal(t) + couponDiscount,
+        amount_before: amount + couponDiscount,
         discount_amount: couponDiscount,
       });
       setCouponApplied(false); setCouponDiscount(0); setCouponType(null); setCouponNo("");
