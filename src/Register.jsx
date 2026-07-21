@@ -997,7 +997,7 @@ export default function Register() {
       .select("*").eq("table_no", String(t))
       .in("status", ["pending", "served", "info"]);
     const tableOrderItems = (freshOrders || []).filter(o => o.status !== "info" && !o.item_name.startsWith("【人数"));
-    const amount = tableOrderItems.reduce((s, o) => s + o.price * o.qty, 0) - couponDisc - setDisc;
+    const amount = tableOrderItems.reduce((s, o) => s + o.price * o.qty, 0) - couponDisc;
     const freshInfos = (freshOrders || []).filter(o => o.status === "info");
     const freshPeopleTotal = freshInfos.reduce((sum, o) => sum + (parseInt(o.item_name.replace("【人数：", "").replace("名】", "")) || 0), 0);
     const people = peopleZero ? 0 : freshPeopleTotal;
