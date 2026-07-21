@@ -115,6 +115,7 @@ export default function App() {
   const [screen, setScreen] = useState("table");
   const [selectedTable, setSelectedTable] = useState(null);
   const [people, setPeople] = useState(null);
+  const [isAddOrder, setIsAddOrder] = useState(false);
   const [activeCat, setActiveCat] = useState("コーヒー");
   const [cart, setCart] = useState([]);
   const [sent, setSent] = useState(false);
@@ -393,7 +394,7 @@ export default function App() {
                 if (occ) {
                   if (!window.confirm(`テーブル${t}は着席中です。\n追加注文ですか？`)) return;
                 }
-                setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setActiveCat("コーヒー"); setConfirming(false); setTakeout(false);
+                setSelectedTable(t); setScreen("people"); setPeople(null); setCart([]); setActiveCat("コーヒー"); setConfirming(false); setTakeout(false); setIsAddOrder(occ);
               }}
               style={{ padding: "10px 0 8px", background: occ ? "#2a1c0a" : "#251a0a", border: `2px solid ${occ ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: occ ? "#c9952a" : "#8a7050", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
               {t}
@@ -560,23 +561,35 @@ export default function App() {
     <div style={{ padding: 24, background: "#0f0a05", minHeight: "100vh", color: "#f0e6d0" }}>
       <div style={{ fontFamily: "serif", color: "#c9952a", fontSize: 18, marginBottom: 4 }}>Lounge Cattleya</div>
       <div style={{ color: "#c9952a", fontSize: 36, fontWeight: 900, marginBottom: 16, fontFamily: "serif" }}>テーブル {selectedTable}</div>
-      <div style={{ fontFamily: "serif", color: "#f0e6d0", fontSize: 20, marginBottom: 16 }}>人数を選択してください</div>
+      <div style={{ fontFamily: "serif", color: "#f0e6d0", fontSize: 20, marginBottom: 16 }}>
+        {isAddOrder ? "人数の変更はありますか？" : "人数を選択してください"}
+      </div>
+      {isAddOrder && (
+        <button onClick={() => setPeople(0)}
+          style={{ width: "100%", padding: "18px 0", marginBottom: 12, background: people === 0 ? "#c9952a" : "#251a0a", border: `2px solid ${people === 0 ? "#c9952a" : "#3d2c14"}`, borderRadius: 10, color: people === 0 ? "#0f0a05" : "#c9952a", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>
+          人数変更なし（注文だけ追加）
+        </button>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10, marginBottom: 24 }}>
         {PEOPLE.map((n) => (
           <button key={n} onClick={() => setPeople(n)}
             style={{ padding: "16px 0", background: people === n ? "#c9952a" : "#251a0a", border: `1px solid ${people === n ? "#c9952a" : "#3d2c14"}`, borderRadius: 10, color: people === n ? "#0f0a05" : "#c9952a", fontSize: 20, fontWeight: 700, cursor: "pointer" }}>
-            {n}
+            {isAddOrder ? `+${n}` : n}
           </button>
         ))}
       </div>
-      {people && <div style={{ textAlign: "center", marginBottom: 16, color: "#8a7050" }}>{people}名 が選択されています</div>}
+      {people !== null && (
+        <div style={{ textAlign: "center", marginBottom: 16, color: "#8a7050" }}>
+          {people === 0 ? "人数変更なし（注文だけ追加）" : `${isAddOrder ? "+" : ""}${people}名 が選択されています`}
+        </div>
+      )}
       <div style={{ display: "flex", gap: 10 }}>
         <button onClick={() => setScreen("table")}
           style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 15, cursor: "pointer" }}>
           ← 戻る
         </button>
-        <button onClick={() => setScreen("order")} disabled={!people}
-          style={{ flex: 2, padding: 14, background: people ? "#c9952a" : "#3d2c14", border: "none", borderRadius: 10, color: people ? "#0f0a05" : "#8a7050", fontSize: 16, fontWeight: 700, cursor: people ? "pointer" : "not-allowed" }}>
+        <button onClick={() => setScreen("order")} disabled={people === null}
+          style={{ flex: 2, padding: 14, background: people !== null ? "#c9952a" : "#3d2c14", border: "none", borderRadius: 10, color: people !== null ? "#0f0a05" : "#8a7050", fontSize: 16, fontWeight: 700, cursor: people !== null ? "pointer" : "not-allowed" }}>
           注文入力へ →
         </button>
       </div>
