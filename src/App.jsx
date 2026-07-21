@@ -202,7 +202,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const iv = setInterval(() => { fetchUnserved(); fetchAllOrders(); }, 30000);
+    const iv = setInterval(() => {
+      fetchUnserved();
+      fetchAllOrders();
+      supabase.from("print_notifications").select("*").eq("dismissed", false).order("sent_at", { ascending: false }).limit(1)
+        .then(({ data }) => { if (data && data.length > 0) setPrintNotif(data[0]); else setPrintNotif(null); });
+    }, 30000);
     return () => clearInterval(iv);
   }, []);
 
