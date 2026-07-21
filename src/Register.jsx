@@ -1159,9 +1159,11 @@ export default function Register() {
     if (!confirming || !selected) return;
     const orders = tableOrders(selected).filter(o => !o.item_name.startsWith("【人数"));
     // ドリンク数とフード数の少ない方がセット数
-    const foodCount = orders.filter(o => isFood(o.item_name)).reduce((a, o) => a + (o.qty || 1), 0);
-    const drinkCount = orders.filter(o => !isFood(o.item_name) && !o.item_name.includes("モーニング") && !o.item_name.includes("おかわり") && o.price > 0).reduce((a, o) => a + (o.qty || 1), 0);
-    const initCount = foodCount > 0 && drinkCount > 0 ? Math.min(foodCount, drinkCount) : 0;
+const foodCount = orders.filter(o => isFood(o.item_name)).reduce((a, o) => a + (o.qty || 1), 0);
+const drinkCount = orders.filter(o => !isFood(o.item_name) && !o.item_name.includes("モーニング") && !o.item_name.includes("おかわり") && o.price > 0).reduce((a, o) => a + (o.qty || 1), 0);
+const totalItems = foodCount + drinkCount;
+const totalPeople = tablePeople(selected);
+const initCount = (totalItems > totalPeople) ? Math.min(foodCount, drinkCount) : 0;
     setSetCount(initCount);
     // クーポンは毎回テーブルごとにリセット（前のテーブルの適用が残らないように）
     setCouponApplied(false);
