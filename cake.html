@@ -98,6 +98,29 @@ async function supaFetch(path) {
   return res.json();
 }
 
+// ========== 定休日・休日前の自動判定（推奨準備数のパターン切替用） ==========
+let holidaySetCache = null;
+async function getHolidaySet() {
+  if (holidaySetCache) return holidaySetCache;
+  try {
+    const res = await fetch('https://holidays-jp.github.io/api/v1/date.json');
+    const data = await res.json();
+    holidaySetCache = new Set(Object.keys(data));
+  } catch (e) {
+    holidaySetCache = new Set();
+  }
+  return holidaySetCache;
+}
+function isClosedDay(dateStr, hset) {
+  const dow = new Date(dateStr + 'T00:00:00Z').getUTCDay();
+  return dow === 0 || dow === 6 || hset.has(dateStr);
+}
+async function getPatternForDate(dateStr) {
+  const hset = await getHolidaySet();
+  if (isClosedDay(dateStr, hset)) return 'normal';
+  return isClosedDay(nextDate(dateStr), hset) ? 'preholiday' : 'normal';
+}
+
 let remainMap = {};      // 今日の売れ残り（見るだけ）
 let tomorrowMap = {};    // 明日の解凍数入力（数値）
 let recommendedMap = {}; // 明日の推奨準備数（まりが設定・見るだけ）
@@ -106,13 +129,22 @@ async function load() {
   document.getElementById('loading').style.display = 'block';
   document.getElementById('body').style.display = 'none';
 
-  const [ystockRaw, todayStockRaw, salesRaw, tomorrowStockRaw, yesterdaySalesRaw] = await Promise.all([
+  const [ystockRaw, todayStockRaw, salesRaw, tomorrowStockRaw, yesterdaySalesRaw, patternRowsRaw] = await Promise.all([
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold&date=eq.' + YESTERDAY),
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + TODAY),
     supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + TODAY + '&limit=1000'),
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed,recommended&date=eq.' + TOMORROW),
     supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + YESTERDAY + '&limit=1000'),
+    supaFetch('/rest/v1/cake_recommended_patterns?select=pattern,item_name,quantity'),
   ]);
+
+  // 明日が「休日前」か「通常」かを自動判定し、その日のパターンの推奨数を土台にする
+  const autoPattern = await getPatternForDate(TOMORROW);
+  const autoQty = {};
+  ITEMS.forEach(item => autoQty[item] = 0);
+  (patternRowsRaw||[]).forEach(r => {
+    if (r.pattern === autoPattern && ITEMS_SET.has(r.item_name)) autoQty[r.item_name] = r.quantity || 0;
+  });
 
   const leftoverFromYesterday = {};
   ITEMS.forEach(item => leftoverFromYesterday[item] = 0);
@@ -150,11 +182,11 @@ async function load() {
   tomorrowMap = {};
   ITEMS.forEach(item => tomorrowMap[item] = 0);
   recommendedMap = {};
-  ITEMS.forEach(item => recommendedMap[item] = 0);
+  ITEMS.forEach(item => recommendedMap[item] = autoQty[item] || 0); // まず自動パターンの数字を土台に
   (tomorrowStockRaw||[]).forEach(r => {
     if (ITEMS_SET.has(r.item_name)) {
       tomorrowMap[r.item_name] = r.thawed || 0;
-      recommendedMap[r.item_name] = r.recommended || 0;
+      if (r.recommended) recommendedMap[r.item_name] = r.recommended; // 個別に上書きされていればそちらを優先
     }
   });
 
