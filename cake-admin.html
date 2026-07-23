@@ -422,19 +422,29 @@ function renderToday() {
       sold: soldMap[item] || 0
     }));
 
-    await fetch(SUPA_URL + '/rest/v1/cake_stock', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
-        'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify(upserts)
-    });
+    try {
+      const res = await fetch(SUPA_URL + '/rest/v1/cake_stock', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
+          'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(upserts)
+      });
 
-    btn.disabled = false; btn.textContent = '💾 保存';
-    const msg = document.getElementById('saved-msg');
-    msg.style.display = 'block';
-    setTimeout(() => msg.style.display = 'none', 2500);
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error('保存に失敗しました (' + res.status + ') ' + errText);
+      }
+
+      const msg = document.getElementById('saved-msg');
+      msg.style.display = 'block';
+      setTimeout(() => msg.style.display = 'none', 2500);
+    } catch (err) {
+      alert('保存できませんでした。通信状況を確認してもう一度試してください。\n\n' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 保存';
+    }
   });
 }
 
@@ -805,6 +815,17 @@ function renderTomorrow(remainToday, tomorrowThawed, TOMORROW_T) {
 }
 
 loadToday();
+
+// PWA/ブラウザをバックグラウンドに長時間置いた後に開き直すと、日付の認識がズレたまま
+// 動き続けてしまうことがあるため、5分以上非表示だった後に復帰したら自動で作り直す
+let hiddenSince = null;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    hiddenSince = Date.now();
+  } else if (hiddenSince && Date.now() - hiddenSince > 5 * 60 * 1000) {
+    location.reload();
+  }
+});
 
 // ========== 推奨数パターン設定タブ ==========
 const PATTERN_DEFS = [
