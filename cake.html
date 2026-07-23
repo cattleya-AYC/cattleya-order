@@ -196,7 +196,7 @@ async function load() {
 }
 
 function render() {
-  let html = '<div class="date-label">📅 ' + TODAY.replace(/-/g,'/') + '</div>';
+  let html = '<div class="date-label">📅 ' + TODAY.replace(/-/g,'/') + ' <a href="#" id="refresh-link" style="color:#8b5e3c;text-decoration:underline;">🔄 最新に更新</a></div>';
 
   // ① 今日の売れ残り（見るだけ）
   html += '<div class="section-title">📋 今日の売れ残り <span class="badge">見るだけ</span></div>';
@@ -259,6 +259,11 @@ function render() {
 
   document.getElementById('body').innerHTML = html;
 
+  document.getElementById('refresh-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    load();
+  });
+
   document.querySelectorAll('.num-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       const item = e.target.dataset.item;
@@ -306,6 +311,17 @@ function render() {
 }
 
 load();
+
+// PWAをバックグラウンドに長時間置いた後に開き直すと、日付の認識がズレたまま
+// 動き続けてしまうことがあるため、5分以上非表示だった後に復帰したら自動で作り直す
+let hiddenSince = null;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    hiddenSince = Date.now();
+  } else if (hiddenSince && Date.now() - hiddenSince > 5 * 60 * 1000) {
+    location.reload();
+  }
+});
 </script>
 </body>
 </html>
