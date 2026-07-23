@@ -19,6 +19,8 @@
 
   /* 今日タブ */
   .date-label { text-align: center; color: #8b5e3c; font-size: 14px; margin-bottom: 16px; }
+  .notice-box { background: #fff3e0; border: 2px solid #f0c987; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #8b5e3c; margin-bottom: 14px; line-height: 1.5; }
+  .pattern-group-title { font-size: 15px; font-weight: bold; color: #3d2b1f; margin: 18px 0 10px; display: flex; align-items: center; gap: 8px; }
   .item-card { background: #fff; border: 2px solid #e8ddd5; border-radius: 12px; margin-bottom: 10px; padding: 14px 16px; }
   .item-card.low { border-color: #f39c12; background: #fffbf0; }
   .item-card.out { border-color: #e74c3c; background: #fff5f5; }
@@ -87,6 +89,7 @@
   <button class="tab" data-tab="daily">📅 日別売上</button>
   <button class="tab" data-tab="frozen">🧊 冷凍在庫</button>
   <button class="tab" data-tab="tomorrow">🌙 明日の予定</button>
+  <button class="tab" data-tab="patterns">⚙️ 推奨数パターン</button>
 </div>
 
 <div id="today-content" class="content">
@@ -125,6 +128,11 @@
   <div id="tomorrow-body" style="display:none"></div>
 </div>
 
+<div id="patterns-content" class="content" style="display:none">
+  <div class="loading" id="patterns-loading">読み込み中...</div>
+  <div id="patterns-body" style="display:none"></div>
+</div>
+
 <script>
 const SUPA_URL = 'https://zxdgiszrsmumjjxmvszb.supabase.co';
 const SUPA_KEY = 'sb_publishable_LLIkeICkSI-IS-2xMKO9_A_I8MAo2IT';
@@ -158,6 +166,48 @@ function nextDate(d) {
 // ウエイトレスが解凍数を入力する対象商品（冷凍庫から直行の2品を除く）
 const WAITRESS_ITEMS = ITEMS.filter(item => item !== 'フォンダンショコラ' && item !== '紅茶のシフォン');
 
+// ========== 定休日・休日前の自動判定 ==========
+// 定休日：土・日・祝日
+let holidaySetCache = null;
+async function getHolidaySet() {
+  if (holidaySetCache) return holidaySetCache;
+  try {
+    const res = await fetch('https://holidays-jp.github.io/api/v1/date.json');
+    const data = await res.json();
+    holidaySetCache = new Set(Object.keys(data));
+  } catch (e) {
+    holidaySetCache = new Set(); // 取得失敗時は祝日なし扱い（土日だけで判定）
+  }
+  return holidaySetCache;
+}
+function isClosedDay(dateStr, hset) {
+  const dow = new Date(dateStr + 'T00:00:00Z').getUTCDay();
+  return dow === 0 || dow === 6 || hset.has(dateStr);
+}
+// 「休日前」＝その日は営業日だが、翌日が定休日
+async function getPatternForDate(dateStr) {
+  const hset = await getHolidaySet();
+  if (isClosedDay(dateStr, hset)) return 'normal'; // 念のため（本来は表示不要な日）
+  return isClosedDay(nextDate(dateStr), hset) ? 'preholiday' : 'normal';
+}
+
+// ========== 推奨数パターン（通常／休日前）の共通データ ==========
+let patternQty = { normal: {}, preholiday: {} };
+let patternDataLoaded = false;
+
+async function ensurePatternDataLoaded() {
+  if (patternDataLoaded) return;
+  const rows = await supaFetch('/rest/v1/cake_recommended_patterns?select=pattern,item_name,quantity');
+  patternQty = { normal: {}, preholiday: {} };
+  WAITRESS_ITEMS.forEach(item => { patternQty.normal[item] = 0; patternQty.preholiday[item] = 0; });
+  (rows||[]).forEach(r => {
+    if (patternQty[r.pattern] && patternQty[r.pattern][r.item_name] !== undefined) {
+      patternQty[r.pattern][r.item_name] = r.quantity || 0;
+    }
+  });
+  patternDataLoaded = true;
+}
+
 async function supaFetch(path) {
   const res = await fetch(SUPA_URL + path, {
     headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
@@ -181,13 +231,14 @@ document.querySelectorAll('.tab').forEach(btn => {
     const tab = btn.dataset.tab;
     document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    ['today','month','daily','frozen','tomorrow'].forEach(t => {
+    ['today','month','daily','frozen','tomorrow','patterns'].forEach(t => {
       document.getElementById(t+'-content').style.display = t === tab ? 'block' : 'none';
     });
     if (tab === 'month') loadMonth();
     if (tab === 'daily') loadDaily();
     if (tab === 'frozen') loadFrozen();
     if (tab === 'tomorrow') loadTomorrow();
+    if (tab === 'patterns') loadPatterns();
   });
 });
 
@@ -577,8 +628,10 @@ async function recountFrozen(idx) {
 
 // 初期ロード
 // ========== 明日の予定タブ（ウエイトレスが入力した内容を見る＋推奨準備数を入力） ==========
-let recommendedMap = {};   // 推奨準備数（このタブで入力・保存）
+let recommendedMap = {};   // 推奨準備数（個別に上書きした場合のみ値が入る）
 let tomorrowDateForRec = '';
+let tomorrowAutoPattern = 'normal';
+let tomorrowAutoQty = {};
 
 async function loadTomorrow() {
   document.getElementById('tomorrow-loading').style.display = 'block';
@@ -595,6 +648,10 @@ async function loadTomorrow() {
     supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + YESTERDAY_T + '&limit=1000'),
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed,recommended&date=eq.' + TOMORROW_T),
   ]);
+
+  await ensurePatternDataLoaded();
+  tomorrowAutoPattern = await getPatternForDate(TOMORROW_T);
+  tomorrowAutoQty = patternQty[tomorrowAutoPattern] || {};
 
   const yesterdayThawed = {}, todayAdded = {}, soldToday = {}, soldYesterday = {}, tomorrowThawed = {};
   WAITRESS_ITEMS.forEach(item => {
@@ -624,12 +681,15 @@ async function loadTomorrow() {
 }
 
 function renderTomorrow(remainToday, tomorrowThawed, TOMORROW_T) {
+  const patternLabel = tomorrowAutoPattern === 'preholiday' ? '🌙 休日前パターン' : '☀️ 通常パターン';
   let html = '<div class="date-label">🌙 ' + TOMORROW_T.replace(/-/g,'/') + ' の準備予定</div>';
+  html += '<div class="notice-box">自動判定: <strong>' + patternLabel + '</strong> が適用されます。個別に変えたい時だけ下の「推奨準備数」に数字を入れてね（入れなければ自動の数字がそのまま使われます）</div>';
   WAITRESS_ITEMS.forEach(item => {
     const remain = remainToday[item];
     const thaw = tomorrowThawed[item];
     const prep = remain + thaw;
     const key = itemKey(item);
+    const autoQty = tomorrowAutoQty[item] || 0;
     html += `
       <div class="item-card">
         <div class="item-top">
@@ -654,7 +714,7 @@ function renderTomorrow(remainToday, tomorrowThawed, TOMORROW_T) {
         </div>
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
           <div class="col-label" style="flex:0 0 auto;white-space:nowrap;">👍 推奨準備数</div>
-          <input class="col-input" style="flex:1" type="number" min="0" placeholder="推奨数（未入力なら非表示）" value="${recommendedMap[item]}" data-item="${item}" id="rec-input-${key}" onkeydown="if(event.key==='-')event.preventDefault()" />
+          <input class="col-input" style="flex:1" type="number" min="0" placeholder="自動:${autoQty}個（変える時だけ入力）" value="${recommendedMap[item]}" data-item="${item}" id="rec-input-${key}" onkeydown="if(event.key==='-')event.preventDefault()" />
         </div>
       </div>`;
   });
@@ -680,23 +740,125 @@ function renderTomorrow(remainToday, tomorrowThawed, TOMORROW_T) {
       recommended: Math.max(0, parseInt(recommendedMap[item]) || 0)
     }));
 
-    await fetch(SUPA_URL + '/rest/v1/cake_stock', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
-        'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify(upserts)
-    });
+    try {
+      const res = await fetch(SUPA_URL + '/rest/v1/cake_stock', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
+          'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(upserts)
+      });
 
-    btn.disabled = false; btn.textContent = '💾 推奨準備数を保存';
-    const msg = document.getElementById('rec-saved-msg');
-    msg.style.display = 'block';
-    setTimeout(() => msg.style.display = 'none', 2500);
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error('保存に失敗しました (' + res.status + ') ' + errText);
+      }
+
+      const msg = document.getElementById('rec-saved-msg');
+      msg.style.display = 'block';
+      setTimeout(() => msg.style.display = 'none', 2500);
+    } catch (err) {
+      alert('保存できませんでした。通信状況を確認してもう一度試してください。\n\n' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 推奨準備数を保存';
+    }
   });
 }
 
 loadToday();
+
+// ========== 推奨数パターン設定タブ ==========
+const PATTERN_DEFS = [
+  { key: 'normal', label: '☀️ 通常パターン' },
+  { key: 'preholiday', label: '🌙 休日前パターン（翌日が定休日の日）' }
+];
+
+async function loadPatterns() {
+  document.getElementById('patterns-loading').style.display = 'block';
+  document.getElementById('patterns-body').style.display = 'none';
+
+  patternDataLoaded = false; // タブを開くたびに最新を取得
+  await ensurePatternDataLoaded();
+
+  renderPatterns();
+  document.getElementById('patterns-loading').style.display = 'none';
+  document.getElementById('patterns-body').style.display = 'block';
+}
+
+function renderPatterns() {
+  let html = '<div class="notice-box">ここで登録した数字が、毎日自動でウエイトレス用アプリの「推奨準備数」に反映されます（明日が土日祝の前日なら休日前パターン、それ以外は通常パターン）。定休日：土・日・祝日</div>';
+
+  PATTERN_DEFS.forEach(pd => {
+    html += `<div class="pattern-group-title">${pd.label}</div>`;
+    WAITRESS_ITEMS.forEach(item => {
+      const key = 'p-' + pd.key + '-' + itemKey(item);
+      const val = patternQty[pd.key][item] || 0;
+      html += `
+        <div class="item-card">
+          <div class="item-top">
+            <div class="item-name">${item}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="col-label" style="flex:0 0 auto;">推奨数</div>
+            <input class="col-input" style="flex:1" type="number" min="0" value="${val}" data-pattern="${pd.key}" data-item="${item}" id="${key}" onkeydown="if(event.key==='-')event.preventDefault()" />
+          </div>
+        </div>`;
+    });
+  });
+
+  html += '<button class="save-btn" id="patterns-save-btn">💾 パターンを保存</button>';
+  html += '<div class="saved-msg" id="patterns-saved-msg" style="display:none">保存しました ✓</div>';
+
+  document.getElementById('patterns-body').innerHTML = html;
+
+  document.querySelectorAll('[id^="p-normal-"], [id^="p-preholiday-"]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      patternQty[e.target.dataset.pattern][e.target.dataset.item] = e.target.value;
+    });
+  });
+
+  document.getElementById('patterns-save-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('patterns-save-btn');
+    btn.disabled = true; btn.textContent = '保存中...';
+
+    const upserts = [];
+    PATTERN_DEFS.forEach(pd => {
+      WAITRESS_ITEMS.forEach(item => {
+        upserts.push({
+          pattern: pd.key,
+          item_name: item,
+          quantity: Math.max(0, parseInt(patternQty[pd.key][item]) || 0)
+        });
+      });
+    });
+
+    try {
+      const res = await fetch(SUPA_URL + '/rest/v1/cake_recommended_patterns', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
+          'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(upserts)
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error('保存に失敗しました (' + res.status + ') ' + errText);
+      }
+
+      patternDataLoaded = false; // 次回「明日の予定」タブを開いた時に最新を反映
+      const msg = document.getElementById('patterns-saved-msg');
+      msg.style.display = 'block';
+      setTimeout(() => msg.style.display = 'none', 2500);
+    } catch (err) {
+      alert('保存できませんでした。通信状況を確認してもう一度試してください。\n\n' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 パターンを保存';
+    }
+  });
+}
 </script>
 </body>
 </html>
