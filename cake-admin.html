@@ -93,6 +93,12 @@
 </div>
 
 <div id="today-content" class="content">
+  <div class="month-bar">
+    <button class="month-btn" id="today-prev">‹</button>
+    <input type="date" id="today-date-input" class="month-label" />
+    <button class="month-btn" id="today-next">›</button>
+  </div>
+  <div id="today-back-today" style="display:none;text-align:center;margin-bottom:12px;"><a href="#" id="today-back-today-link" style="color:#8b5e3c;font-size:13px;text-decoration:underline;">📅 今日に戻る</a></div>
   <div class="loading" id="today-loading">読み込み中...</div>
   <div id="today-body" style="display:none"></div>
 </div>
@@ -244,21 +250,49 @@ document.querySelectorAll('.tab').forEach(btn => {
 
 // ========== 今日タブ ==========
 let stockMap = {};   // 前日残数（在庫）
-let addMap = {};     // 今日の解凍追加数
-let soldMap = {};    // 今日の販売数
-let todayStockSaved = {}; // 今日すでに保存されてる解凍追加数
+let addMap = {};     // 解凍追加数
+let soldMap = {};    // 販売数
+let todayStockSaved = {}; // すでに保存されてる解凍追加数
+let selectedDate = TODAY; // 表示・編集中の日付（過去日も選べる）
+
+const todayDateInput = document.getElementById('today-date-input');
+todayDateInput.value = selectedDate;
+todayDateInput.max = TODAY; // 未来日は選べないようにする
+todayDateInput.addEventListener('change', () => {
+  if (!todayDateInput.value) { todayDateInput.value = selectedDate; return; }
+  selectedDate = todayDateInput.value;
+  loadToday();
+});
+document.getElementById('today-prev').addEventListener('click', () => {
+  selectedDate = prevDate(selectedDate);
+  todayDateInput.value = selectedDate;
+  loadToday();
+});
+document.getElementById('today-next').addEventListener('click', () => {
+  if (selectedDate >= TODAY) return; // 未来日には進めない
+  selectedDate = nextDate(selectedDate);
+  todayDateInput.value = selectedDate;
+  loadToday();
+});
+document.getElementById('today-back-today-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  selectedDate = TODAY;
+  todayDateInput.value = selectedDate;
+  loadToday();
+});
 
 async function loadToday() {
   document.getElementById('today-loading').style.display = 'block';
   document.getElementById('today-body').style.display = 'none';
+  document.getElementById('today-back-today').style.display = selectedDate === TODAY ? 'none' : 'block';
 
-  const YESTERDAY = prevDate(TODAY);
+  const YESTERDAY = prevDate(selectedDate);
 
   // 前日のcake_stock（残数 = thawed - 実売上）
   const [ystockRaw, todayStockRaw, salesRaw, yesterdaySalesRaw] = await Promise.all([
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold&date=eq.' + YESTERDAY),
-    supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold&date=eq.' + TODAY),
-    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + TODAY + '&limit=1000'),
+    supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold&date=eq.' + selectedDate),
+    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + selectedDate + '&limit=1000'),
     supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + YESTERDAY + '&limit=1000')
   ]);
 
@@ -308,7 +342,11 @@ function calcRemain(item) {
 }
 
 function renderToday() {
-  let html = '<div class="date-label">📅 ' + TODAY.replace(/-/g,'/') + '</div>';
+  const isPast = selectedDate !== TODAY;
+  let html = '<div class="date-label">📅 ' + selectedDate.replace(/-/g,'/') + (isPast ? '（過去の日付を編集中）' : '') + '</div>';
+  if (isPast) {
+    html += '<div class="notice-box">⚠️ 今日ではない日付を表示・編集しています。保存すると、この日付のデータが上書きされます。</div>';
+  }
 
   ITEMS.forEach(item => {
     const stock = stockMap[item] || 0;
@@ -378,7 +416,7 @@ function renderToday() {
     btn.disabled = true; btn.textContent = '保存中...';
 
     const upserts = ITEMS.map(item => ({
-      date: TODAY,
+      date: selectedDate,
       item_name: item,
       thawed: Math.max(0, parseInt(addMap[item]) || 0),
       sold: soldMap[item] || 0
