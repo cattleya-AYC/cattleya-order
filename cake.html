@@ -78,7 +78,7 @@ const ITEMS = ['ミルクレープ','ガトーショコラ','チーズケーキ'
 const ITEMS_SET = new Set(ITEMS);
 
 // 各商品ボタンの最大数（コーヒーゼリーはまとめて作るので0〜9）
-function maxButtonFor(item) { return item === 'コーヒーゼリー' ? 9 : 4; }
+function maxButtonFor(item) { return item === 'コーヒーゼリー' ? 12 : 4; }
 
 function itemKey(item) { return 'w' + ITEMS.indexOf(item); }
 
