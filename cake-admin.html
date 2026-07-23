@@ -423,7 +423,7 @@ function renderToday() {
     }));
 
     try {
-      const res = await fetch(SUPA_URL + '/rest/v1/cake_stock', {
+      const res = await fetch(SUPA_URL + '/rest/v1/cake_stock?on_conflict=date,item_name', {
         method: 'POST',
         headers: {
           'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
@@ -662,14 +662,24 @@ async function recountFrozen(idx) {
   const val = parseInt(input.value);
   if (isNaN(val) || val < 0) { alert(item + ' の数字を入力してください'); return; }
 
-  await fetch(SUPA_URL + '/rest/v1/cake_frozen_stock', {
-    method: 'POST',
-    headers: {
-      'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
-      'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
-    },
-    body: JSON.stringify([{ item_name: item, quantity: val, updated_date: TODAY }])
-  });
+  try {
+    const res = await fetch(SUPA_URL + '/rest/v1/cake_frozen_stock?on_conflict=item_name', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify([{ item_name: item, quantity: val, updated_date: TODAY }])
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error('保存に失敗しました (' + res.status + ') ' + errText);
+    }
+  } catch (err) {
+    alert('保存できませんでした。通信状況を確認してもう一度試してください。\n\n' + err.message);
+    return;
+  }
 
   loadFrozen();
 }
@@ -789,7 +799,7 @@ function renderTomorrow(remainToday, tomorrowThawed, TOMORROW_T) {
     }));
 
     try {
-      const res = await fetch(SUPA_URL + '/rest/v1/cake_stock', {
+      const res = await fetch(SUPA_URL + '/rest/v1/cake_stock?on_conflict=date,item_name', {
         method: 'POST',
         headers: {
           'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
@@ -893,7 +903,7 @@ function renderPatterns() {
     });
 
     try {
-      const res = await fetch(SUPA_URL + '/rest/v1/cake_recommended_patterns', {
+      const res = await fetch(SUPA_URL + '/rest/v1/cake_recommended_patterns?on_conflict=pattern,item_name', {
         method: 'POST',
         headers: {
           'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,

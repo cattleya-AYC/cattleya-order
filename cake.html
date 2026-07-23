@@ -294,19 +294,29 @@ function render() {
       sold: 0
     }));
 
-    await fetch(SUPA_URL + '/rest/v1/cake_stock', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
-        'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify(upserts)
-    });
+    try {
+      const res = await fetch(SUPA_URL + '/rest/v1/cake_stock?on_conflict=date,item_name', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
+          'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(upserts)
+      });
 
-    btn.disabled = false; btn.textContent = '💾 保存';
-    const msg = document.getElementById('saved-msg');
-    msg.style.display = 'block';
-    setTimeout(() => msg.style.display = 'none', 2500);
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error('保存に失敗しました (' + res.status + ') ' + errText);
+      }
+
+      const msg = document.getElementById('saved-msg');
+      msg.style.display = 'block';
+      setTimeout(() => msg.style.display = 'none', 2500);
+    } catch (err) {
+      alert('保存できませんでした。通信状況を確認してもう一度試してください。\n\n' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 保存';
+    }
   });
 }
 
