@@ -68,7 +68,6 @@ function buildCouponHTML(no) {
   </body></html>`;
 }
 
-}
 
 function getNextReceiptNo() {
   try {
