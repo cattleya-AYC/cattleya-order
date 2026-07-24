@@ -1084,7 +1084,7 @@ export default function Register() {
     }
   };
 
-  const showPreview = (type) => {
+    const showPreview = (type) => {
     const sampleItems = [
       { item_name: "アイスコーヒー", price: 670, qty: 1 },
       { item_name: "シフォンケーキ", price: 650, qty: 2 },
@@ -1097,6 +1097,11 @@ export default function Register() {
     });
     setPreviewHtml(html);
   };
+
+  const showCouponPreview = () => {
+    setPreviewHtml(buildCouponHTML("99999"));
+  };
+
 
   const openDrawer = async () => {
     // 時刻をlocalStorageに記録
