@@ -1485,7 +1485,9 @@ const initCount = (totalItems > totalPeople) ? Math.min(foodCount, drinkCount) :
               <button onClick={() => { setShowAdmin(false); setMode("monthly"); }} style={{ padding: "14px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 15, cursor: "pointer" }}>📅 月次</button>
               <button onClick={() => { setShowAdmin(false); setMode("plu"); }} style={{ padding: "14px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 15, cursor: "pointer" }}>📋 PLU集計</button>
               <button onClick={() => { setShowAdmin(false); showPreview("レシート"); }} style={{ padding: "14px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 15, cursor: "pointer" }}>🧾 レシート見本</button>
-              <button onClick={() => { setShowAdmin(false); showPreview("領収書"); }} style={{ padding: "14px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 15, cursor: "pointer" }}>🧾 領収書見本</button>
+                            <button onClick={() => { setShowAdmin(false); showPreview("領収書"); }} style={{ padding: "14px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 15, cursor: "pointer" }}>🧾 領収書見本</button>
+              <button onClick={() => { setShowAdmin(false); showCouponPreview(); }} style={{ padding: "14px 0", background: "#251a0a", border: "1px solid #3d2c14", borderRadius: 10, color: "#c9952a", fontSize: 15, cursor: "pointer" }}>🎟 クーポン見本</button>
+
             </div>
             <button onClick={() => setShowAdmin(false)} style={{ marginTop: 16, width: "100%", padding: "12px 0", background: "transparent", border: "1px solid #3d2c14", borderRadius: 10, color: "#8a7050", fontSize: 14, cursor: "pointer" }}>閉じる</button>
           </div>
