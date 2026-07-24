@@ -1515,9 +1515,14 @@ const initCount = (totalItems > totalPeople) ? Math.min(foodCount, drinkCount) :
               placeholder="例：10001"
               style={{ width: "100%", padding: "14px", background: "#0d0d1a", border: "1px solid #5a5ac9", borderRadius: 8, color: "#f0f0ff", fontSize: 22, fontWeight: 700, boxSizing: "border-box", marginBottom: 8, textAlign: "center" }} />
             {couponError && <div style={{ color: "#c95a5a", fontSize: 13, marginBottom: 8 }}>{couponError}</div>}
-            <div style={{ color: "#6a6a9a", fontSize: 12, marginBottom: 14 }}>
-              5%割引（1の位切り捨て）・1,000円以上のみ・6/30〜7/31
+                        <div style={{ color: "#6a6a9a", fontSize: 12, marginBottom: 14 }}>
+              {couponType === "B"
+                ? "5%割引（1の位切り捨て）・1,000円以上のみ・7/31まで"
+                : couponType === "A"
+                ? "5%割引（1の位切り捨て）・1,000円以上のみ・発行日から2週間有効"
+                : "5%割引（1の位切り捨て）・1,000円以上のみ"}
             </div>
+
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { setShowCoupon(false); setCouponError(""); }}
                 style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #3a3a6a", borderRadius: 10, color: "#8a8ab0", cursor: "pointer" }}>キャンセル</button>
