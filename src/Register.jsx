@@ -1031,15 +1031,22 @@ export default function Register() {
     setSelected(null); setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); setCheckoutDone(true); setCheckingOut(false); setPeopleZero(false);
     speakAmount(amount);
     // クーポン使用記録
-    if (couponApplied && couponType && couponNo) {
-      await supabase.from("coupons").insert({
-        coupon_no: `${couponType}${couponNo}`,
-        coupon_type: couponType,
-        used_at: new Date().toISOString(),
-        is_used: true,
-        amount_before: amount + couponDiscount,
-        discount_amount: couponDiscount,
-      });
+        if (couponApplied && couponType && couponNo) {
+      const fullNoUsed = `${couponType}${couponNo}`;
+      if (couponType === "A") {
+        await supabase.from("coupons")
+          .update({ used_at: new Date().toISOString(), is_used: true, amount_before: amount + couponDiscount, discount_amount: couponDiscount })
+          .eq("coupon_no", fullNoUsed).eq("is_used", false);
+      } else {
+        await supabase.from("coupons").insert({
+          coupon_no: fullNoUsed,
+          coupon_type: couponType,
+          used_at: new Date().toISOString(),
+          is_used: true,
+          amount_before: amount + couponDiscount,
+          discount_amount: couponDiscount,
+        });
+      }
       setCouponApplied(false); setCouponDiscount(0); setCouponType(null); setCouponNo("");
     }
 
@@ -1108,26 +1115,43 @@ export default function Register() {
     window.location.href = url;
   };
 
-  // クーポン有効期間チェック（7月1日〜7月31日／日本時間基準）
-  const isCouponPeriod = () => {
-    const jstDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0]; // "YYYY-MM-DD"
+    // Bクーポン専用：〜7月31日まで（日本時間基準）
+  const isCouponPeriodB = () => {
+    const jstDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
     const y = jstDate.split("-")[0];
-    const start = `${y}-06-30`;
-    const end   = `${y}-07-31`;
-    return jstDate >= start && jstDate <= end;
+    const end = `${y}-07-31`;
+    return jstDate <= end;
   };
+
+  // Aクーポン専用：発行日(issued_at)から14日間有効
+  const checkCouponAValidity = async (fullNo) => {
+    const { data: rows } = await supabase.from("coupons").select("*").eq("coupon_no", fullNo).order("issued_at", { ascending: false }).limit(1);
+    if (!rows || rows.length === 0) return { ok: false, reason: "無効なクーポン番号です" };
+    const row = rows[0];
+    if (row.is_used) return { ok: false, reason: "このクーポンはすでに使用済みです" };
+    const issuedAt = new Date(row.issued_at);
+    const expireAt = new Date(issuedAt.getTime() + 14 * 24 * 60 * 60 * 1000);
+    if (new Date() > expireAt) return { ok: false, reason: "このクーポンは有効期限が切れています（発行日から2週間）" };
+    return { ok: true };
+  };
+
 
   const applyCoupon = async () => {
     setCouponError("");
     if (!couponType) { setCouponError("AまたはBを選んでください"); return; }
     const no = couponNo.trim();
     if (!no || !/^\d{5}$/.test(no)) { setCouponError("5桁の数字を入力してください"); return; }
-    if (!isCouponPeriod()) { setCouponError("クーポンの利用期間外です（6月30日〜7月31日）"); return; }
     const fullNo = `${couponType}${no}`;
-    // Supabaseで重複チェック
-    const { data } = await supabase.from("coupons").select("*").eq("coupon_no", fullNo).eq("is_used", true);
-    if (data && data.length > 0) { setCouponError("このクーポンはすでに使用済みです"); return; }
-    // 割引計算（5%、1の位切り捨て）
+
+    if (couponType === "B") {
+      if (!isCouponPeriodB()) { setCouponError("Bクーポンの利用期間は7月31日までです"); return; }
+      const { data } = await supabase.from("coupons").select("*").eq("coupon_no", fullNo).eq("is_used", true);
+      if (data && data.length > 0) { setCouponError("このクーポンはすでに使用済みです"); return; }
+    } else {
+      const result = await checkCouponAValidity(fullNo);
+      if (!result.ok) { setCouponError(result.reason); return; }
+    }
+
     const base = selectedTotal;
     if (base < 1000) { setCouponError("1,000円未満はクーポンをご利用いただけません"); return; }
     const disc = Math.floor(base * 0.05 / 10) * 10;
@@ -1678,7 +1702,7 @@ const initCount = (totalItems > totalPeople) ? Math.min(foodCount, drinkCount) :
 
             {/* クーポンボタン：お会計金額の直下・支払い方法の直前 */}
             {!couponApplied ? (
-              isCouponPeriod() && selectedTotal >= 1000 ? (
+              selectedTotal >= 1000 ? (
                 <button onClick={() => setShowCoupon(true)}
                   style={{ width: "100%", padding: 14, background: "#1a1a30", border: "2px solid #5a5ac9", borderRadius: 10, color: "#9a9af0", fontWeight: 900, fontSize: 16, cursor: "pointer", marginBottom: 16 }}>
                   🎟 クーポン割引を適用する
