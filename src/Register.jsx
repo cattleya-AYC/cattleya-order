@@ -55,14 +55,19 @@ function buildCouponHTML(no) {
   if (!no) no = getNextCouponNo();
   const now = new Date();
   const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
-  return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"></head><body style="font-family:'Hiragino Mincho ProN',serif;width:384px;margin:0;padding:6px 8px;box-sizing:border-box;color:#000;text-align:center;">
-    <div style="font-size:22px;font-weight:700;text-align:right;margin-bottom:4px;">発行日：${dateStr}</div>
-    <img style="width:100%;height:auto;display:block;margin:0 auto 4px;" src="${COUPON_IMG}"/>
-    <hr style="border:none;border-top:3px dashed #000;margin:8px 0;"/>
-    <div style="font-size:22px;font-weight:700;margin:8px 0 4px;">クーポン番号</div>
-    <div style="font-size:58px;font-weight:900;margin:4px 0 8px;text-align:center;">A${no}</div>
-    <hr style="border:none;border-top:3px dashed #000;margin:8px 0;"/>
+  const expireDate = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+  const expireStr = `${expireDate.getFullYear()}年${expireDate.getMonth()+1}月${expireDate.getDate()}日`;
+  return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"></head><body style="font-family:'Hiragino Mincho ProN',serif;width:384px;margin:0;padding:4px 8px;box-sizing:border-box;color:#000;text-align:center;">
+    <div style="font-size:16px;font-weight:700;text-align:right;margin-bottom:2px;">発行日：${dateStr}</div>
+    <img style="width:100%;height:auto;display:block;margin:0 auto 2px;" src="${COUPON_IMG}"/>
+    <div style="font-size:15px;font-weight:700;margin:2px 0;">有効期間：${expireStr}まで</div>
+    <hr style="border:none;border-top:3px dashed #000;margin:6px 0;"/>
+    <div style="font-size:18px;font-weight:700;margin:4px 0 2px;">クーポン番号</div>
+    <div style="font-size:46px;font-weight:900;margin:2px 0 6px;text-align:center;">A${no}</div>
+    <hr style="border:none;border-top:3px dashed #000;margin:6px 0;"/>
   </body></html>`;
+}
+
 }
 
 function getNextReceiptNo() {
