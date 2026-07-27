@@ -1171,7 +1171,8 @@ export default function Register() {
       if (!result.ok) { setCouponError(result.reason); return; }
     }
 
-    const base = selectedTotal;
+        const base = selectedTotal - _setDiscAmt;
+
     if (base < 1000) { setCouponError("1,000円未満はクーポンをご利用いただけません"); return; }
     const disc = Math.floor(base * 0.05 / 10) * 10;
     setCouponDiscount(disc);
