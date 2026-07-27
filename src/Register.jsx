@@ -1133,16 +1133,23 @@ export default function Register() {
   };
 
   // Aクーポン専用：発行日(issued_at)から14日間有効
-  const checkCouponAValidity = async (fullNo) => {
+    const checkCouponAValidity = async (fullNo) => {
     const { data: rows } = await supabase.from("coupons").select("*").eq("coupon_no", fullNo).order("issued_at", { ascending: false }).limit(1);
     if (!rows || rows.length === 0) return { ok: false, reason: "無効なクーポン番号です" };
     const row = rows[0];
     if (row.is_used) return { ok: false, reason: "このクーポンはすでに使用済みです" };
     const issuedAt = new Date(row.issued_at);
-    const expireAt = new Date(issuedAt.getTime() + 14 * 24 * 60 * 60 * 1000);
-    if (new Date() > expireAt) return { ok: false, reason: "このクーポンは有効期限が切れています（発行日から2週間）" };
+    const cutoff = new Date("2026-07-27T00:00:00+09:00"); // これより前に発行された分は旧ルール
+    let expireAt;
+    if (issuedAt < cutoff) {
+      expireAt = new Date("2026-07-31T23:59:59+09:00"); // 旧ルール：7月31日まで
+    } else {
+      expireAt = new Date(issuedAt.getTime() + 14 * 24 * 60 * 60 * 1000); // 新ルール：発行日から2週間
+    }
+    if (new Date() > expireAt) return { ok: false, reason: "このクーポンは有効期限が切れています" };
     return { ok: true };
   };
+
 
 
   const applyCoupon = async () => {
