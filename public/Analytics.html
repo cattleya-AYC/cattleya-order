@@ -818,7 +818,13 @@ function renderVisit() {
 
   const sorted = [...salesData].sort((a, b) => (a.sale_time || '').localeCompare(b.sale_time || ''));
 
-  let html = `<div style="color:#8a7050;font-size:12px;margin-bottom:10px">${sorted.length}組 来店</div>`;
+  let html = `
+  <div style="margin-bottom:14px">
+    <button onclick="printVisit()" style="width:100%;padding:16px;background:#c9952a;border:none;border-radius:12px;color:#0d0905;font-size:18px;font-weight:900;cursor:pointer;">
+      📄 来店者一覧 PDF印刷
+    </button>
+  </div>`;
+  html += `<div style="color:#8a7050;font-size:12px;margin-bottom:10px">${sorted.length}組 来店</div>`;
 
   sorted.forEach(sale => {
     const items = orderItemsData.filter(o =>
@@ -862,6 +868,59 @@ function renderVisit() {
   });
 
   document.getElementById('content-visit').innerHTML = html;
+}
+
+function printVisit() {
+  const sorted = [...salesData].sort((a, b) => (a.sale_time || '').localeCompare(b.sale_time || ''));
+  const dateDisp = (selectedDate || '').replace(/-/g, '/');
+
+  const rows = sorted.map(sale => {
+    const items = orderItemsData.filter(o =>
+      String(o.table_no) === String(sale.table_no) && o.sale_time === sale.sale_time
+    );
+    const itemsHtml = items.length > 0
+      ? items.map(o => {
+          const subtotal = o.price * o.qty;
+          const isDiscount = o.price < 0;
+          return `<div>${o.item_name} ×${o.qty} ${isDiscount ? '-' : ''}¥${Math.abs(subtotal).toLocaleString()}</div>`;
+        }).join('')
+      : '<div style="color:#999">注文明細なし</div>';
+
+    return `<tr>
+      <td>テーブル${sale.table_no}</td>
+      <td>${sale.sale_time || '-'}</td>
+      <td>${sale.people_count || '-'}名</td>
+      <td>${sale.pay_method || '-'}</td>
+      <td style="text-align:right">¥${sale.amount.toLocaleString()}</td>
+      <td>${itemsHtml}</td>
+    </tr>`;
+  }).join('');
+
+  const grandTotal = sorted.reduce((a, s) => a + s.amount, 0);
+
+  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
+    @page{size:A4 portrait;margin:15mm}
+    body{font-family:"Hiragino Mincho ProN",serif;font-size:11px}
+    h2{font-size:18px;text-align:center;margin-bottom:4px}
+    .sub{text-align:center;font-size:11px;color:#555;margin-bottom:16px}
+    table{width:100%;border-collapse:collapse}
+    th{background:#222;color:#fff;padding:6px 8px;font-size:10px;text-align:left}
+    td{padding:6px 8px;border-bottom:1px solid #eee;font-size:11px;vertical-align:top}
+    .tr td{background:#f0f0f0;font-weight:900;border-top:2px solid #999}
+    @media print{ html{ -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style></head><body>
+    <h2>Lounge Cattleya　来店者一覧</h2>
+    <div class="sub">対象日：${dateDisp}　出力日：${new Date().toLocaleString('ja-JP')}</div>
+    <table>
+      <thead><tr><th>テーブル</th><th>退店時刻</th><th>人数</th><th>支払方法</th><th>金額</th><th>注文明細</th></tr></thead>
+      <tbody>${rows}<tr class="tr"><td colspan="4">合計 ${sorted.length}組</td><td style="text-align:right">¥${grandTotal.toLocaleString()}</td><td></td></tr></tbody>
+    </table>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.print();
 }
 
 function renderSummary() {
