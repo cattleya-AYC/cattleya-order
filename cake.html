@@ -17,8 +17,11 @@
 
   .notice-box { background: #fff3e0; border: 2px solid #f0c987; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #8b5e3c; margin-bottom: 14px; line-height: 1.5; }
 
-  .section-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: bold; color: #3d2b1f; margin: 22px 0 12px; }
+  .section-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: bold; color: #3d2b1f; margin: 22px 0 12px; flex-wrap: wrap; }
   .section-title .badge { font-size: 12px; font-weight: normal; color: #999; background: #f0ece6; border-radius: 6px; padding: 3px 8px; }
+  .target-arrow { font-size: 14px; color: #c9a882; padding: 2px 8px; border: 1px solid #e8ddd5; border-radius: 6px; background: #fff; }
+  .target-arrow:active { opacity: 0.6; }
+  .target-today-badge { font-size: 11px; font-weight: normal; color: #c9822c; background: #fdf3e4; border-radius: 6px; padding: 3px 8px; }
 
   /* 今日の売れ残り（見るだけ） */
   .leftover-row { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 2px solid #e8ddd5; border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; }
@@ -31,7 +34,7 @@
   .leftover-val.out { color: #e74c3c; }
   .warn-icon { margin-left: 6px; }
 
-  /* 明日の解凍数入力 */
+  /* 対象日の解凍数入力 */
   .thaw-card { background: #fff; border: 2px solid #e8ddd5; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
   .thaw-top { font-weight: bold; font-size: 16px; color: #3d2b1f; margin-bottom: 10px; }
   .thaw-bottom { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -83,13 +86,22 @@ function maxButtonFor(item) { return item === 'コーヒーゼリー' ? 12 : 4; 
 function itemKey(item) { return 'w' + ITEMS.indexOf(item); }
 
 function toJST() { return new Date(Date.now() + 9*60*60*1000).toISOString().slice(0,10); }
+function jstNowParts() {
+  const d = new Date(Date.now() + 9*60*60*1000);
+  return { hour: d.getUTCHours(), minute: d.getUTCMinutes() };
+}
 const TODAY = toJST();
 
 function prevDate(d) { const dt = new Date(d); dt.setDate(dt.getDate()-1); return dt.toISOString().slice(0,10); }
 function nextDate(d) { const dt = new Date(d); dt.setDate(dt.getDate()+1); return dt.toISOString().slice(0,10); }
 
 const YESTERDAY = prevDate(TODAY);
-const TOMORROW = nextDate(TODAY);
+
+const DOW_JP = ['日','月','火','水','木','金','土'];
+function formatDateLabel(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  return (d.getUTCMonth()+1) + '/' + d.getUTCDate() + '(' + DOW_JP[d.getUTCDay()] + ')';
+}
 
 async function supaFetch(path) {
   const res = await fetch(SUPA_URL + path, {
@@ -98,7 +110,7 @@ async function supaFetch(path) {
   return res.json();
 }
 
-// ========== 定休日・休日前の自動判定（推奨準備数のパターン切替用） ==========
+// ========== 定休日・休日前の自動判定 ==========
 let holidaySetCache = null;
 async function getHolidaySet() {
   if (holidaySetCache) return holidaySetCache;
@@ -115,36 +127,77 @@ function isClosedDay(dateStr, hset) {
   const dow = new Date(dateStr + 'T00:00:00Z').getUTCDay();
   return dow === 0 || dow === 6 || hset.has(dateStr);
 }
+function nextBusinessDay(dateStr, hset) {
+  let d = nextDate(dateStr);
+  while (isClosedDay(d, hset)) d = nextDate(d);
+  return d;
+}
 async function getPatternForDate(dateStr) {
   const hset = await getHolidaySet();
   if (isClosedDay(dateStr, hset)) return 'normal';
   return isClosedDay(nextDate(dateStr), hset) ? 'preholiday' : 'normal';
 }
 
+// ========== 対象日（解凍数を入力する日）の自動判定 ==========
+// ルール:
+//  ・営業日の10:00より前なら「今日」がまだ対象（前夜〜開店前に入れた分を今日の営業に反映）
+//  ・それ以外（休業日、または10:00を過ぎた営業日）は、次の営業日（休みはスキップ）が対象
+// これにより、休みを挟むケース（金曜→月曜）や、日曜夜・月曜朝の入力も
+// 常に正しい営業日に紐づく。
+let TARGET_DATE = null; // 実際に使う対象日（手動で前後にずらせる）
+let TARGET_DEFAULT = null; // 自動判定された対象日（バッジ表示の基準）
+async function computeDefaultTargetDate() {
+  const hset = await getHolidaySet();
+  const { hour } = jstNowParts();
+  const todayOpen = !isClosedDay(TODAY, hset);
+  if (todayOpen && hour < 10) return TODAY;
+  return nextBusinessDay(TODAY, hset);
+}
+
 let remainMap = {};      // 今日の売れ残り（見るだけ）
-let tomorrowMap = {};    // 明日の解凍数入力（数値）
-let recommendedMap = {}; // 明日の推奨準備数（まりが設定・見るだけ）
+let targetMap = {};      // 対象日の解凍数入力（数値）
+let recommendedMap = {}; // 対象日の推奨準備数（まりが設定・見るだけ）
 
-async function load() {
-  document.getElementById('loading').style.display = 'block';
-  document.getElementById('body').style.display = 'none';
-
-  const [ystockRaw, todayStockRaw, salesRaw, tomorrowStockRaw, yesterdaySalesRaw, patternRowsRaw] = await Promise.all([
-    supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold&date=eq.' + YESTERDAY),
-    supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + TODAY),
-    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + TODAY + '&limit=1000'),
-    supaFetch('/rest/v1/cake_stock?select=item_name,thawed,recommended&date=eq.' + TOMORROW),
-    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + YESTERDAY + '&limit=1000'),
+async function loadTargetData(dateStr) {
+  const [targetStockRaw, patternRowsRaw] = await Promise.all([
+    supaFetch('/rest/v1/cake_stock?select=item_name,thawed,recommended&date=eq.' + dateStr),
     supaFetch('/rest/v1/cake_recommended_patterns?select=pattern,item_name,quantity'),
   ]);
 
-  // 明日が「休日前」か「通常」かを自動判定し、その日のパターンの推奨数を土台にする
-  const autoPattern = await getPatternForDate(TOMORROW);
+  const autoPattern = await getPatternForDate(dateStr);
   const autoQty = {};
   ITEMS.forEach(item => autoQty[item] = 0);
   (patternRowsRaw||[]).forEach(r => {
     if (r.pattern === autoPattern && ITEMS_SET.has(r.item_name)) autoQty[r.item_name] = r.quantity || 0;
   });
+
+  targetMap = {};
+  ITEMS.forEach(item => targetMap[item] = 0);
+  recommendedMap = {};
+  ITEMS.forEach(item => recommendedMap[item] = autoQty[item] || 0);
+  (targetStockRaw||[]).forEach(r => {
+    if (ITEMS_SET.has(r.item_name)) {
+      targetMap[r.item_name] = r.thawed || 0;
+      if (r.recommended) recommendedMap[r.item_name] = r.recommended;
+    }
+  });
+}
+
+async function load() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('body').style.display = 'none';
+
+  TARGET_DEFAULT = await computeDefaultTargetDate();
+  TARGET_DATE = TARGET_DEFAULT;
+
+  const [ystockRaw, todayStockRaw, salesRaw, yesterdaySalesRaw] = await Promise.all([
+    supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold&date=eq.' + YESTERDAY),
+    supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + TODAY),
+    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + TODAY + '&limit=1000'),
+    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + YESTERDAY + '&limit=1000'),
+  ]);
+
+  await loadTargetData(TARGET_DATE);
 
   const leftoverFromYesterday = {};
   ITEMS.forEach(item => leftoverFromYesterday[item] = 0);
@@ -178,18 +231,6 @@ async function load() {
     remainMap[item] = Math.max(0, total - soldToday[item]);
   });
 
-  // 既に登録済みの明日の解凍数があればそれを初期値に、なければ0
-  tomorrowMap = {};
-  ITEMS.forEach(item => tomorrowMap[item] = 0);
-  recommendedMap = {};
-  ITEMS.forEach(item => recommendedMap[item] = autoQty[item] || 0); // まず自動パターンの数字を土台に
-  (tomorrowStockRaw||[]).forEach(r => {
-    if (ITEMS_SET.has(r.item_name)) {
-      tomorrowMap[r.item_name] = r.thawed || 0;
-      if (r.recommended) recommendedMap[r.item_name] = r.recommended; // 個別に上書きされていればそちらを優先
-    }
-  });
-
   render();
   document.getElementById('loading').style.display = 'none';
   document.getElementById('body').style.display = 'block';
@@ -214,12 +255,17 @@ function render() {
       </div>`;
   });
 
-  // ② 明日の解凍数を入力（ボタン方式）
-  html += '<div class="section-title">🧊 明日の解凍数を入力</div>';
+  // ② 対象日の解凍数を入力（ボタン方式）
+  const isToday = TARGET_DATE === TODAY;
+  html += '<div class="section-title">🧊 <span id="target-prev" class="target-arrow">◀</span> '
+        + formatDateLabel(TARGET_DATE) + '分'
+        + (isToday ? ' <span class="target-today-badge">本日分</span>' : '')
+        + ' <span id="target-next" class="target-arrow">▶</span> の解凍数を入力</div>';
+
   ITEMS.forEach(item => {
     const key = itemKey(item);
     const remain = remainMap[item] || 0;
-    const selected = tomorrowMap[item] || 0;
+    const selected = targetMap[item] || 0;
     const max = maxButtonFor(item);
     const recommended = recommendedMap[item] || 0;
     const isCoffeeJelly = item === 'コーヒーゼリー';
@@ -233,7 +279,7 @@ function render() {
     html += `
       <div class="thaw-card">
         <div class="thaw-top">${item}</div>
-        ${recommended > 0 ? `<div class="rec-note">👍 明日の推奨準備数: ${recommended}個</div>` : ''}
+        ${recommended > 0 ? `<div class="rec-note">👍 ${formatDateLabel(TARGET_DATE)}の推奨準備数: ${recommended}個</div>` : ''}
         <div class="thaw-bottom">
           <div class="thaw-col">
             <div class="thaw-label">今日の残り</div>
@@ -246,7 +292,7 @@ function render() {
           </div>
           <div class="eq-sign">=</div>
           <div class="thaw-col">
-            <div class="thaw-label">明日の準備数</div>
+            <div class="thaw-label">準備数</div>
             <div class="thaw-total" id="ttotal-${key}">${remain + selected}</div>
           </div>
         </div>
@@ -264,13 +310,36 @@ function render() {
     load();
   });
 
+  document.getElementById('target-prev').addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (TARGET_DATE <= TODAY) return; // 今日より前には戻れない
+    TARGET_DATE = prevDate(TARGET_DATE);
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('body').style.display = 'none';
+    await loadTargetData(TARGET_DATE);
+    render();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('body').style.display = 'block';
+  });
+
+  document.getElementById('target-next').addEventListener('click', async (e) => {
+    e.preventDefault();
+    TARGET_DATE = nextDate(TARGET_DATE);
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('body').style.display = 'none';
+    await loadTargetData(TARGET_DATE);
+    render();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('body').style.display = 'block';
+  });
+
   document.querySelectorAll('.num-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       const item = e.target.dataset.item;
       const val = parseInt(e.target.dataset.val);
       const key = itemKey(item);
 
-      tomorrowMap[item] = val;
+      targetMap[item] = val;
 
       // ボタンのハイライト切り替え
       document.querySelectorAll('#btnrow-' + key + ' .num-btn').forEach(b => b.classList.remove('active'));
@@ -288,9 +357,9 @@ function render() {
     btn.disabled = true; btn.textContent = '保存中...';
 
     const upserts = ITEMS.map(item => ({
-      date: TOMORROW,
+      date: TARGET_DATE,
       item_name: item,
-      thawed: Math.max(0, parseInt(tomorrowMap[item]) || 0),
+      thawed: Math.max(0, parseInt(targetMap[item]) || 0),
       sold: 0
     }));
 
