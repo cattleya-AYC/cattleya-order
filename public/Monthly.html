@@ -318,15 +318,23 @@ function printA4() {
     else paySecondHalf += d.pay;
   });
 
+  // 営業日数が多い月は自動で少し圧縮して1ページに収める
+  const compact = businessDays > 24;
+  const bodyFs = compact ? '10px' : '11px';
+  const tdFs = compact ? '9px' : '10px';
+  const tdPad = compact ? '2px 6px' : '3px 6px';
+  const summaryPad = compact ? '4px 3px' : '5px 3px';
+  const summaryMt = compact ? '6px' : '10px';
+
   const w = window.open('', '_blank');
   if(!w){ alert('ポップアップがブロックされました。設定を確認してください。'); return; }
-  w.document.write('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>@page{size:A4 portrait;margin:12mm}body{font-family:"Hiragino Mincho ProN",serif;font-size:11px}h2{font-size:16px;text-align:center;margin-bottom:2px}.sub{text-align:center;font-size:10px;color:#555;margin-bottom:8px}.summary{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}.si{flex:1;min-width:70px;background:#f9f9f9;border:1px solid #ddd;border-radius:6px;padding:5px 3px;text-align:center}.sl{font-size:8px;color:#666;margin-bottom:1px}.sv{font-size:12px;font-weight:900}table{width:100%;border-collapse:collapse}th{background:#222;color:#fff;padding:4px 6px;font-size:9px;text-align:right}th:first-child{text-align:left}td{padding:3px 6px;border-bottom:1px solid #eee;font-size:10px}td:first-child{text-align:left}.tr td{background:#f0f0f0;font-weight:900;border-top:2px solid #999}' + closeBarStyle() + '@media print{ html{ -webkit-print-color-adjust: exact; print-color-adjust: exact; filter: grayscale(100%); } }</style></head><body>');
+  w.document.write('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>@page{size:A4 portrait;margin:12mm}body{font-family:"Hiragino Mincho ProN",serif;font-size:' + bodyFs + '}h2{font-size:16px;text-align:center;margin-bottom:2px}.sub{text-align:center;font-size:10px;color:#555;margin-bottom:8px}.summary{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}.si{flex:1;min-width:70px;background:#f9f9f9;border:1px solid #ddd;border-radius:6px;padding:' + summaryPad + ';text-align:center}.sl{font-size:8px;color:#666;margin-bottom:1px}.sv{font-size:12px;font-weight:900}table{width:100%;border-collapse:collapse}th{background:#222;color:#fff;padding:4px 6px;font-size:9px;text-align:right}th:first-child{text-align:left}td{padding:' + tdPad + ';border-bottom:1px solid #eee;font-size:' + tdFs + '}td:first-child{text-align:left}.tr td{background:#f0f0f0;font-weight:900;border-top:2px solid #999}' + closeBarStyle() + '@media print{ html{ -webkit-print-color-adjust: exact; print-color-adjust: exact; filter: grayscale(100%); } }</style></head><body>');
   w.document.write(closeBarHtml());
   w.document.write('<h2>Lounge Cattleya　' + year + '年' + month + '月　月次集計</h2>');
   w.document.write('<div class="sub">出力日：' + new Date().toLocaleString('ja-JP') + '</div>');
   w.document.write('<div class="summary"><div class="si"><div class="sl">月間総売上</div><div class="sv">¥' + grandTotal.toLocaleString() + '</div></div><div class="si"><div class="sl">現金合計</div><div class="sv">¥' + cashTotal.toLocaleString() + '</div></div><div class="si"><div class="sl">ペイキャス</div><div class="sv">¥' + payTotal.toLocaleString() + '</div></div><div class="si"><div class="sl">来客組数</div><div class="sv">' + totalCount + '組</div></div><div class="si"><div class="sl">来客人数</div><div class="sv">' + totalPeople + '名</div></div></div>');
   w.document.write('<table><thead><tr><th>日付</th><th>売上</th><th>現金</th><th>ペイキャス</th><th>組数</th><th>人数</th></tr></thead><tbody>' + rows + '<tr class="tr"><td>合計</td><td style="text-align:right">¥' + grandTotal.toLocaleString() + '</td><td style="text-align:right">¥' + cashTotal.toLocaleString() + '</td><td style="text-align:right">¥' + payTotal.toLocaleString() + '</td><td style="text-align:right">' + totalCount + '組</td><td style="text-align:right">' + totalPeople + '名</td></tr></tbody></table>');
-  w.document.write('<div class="summary" style="margin-top:10px"><div class="si"><div class="sl">営業日数</div><div class="sv">' + businessDays + '日</div></div><div class="si"><div class="sl">ペイキャス（1〜15日）</div><div class="sv">¥' + payFirstHalf.toLocaleString() + '</div></div><div class="si"><div class="sl">ペイキャス（16日〜月末）</div><div class="sv">¥' + paySecondHalf.toLocaleString() + '</div></div></div>');
+  w.document.write('<div class="summary" style="margin-top:' + summaryMt + '"><div class="si"><div class="sl">営業日数</div><div class="sv">' + businessDays + '日</div></div><div class="si"><div class="sl">ペイキャス（1〜15日）</div><div class="sv">¥' + payFirstHalf.toLocaleString() + '</div></div><div class="si"><div class="sl">ペイキャス（16日〜月末）</div><div class="sv">¥' + paySecondHalf.toLocaleString() + '</div></div></div>');
   w.document.write('</body></html>');
   w.document.close();
   setTimeout(() => w.print(), 400);
