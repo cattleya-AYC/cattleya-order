@@ -1065,13 +1065,21 @@ export default function Register() {
       let printHtml = html;
       if (issuePeriod) {
         const couponNo2 = getNextCouponNo();
-        // 発行記録をSupabaseに保存
-        supabase.from("coupons").insert({
-          coupon_no: `A${couponNo2}`,
-          coupon_type: "A",
-          issued_at: new Date().toISOString(),
-          is_used: false,
-        });
+           // 発行記録をSupabaseに保存（失敗したら再試行し、それでもダメならログに残す）
+        (async () => {
+          for (let i = 0; i < 3; i++) {
+            const { error } = await supabase.from("coupons").insert({
+              coupon_no: `A${couponNo2}`,
+              coupon_type: "A",
+              issued_at: new Date().toISOString(),
+              is_used: false,
+            });
+            if (!error) break;
+            console.error("クーポン保存失敗(試行" + (i + 1) + "回目):", error);
+            await new Promise(r => setTimeout(r, 500));
+          }
+        })();
+
         // クーポンを区切り線のあとに結合（1回のPassPRNTで連続印刷）
         const couponBody = buildCouponHTML(couponNo2).replace(/^[\s\S]*?<body[^>]*>/, "").replace(/<\/body>[\s\S]*$/, "");
         printHtml = html.replace("</body></html>", `<div style="margin-top:8px;border-top:3px dashed #000;padding-top:8px;margin-top:10px">${couponBody}</div></body></html>`);
