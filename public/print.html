@@ -54,6 +54,67 @@
       min-height: 32px;
       text-align: center;
     }
+    .divider {
+      width: 100%;
+      max-width: 320px;
+      border-top: 1px solid #3d2c14;
+      margin: 10px 0;
+    }
+    .section-title {
+      color: #8a7050;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    #announceText {
+      width: 100%;
+      max-width: 320px;
+      padding: 14px 12px;
+      border-radius: 10px;
+      border: 2px solid #3d2c14;
+      background: #1c1208;
+      color: #f0e6d0;
+      font-size: 18px;
+      font-family: inherit;
+    }
+    #announceText:focus { outline: none; border-color: #c9952a; }
+    #charCount {
+      color: #8a7050;
+      font-size: 12px;
+      text-align: right;
+      width: 100%;
+      max-width: 320px;
+    }
+    #charCount.over { color: #ff6666; }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 320px;
+    }
+    .btn-announce {
+      flex: 2;
+      padding: 18px 0;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+      border: 2px solid #c9952a;
+      background: #1c1208;
+      color: #c9952a;
+    }
+    .btn-clear {
+      flex: 1;
+      padding: 18px 0;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      border: 2px solid #3d2c14;
+      background: transparent;
+      color: #8a7050;
+    }
+    .btn-announce:active, .btn-clear:active { opacity: 0.7; }
   </style>
 </head>
 <body>
@@ -65,6 +126,17 @@
     📞 店長に電話するよう<br/>伝えてください
   </button>
   <div id="msg"></div>
+
+  <div class="divider"></div>
+
+  <div class="section-title">📢 お知らせを流す（テーブル画面上部に10分表示）</div>
+  <input id="announceText" type="text" maxlength="20" placeholder="例：15時までに片付けお願いします" />
+  <div id="charCount">0 / 20</div>
+  <div class="btn-row">
+    <button class="btn-clear" onclick="clearAnnouncement()">消す</button>
+    <button class="btn-announce" onclick="sendAnnouncement()">送信する（10分表示）</button>
+  </div>
+  <div id="announceMsg" style="font-size:14px;font-weight:900;color:#4aaa5a;min-height:20px;text-align:center;"></div>
 
   <script>
     const { createClient } = supabase;
@@ -94,6 +166,64 @@
           msg.textContent = "";
           btns.forEach(b => { b.disabled = false; b.style.opacity = "1"; });
         }, 3000);
+      }
+    }
+
+    const announceInput = document.getElementById("announceText");
+    const charCount = document.getElementById("charCount");
+    announceInput.addEventListener("input", () => {
+      const len = announceInput.value.length;
+      charCount.textContent = `${len} / 20`;
+      charCount.classList.toggle("over", len >= 20);
+    });
+
+    async function sendAnnouncement() {
+      const text = announceInput.value.trim();
+      const announceMsg = document.getElementById("announceMsg");
+      if (!text) {
+        announceMsg.textContent = "❌ テキストを入力してください";
+        announceMsg.style.color = "#ff6666";
+        return;
+      }
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      announceMsg.textContent = "送信中…";
+      announceMsg.style.color = "#aaa";
+
+      const { error } = await sb.from("announcements").upsert(
+        { id: 1, text, expires_at: expiresAt, updated_at: new Date().toISOString() },
+        { onConflict: "id" }
+      );
+
+      if (error) {
+        announceMsg.textContent = "❌ エラーが発生しました";
+        announceMsg.style.color = "#ff6666";
+      } else {
+        announceMsg.textContent = "✅ お知らせを送りました（10分間表示）";
+        announceMsg.style.color = "#4aaa5a";
+        announceInput.value = "";
+        charCount.textContent = "0 / 20";
+        charCount.classList.remove("over");
+        setTimeout(() => { announceMsg.textContent = ""; }, 3000);
+      }
+    }
+
+    async function clearAnnouncement() {
+      const announceMsg = document.getElementById("announceMsg");
+      announceMsg.textContent = "消去中…";
+      announceMsg.style.color = "#aaa";
+
+      const { error } = await sb.from("announcements").upsert(
+        { id: 1, text: "", expires_at: null, updated_at: new Date().toISOString() },
+        { onConflict: "id" }
+      );
+
+      if (error) {
+        announceMsg.textContent = "❌ エラーが発生しました";
+        announceMsg.style.color = "#ff6666";
+      } else {
+        announceMsg.textContent = "✅ お知らせを消しました";
+        announceMsg.style.color = "#4aaa5a";
+        setTimeout(() => { announceMsg.textContent = ""; }, 2000);
       }
     }
   </script>
