@@ -140,6 +140,8 @@ export default function App() {
   const [correctTableTarget, setCorrectTableTarget] = useState(null);
   const [correctTableLoading, setCorrectTableLoading] = useState(false);
   const countdownRef = useRef(null);
+  const [announcement, setAnnouncement] = useState("");
+  const announcementExpiresRef = useRef(null);
 
   const executeMoveTable = async () => {
     if (!moveFrom || !moveTo) return;
@@ -207,8 +209,30 @@ export default function App() {
       fetchAllOrders();
       supabase.from("print_notifications").select("*").eq("dismissed", false).order("sent_at", { ascending: false }).limit(1)
         .then(({ data }) => { if (data && data.length > 0) setPrintNotif(data[0]); else setPrintNotif(null); });
+      if (announcementExpiresRef.current && new Date(announcementExpiresRef.current) <= new Date()) {
+        setAnnouncement(""); announcementExpiresRef.current = null;
+      }
     }, 30000);
     return () => clearInterval(iv);
+  }, []);
+
+  const applyAnnouncement = (row) => {
+    if (!row) { setAnnouncement(""); announcementExpiresRef.current = null; return; }
+    const expired = row.expires_at && new Date(row.expires_at) <= new Date();
+    announcementExpiresRef.current = row.expires_at;
+    setAnnouncement(expired ? "" : (row.text || ""));
+  };
+
+  useEffect(() => {
+    supabase.from("announcements").select("*").eq("id", 1).single()
+      .then(({ data }) => applyAnnouncement(data));
+
+    const announceChannel = supabase.channel("announcements_channel")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "announcements" }, (payload) => {
+        applyAnnouncement(payload.new);
+      })
+      .subscribe();
+    return () => supabase.removeChannel(announceChannel);
   }, []);
 
   const markServed = async (id) => {
@@ -388,6 +412,7 @@ export default function App() {
           50% { box-shadow: 0 0 0 6px rgba(201,149,42,0); border-color: #ffcc66; }
         }
         .tbl-occ { animation: pulse-gold 2s ease-in-out infinite; }
+        @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-100%); } }
       `}</style>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
         {TABLES.map((t) => {
@@ -408,6 +433,14 @@ export default function App() {
           );
         })}
       </div>
+
+      {announcement && (
+        <div style={{ marginTop: 16, padding: "10px 0", background: "#1c1208", border: "2px solid #c9952a", borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ display: "inline-block", whiteSpace: "nowrap", color: "#c9952a", fontWeight: 900, fontSize: 16, paddingLeft: "100%", animation: "marquee 12s linear infinite" }}>
+            📢 {announcement}
+          </div>
+        </div>
+      )}
 
       {(() => {
         const hasUnserved = unservedOrders.length > 0;
