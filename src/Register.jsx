@@ -1530,12 +1530,13 @@ const initCount = (totalItems > totalPeople) ? Math.min(foodCount, drinkCount) :
             <div style={{ color: "#9a9af0", fontSize: 18, fontWeight: 900, marginBottom: 16 }}>🎟 クーポン割引</div>
             <div style={{ color: "#8a8ab0", fontSize: 13, marginBottom: 12 }}>クーポンの種類を選んでください</div>
             <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-              {["A", "B"].map(t => (
-                <button key={t} onClick={() => setCouponType(t)}
-                  style={{ flex: 1, padding: "14px 0", background: couponType === t ? "#5a5ac9" : "transparent", border: `2px solid ${couponType === t ? "#9a9af0" : "#3a3a6a"}`, borderRadius: 10, color: couponType === t ? "#fff" : "#8a8ab0", fontWeight: 900, fontSize: 20, cursor: "pointer" }}>
-                  {t}クーポン
+                           {["A", "B", "C"].map(t => (
+                <button key={t} onClick={() => { setCouponType(t); if (t === "C") setCouponNo("20268"); }}
+                  style={{ flex: 1, padding: "14px 0", background: couponType === t ? "#5a5ac9" : "transparent", border: `2px solid ${couponType === t ? "#9a9af0" : "#3a3a6a"}`, borderRadius: 10, color: couponType === t ? "#fff" : "#8a8ab0", fontWeight: 900, fontSize: t === "C" ? 15 : 20, cursor: "pointer" }}>
+                  {t === "C" ? "C-20268" : `${t}クーポン`}
                 </button>
               ))}
+
             </div>
             <div style={{ color: "#8a8ab0", fontSize: 13, marginBottom: 8 }}>5桁の番号を入力</div>
             <input type="number" value={couponNo} onChange={e => { if (e.target.value.length <= 5) setCouponNo(e.target.value); }}
