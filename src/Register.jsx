@@ -1037,20 +1037,30 @@ export default function Register() {
     // クーポン使用記録
         if (couponApplied && couponType && couponNo) {
       const fullNoUsed = `${couponType}${couponNo}`;
-      if (couponType === "A") {
-        await supabase.from("coupons")
-          .update({ used_at: new Date().toISOString(), is_used: true, amount_before: amount + couponDiscount, discount_amount: couponDiscount })
-          .eq("coupon_no", fullNoUsed).eq("is_used", false);
-      } else {
-        await supabase.from("coupons").insert({
-          coupon_no: fullNoUsed,
-          coupon_type: couponType,
-          used_at: new Date().toISOString(),
-          is_used: true,
-          amount_before: amount + couponDiscount,
-          discount_amount: couponDiscount,
-        });
-      }
+          if (couponType === "A") {
+      await supabase.from("coupons")
+        .update({ used_at: new Date().toISOString(), is_used: true, amount_before: amount + couponDiscount, discount_amount: couponDiscount })
+        .eq("coupon_no", fullNoUsed).eq("is_used", false);
+    } else if (couponType === "C") {
+      await supabase.from("coupons").insert({
+        coupon_no: `${fullNoUsed}-${Date.now()}`,
+        coupon_type: "C",
+        used_at: new Date().toISOString(),
+        is_used: true,
+        amount_before: amount + couponDiscount,
+        discount_amount: couponDiscount,
+      });
+    } else {
+      await supabase.from("coupons").insert({
+        coupon_no: fullNoUsed,
+        coupon_type: couponType,
+        used_at: new Date().toISOString(),
+        is_used: true,
+        amount_before: amount + couponDiscount,
+        discount_amount: couponDiscount,
+      });
+    }
+
       setCouponApplied(false); setCouponDiscount(0); setCouponType(null); setCouponNo("");
     }
 
