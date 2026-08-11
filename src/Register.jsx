@@ -1139,6 +1139,10 @@ export default function Register() {
     const end = `${y}-07-31`;
     return jstDate <= end;
   };
+  const isCouponPeriodC = () => {
+    const jstDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
+    return jstDate <= "2026-08-31";
+  };
 
   // Aクーポン専用：発行日(issued_at)から14日間有効
      const checkCouponAValidity = async (fullNo) => {
