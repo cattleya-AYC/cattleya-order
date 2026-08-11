@@ -1171,11 +1171,14 @@ export default function Register() {
     if (!no || !/^\d{5}$/.test(no)) { setCouponError("5桁の数字を入力してください"); return; }
     const fullNo = `${couponType}${no}`;
 
-    if (couponType === "B") {
+      if (couponType === "B") {
       if (!isCouponPeriodB()) { setCouponError("Bクーポンの利用期間は7月31日までです"); return; }
       const { data } = await supabase.from("coupons").select("*").eq("coupon_no", fullNo).eq("is_used", true);
       if (data && data.length > 0) { setCouponError("このクーポンはすでに使用済みです"); return; }
+    } else if (couponType === "C") {
+      if (!isCouponPeriodC()) { setCouponError("Cクーポンの利用期間は8月31日までです"); return; }
     } else {
+
       const result = await checkCouponAValidity(fullNo);
       if (!result.ok) { setCouponError(result.reason); return; }
     }
