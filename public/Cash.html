@@ -356,7 +356,7 @@
     </div>
   </div>
 
-  <button class="btn-save" onclick="saveRecord()">✅ チェック終了</button>
+  <button class="btn-save" onclick="saveRecord()">📧 チェック完了を送信</button>
   <button class="btn-clear" onclick="clearAll()">🗑 クリア</button>
 
 </div>
@@ -558,6 +558,46 @@ async function saveRecord() {
   const date = jst.split(" ")[0];
   const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
 
+  const staff = window._selectedStaff || '（未選択）';
+  const shouldCash = window._shouldCash;
+  const diff = shouldCash !== undefined ? total - shouldCash : null;
+
+  // ---- メール本文（内訳データを含む。画面には表示しない） ----
+  const denomLines = DENOMS
+    .map(d => vals[d] > 0 ? `${d.toLocaleString()}円 × ${vals[d]}　＝　¥${(d * vals[d]).toLocaleString()}` : null)
+    .filter(Boolean)
+    .join('\n');
+
+  const diffText = diff === null ? '—'
+    : diff === 0 ? '¥0（一致）'
+    : diff > 0 ? `+¥${diff.toLocaleString()}（多い）`
+    : `-¥${Math.abs(diff).toLocaleString()}（不足）`;
+
+  const subject = `【カトレア】レジ現金チェック完了（${date} ${timeStr}）`;
+  const body =
+`平賀様
+
+お世話になっております。ラウンジカトレアです。
+本日のレジ現金チェックが完了しましたのでご報告いたします。
+
+日時：${date} ${timeStr}
+担当：${staff}
+
+【内訳】
+${denomLines || '（入力なし）'}
+
+合計：¥${total.toLocaleString()}
+レジあるべき金額：${shouldCash !== undefined ? '¥' + shouldCash.toLocaleString() : '—'}
+差額：${diffText}
+
+以上、よろしくお願いいたします。`;
+
+  const mailUrl = `mailto:h0910akio@docomo.ne.jp?bcc=mari247k@gmail.com&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  // ユーザー操作（クリック）の直後、非同期処理の前にメールを開く（iOS PWAのポップアップ制限対策）
+  window.location.href = mailUrl;
+
+  // ---- データ保存（内訳・差額も含めて保存。画面には内訳の再表示はしない） ----
   const record = {
     counted_at: now.toISOString(),
     count_date: date,
@@ -573,22 +613,25 @@ async function saveRecord() {
     v10: vals[10],
     v5: vals[5],
     v1: vals[1],
-    should_amount: window._shouldCash || null,
-    diff_amount: window._shouldCash !== undefined ? total - window._shouldCash : null,
+    should_amount: shouldCash ?? null,
+    diff_amount: diff,
   };
 
-  const { error: err1 } = await sb.from("cashcheck_logs").insert({
+  const { error: err1 } = await sb.from("cash_counts").insert(record);
+
+  const { error: err2 } = await sb.from("cashcheck_logs").insert({
     checked_at: now.toISOString(),
     log_date: date,
     staff: window._selectedStaff || null,
-    system_cash: window._shouldCash || null,
-    result: window._shouldCash !== undefined ? (total === window._shouldCash ? "same" : total > window._shouldCash ? "over" : "short") : null,
-    diff: window._shouldCash !== undefined ? total - window._shouldCash : null,
+    system_cash: shouldCash ?? null,
+    result: shouldCash !== undefined ? (total === shouldCash ? "same" : total > shouldCash ? "over" : "short") : null,
+    diff: diff,
   });
-  if (error) {
-    alert('保存エラー: ' + (err1?.message || err2?.message));
+
+  if (err1 || err2) {
+    alert('⚠️ 保存エラーが発生しました：' + (err1?.message || err2?.message) + '\n（メールアプリは開いています。送信ボタンは忘れずに押してください）');
   } else {
-    alert('✅ 保存しました！\n合計：¥' + total.toLocaleString());
+    alert('✅ 保存しました！メールアプリが開きますので、内容を確認して送信してください。\n合計：¥' + total.toLocaleString());
   }
 }
 
