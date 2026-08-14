@@ -143,6 +143,33 @@
   .order-price.discount { color: #4aaa5a; }
   .loading { text-align: center; color: #8a7050; padding: 40px; font-size: 14px; }
   .empty { text-align: center; color: #3d2c14; padding: 40px; font-size: 14px; }
+  .history-card {
+    background: #181008;
+    border: 1px solid #3d2c14;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .history-time { font-size: 13px; color: #8a7050; }
+  .history-total { font-size: 22px; font-weight: 900; color: #c9952a; }
+  .history-detail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .history-chip {
+    background: #251a0a;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: #f0e6d0;
+  }
   .paycas-adjust {
     background: #1a2510;
     border: 1px solid #2a6a3a;
@@ -201,6 +228,7 @@
   <div class="tab" onclick="switchTab('summary')" id="tab-summary">📊 途中集計</div>
   <div class="tab" onclick="switchTab('monthly')" id="tab-monthly">📅 月別</div>
   <div class="tab" onclick="switchTab('tax')" id="tab-tax">🧾 消費税</div>
+  <div class="tab" onclick="switchTab('cashcheck')" id="tab-cashcheck">💴 現金チェック</div>
 </div>
 
 <div class="content" id="content-paycas">
@@ -220,6 +248,10 @@
 </div>
 
 <div class="content" id="content-tax" style="display:none">
+  <div class="loading">読み込み中...</div>
+</div>
+
+<div class="content" id="content-cashcheck" style="display:none">
   <div class="loading">読み込み中...</div>
 </div>
 
@@ -267,13 +299,16 @@ function switchTab(tab) {
   document.getElementById('tab-summary').className = 'tab' + (tab === 'summary' ? ' active' : '');
   document.getElementById('tab-monthly').className = 'tab' + (tab === 'monthly' ? ' active' : '');
   document.getElementById('tab-tax').className = 'tab' + (tab === 'tax' ? ' active' : '');
+  document.getElementById('tab-cashcheck').className = 'tab' + (tab === 'cashcheck' ? ' active' : '');
   document.getElementById('content-paycas').style.display = tab === 'paycas' ? '' : 'none';
   document.getElementById('content-visit').style.display = tab === 'visit' ? '' : 'none';
   document.getElementById('content-summary').style.display = tab === 'summary' ? '' : 'none';
   document.getElementById('content-monthly').style.display = tab === 'monthly' ? '' : 'none';
   document.getElementById('content-tax').style.display = tab === 'tax' ? '' : 'none';
+  document.getElementById('content-cashcheck').style.display = tab === 'cashcheck' ? '' : 'none';
   if (tab === 'monthly') loadPaycasMonthly();
   if (tab === 'tax') loadTaxSummary();
+  if (tab === 'cashcheck') loadCashCheck();
 }
 
 async function loadAll() {
@@ -1039,6 +1074,141 @@ function printSummary() {
 
   const url = 'starpassprnt://v1/print/nopreview?back=' + encodeURIComponent(location.href) + '&html=' + encodeURIComponent(html);
   window.location.href = url;
+}
+
+// ---- 現金チェック記録（Cash.htmlから移設） ----
+let cashCheckRows = [];
+
+async function loadCashCheck() {
+  document.getElementById('content-cashcheck').innerHTML = '<div class="loading">読み込み中...</div>';
+
+  const [{ data: data1, error: err1 }, { data: data2, error: err2 }] = await Promise.all([
+    sb.from("cash_counts").select("*").order("counted_at", { ascending: false }).limit(30),
+    sb.from("cashcheck_logs").select("*").order("checked_at", { ascending: false }).limit(30),
+  ]);
+
+  if (err1 && err2) {
+    document.getElementById('content-cashcheck').innerHTML = '<div class="empty">テーブルが未作成です</div>';
+    return;
+  }
+
+  const rows1 = (data1 || []).map(r => ({
+    counted_at: r.counted_at,
+    count_date: r.count_date,
+    count_time: r.count_time,
+    staff: r.staff,
+    total_amount: r.total_amount,
+    diff_amount: r.diff_amount,
+    chips: [
+      r.v10000 && `1万×${r.v10000}`,
+      r.v5000  && `5千×${r.v5000}`,
+      r.v1000  && `千×${r.v1000}`,
+      r.v500   && `500×${r.v500}`,
+      r.v100   && `100×${r.v100}`,
+      r.v50    && `50×${r.v50}`,
+      r.v10    && `10×${r.v10}`,
+      r.v5     && `5×${r.v5}`,
+      r.v1     && `1×${r.v1}`,
+    ].filter(Boolean),
+  }));
+
+  const existingKeys = new Set(rows1.map(r => r.counted_at));
+  const rows2 = (data2 || [])
+    .filter(r => !existingKeys.has(r.checked_at))
+    .map(r => {
+      const jst = new Date(r.checked_at).toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" });
+      return {
+        counted_at: r.checked_at,
+        count_date: jst.split(" ")[0],
+        count_time: jst.split(" ")[1].slice(0,5),
+        staff: r.staff,
+        total_amount: null,
+        diff_amount: r.diff,
+        chips: [],
+      };
+    });
+
+  const allRows = [...rows1, ...rows2].sort((a, b) => new Date(b.counted_at) - new Date(a.counted_at)).slice(0, 40);
+  cashCheckRows = allRows;
+
+  if (allRows.length === 0) {
+    document.getElementById('content-cashcheck').innerHTML = '<div class="empty">記録なし</div>';
+    return;
+  }
+
+  let html = `<button onclick="printCashCheck()" style="width:100%;margin-bottom:14px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">🖨️ PDF印刷（白黒）</button>`;
+
+  allRows.forEach(r => {
+    let diffHtml = '';
+    if (r.diff_amount !== null) {
+      if (r.diff_amount === 0) diffHtml = '<span style="color:#4aaa5a;font-size:12px">　✅ 一致</span>';
+      else if (r.diff_amount > 0) diffHtml = `<span style="color:#5a8aca;font-size:12px">　+¥${r.diff_amount.toLocaleString()}</span>`;
+      else diffHtml = `<span style="color:#c95a5a;font-size:12px">　-¥${Math.abs(r.diff_amount).toLocaleString()}</span>`;
+    }
+
+    const totalHtml = r.total_amount !== null
+      ? `<div class="history-total">¥${r.total_amount.toLocaleString()}</div>`
+      : `<div class="history-total" style="color:#8a7050;font-size:16px">—</div>`;
+
+    html += `
+    <div class="history-card">
+      <div class="history-header">
+        <div>
+          <div class="history-time">${r.count_date} ${r.count_time}${r.staff ? "　" + r.staff : ""}</div>
+          ${diffHtml}
+        </div>
+        ${totalHtml}
+      </div>
+      <div class="history-detail">
+        ${r.chips.map(c => `<div class="history-chip">${c}</div>`).join('')}
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('content-cashcheck').innerHTML = html;
+}
+
+function printCashCheck() {
+  if (!cashCheckRows.length) return;
+
+  const rowsHtml = cashCheckRows.map(r => {
+    const diffText = r.diff_amount === null ? '—'
+      : r.diff_amount === 0 ? '¥0（一致）'
+      : r.diff_amount > 0 ? `+¥${r.diff_amount.toLocaleString()}`
+      : `-¥${Math.abs(r.diff_amount).toLocaleString()}`;
+    const totalText = r.total_amount !== null ? `¥${r.total_amount.toLocaleString()}` : '—';
+    const chipsText = r.chips.length ? r.chips.join('　') : '—';
+    return `<tr>
+      <td>${r.count_date} ${r.count_time}</td>
+      <td>${r.staff || '—'}</td>
+      <td>${totalText}</td>
+      <td>${diffText}</td>
+      <td style="font-size:11px;">${chipsText}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
+    body{font-family:'Hiragino Mincho ProN',serif;padding:20px;color:#000;background:#fff;}
+    h2{text-align:center;margin-bottom:4px;}
+    p.sub{text-align:center;color:#555;font-size:12px;margin-bottom:20px;}
+    table{width:100%;border-collapse:collapse;font-size:12px;}
+    th,td{border:1px solid #999;padding:6px 8px;}
+    th{background:#f0f0f0;text-align:center;}
+    td:nth-child(3),td:nth-child(4){text-align:right;white-space:nowrap;}
+    @media print{ html{ -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style></head><body>
+    <h2>現金チェック記録</h2>
+    <p class="sub">出力日時: ${new Date().toLocaleString('ja-JP')}</p>
+    <table>
+      <tr><th>日時</th><th>担当</th><th>合計</th><th>差額</th><th>内訳</th></tr>
+      ${rowsHtml}
+    </table>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.print();
 }
 
 loadAll();
