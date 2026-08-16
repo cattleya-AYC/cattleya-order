@@ -1224,12 +1224,14 @@ export default function Register() {
   useEffect(() => {
     if (!confirming || !selected) return;
     const orders = tableOrders(selected).filter(o => !o.item_name.startsWith("【人数"));
-    // ドリンク数とフード数の少ない方がセット数
+     // フード数・ドリンク数（アルコール・おかわり・モーニング除く）から、安全な方（小さい方）でセット数を算出
 const foodCount = orders.filter(o => isFood(o.item_name)).reduce((a, o) => a + (o.qty || 1), 0);
-const drinkCount = orders.filter(o => !isFood(o.item_name) && !o.item_name.includes("モーニング") && !o.item_name.includes("おかわり") && o.price > 0).reduce((a, o) => a + (o.qty || 1), 0);
-const totalItems = foodCount + drinkCount;
+const drinkCount = orders.filter(o => !isFood(o.item_name) && !o.item_name.includes("モーニング") && !o.item_name.includes("おかわり") && !o.item_name.includes("オールド") && !o.item_name.includes("バドワイザー") && o.price > 0).reduce((a, o) => a + (o.qty || 1), 0);
 const totalPeople = tablePeople(selected);
-const initCount = (totalItems > totalPeople) ? Math.min(foodCount, drinkCount) : 0;
+const diffCount = Math.max(0, foodCount + drinkCount - totalPeople); // 差分方式
+const minCount = Math.min(foodCount, drinkCount); // min方式
+const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安全側）
+
     setSetCount(initCount);
     // クーポンは毎回テーブルごとにリセット（前のテーブルの適用が残らないように）
     setCouponApplied(false);
