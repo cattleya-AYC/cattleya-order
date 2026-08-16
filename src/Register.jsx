@@ -1109,12 +1109,14 @@ export default function Register() {
   };
 
     const showPreview = (type) => {
-        const sampleItems = [
+       const sampleItems = [
       { item_name: "アイスコーヒー", price: 670, qty: 1 },
       { item_name: "セット値引き", price: -150, qty: 1 },
       { item_name: "シフォンケーキ", price: 650, qty: 2 },
       { item_name: "アイスミルクティ", price: 670, qty: 1 },
+      { item_name: "テスト", price: 999, qty: 1 },
     ];
+
 
     const total = sampleItems.reduce((a, o) => a + o.price * o.qty, 0);
     const html = buildReceiptHTML({
