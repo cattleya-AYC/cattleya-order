@@ -1108,23 +1108,35 @@ export default function Register() {
     }
   };
 
-    const showPreview = (type) => {
-       const sampleItems = [
+        const showPreview = async (type) => {
+    const fallbackItems = [
       { item_name: "アイスコーヒー", price: 670, qty: 1 },
       { item_name: "セット値引き", price: -150, qty: 1 },
       { item_name: "シフォンケーキ", price: 650, qty: 2 },
       { item_name: "アイスミルクティ", price: 670, qty: 1 },
-      { item_name: "テスト", price: 999, qty: 1 },
     ];
-
-
+    let sampleItems = fallbackItems;
+    let tableNo = 3;
+    const { data: latestRows } = await supabase.from("order_items")
+      .select("*").order("id", { ascending: false }).limit(1);
+    if (latestRows && latestRows[0]) {
+      const { table_no, sale_time } = latestRows[0];
+      const { data: lastSaleItems } = await supabase.from("order_items")
+        .select("*").eq("table_no", table_no).eq("sale_time", sale_time)
+        .order("id", { ascending: true });
+      if (lastSaleItems && lastSaleItems.length > 0) {
+        sampleItems = lastSaleItems;
+        tableNo = table_no;
+      }
+    }
     const total = sampleItems.reduce((a, o) => a + o.price * o.qty, 0);
     const html = buildReceiptHTML({
-      table: 3, amount: total, pay: "現金", receipt: type,
+      table: tableNo, amount: total, pay: "現金", receipt: type,
       change: 360, received: 3000, items: sampleItems, receiptNo: "010031211",
     });
     setPreviewHtml(html);
   };
+
 
   const showCouponPreview = () => {
     setPreviewHtml(buildCouponHTML("99999"));
