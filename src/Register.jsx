@@ -1019,10 +1019,12 @@ export default function Register() {
       });
     }
 
-    // レシート印字用：クーポン割引はDBには入れず、印字行としてのみ追加
+    // レシート印字用：値引き行（セット割引・クーポン）はすべて最下部にまとめる
+    const baseItems = [...tableOrderItems].sort((a, b) => (a.price < 0 ? 1 : 0) - (b.price < 0 ? 1 : 0));
     const receiptItems = couponApplied && couponDisc > 0
-      ? [...tableOrderItems, { item_name: `クーポン${couponType || ""}　5%OFF`, price: -couponDisc, qty: 1 }]
-      : tableOrderItems;
+      ? [...baseItems, { item_name: `クーポン${couponType || ""}　5%OFF`, price: -couponDisc, qty: 1 }]
+      : baseItems;
+
 
     await supabase.from("orders").delete().eq("table_no", String(t));
     const saleDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
