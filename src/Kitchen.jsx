@@ -41,6 +41,12 @@ function jpCount(n) {
   return n <= 10 ? words[n] : `${n}個`;
 }
 
+function jstDate(offsetDays = 0) {
+  const d = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  d.setUTCDate(d.getUTCDate() + offsetDays);
+  return d.toISOString().slice(0, 10);
+}
+
 function timeAgo(iso) {
   if (!iso) return "";
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -56,6 +62,7 @@ export default function Kitchen() {
   const [, setTick] = useState(0);
   const prevIds = useRef(new Set());
   const lastSpokeRef = useRef(Date.now()); // 最後に音が鳴った時刻
+  const [coffeeJellyRemain, setCoffeeJellyRemain] = useState(null);
 
   const fetchOrders = async () => {
     const { data } = await supabase
@@ -98,6 +105,37 @@ export default function Kitchen() {
     const iv = setInterval(fetchOrders, 4000);
     return () => clearInterval(iv);
   }, [soundOn]);
+
+  const fetchCoffeeJellyStock = async () => {
+    try {
+      const TODAY_JST = jstDate(0);
+      const YESTERDAY_JST = jstDate(-1);
+
+      const [{ data: yStock }, { data: ySales }, { data: tStock }, { data: tSales }] = await Promise.all([
+        supabase.from("cake_stock").select("thawed").eq("item_name", "コーヒーゼリー").eq("date", YESTERDAY_JST),
+        supabase.from("order_items").select("qty").eq("item_name", "コーヒーゼリー").eq("sale_date", YESTERDAY_JST),
+        supabase.from("cake_stock").select("thawed").eq("item_name", "コーヒーゼリー").eq("date", TODAY_JST),
+        supabase.from("order_items").select("qty").eq("item_name", "コーヒーゼリー").eq("sale_date", TODAY_JST),
+      ]);
+
+      const yThawed = yStock?.[0]?.thawed || 0;
+      const ySold = (ySales || []).reduce((sum, r) => sum + (r.qty || 1), 0);
+      const carryOver = Math.max(0, yThawed - ySold);
+
+      const tThawed = tStock?.[0]?.thawed || 0;
+      const tSold = (tSales || []).reduce((sum, r) => sum + (r.qty || 1), 0);
+
+      setCoffeeJellyRemain(carryOver + tThawed - tSold);
+    } catch (e) {
+      // 取得失敗時は表示しない
+    }
+  };
+
+  useEffect(() => {
+    fetchCoffeeJellyStock();
+    const iv = setInterval(fetchCoffeeJellyStock, 30000);
+    return () => clearInterval(iv);
+  }, []);
 
   // soundONのとき5秒ごとにiOS音声エンジンをリフレッシュ
   useEffect(() => {
@@ -176,8 +214,10 @@ export default function Kitchen() {
   const nowHour = new Date().getHours();
   const isMorning = nowHour >= 9;
 
+  const showJellyBanner = coffeeJellyRemain !== null && coffeeJellyRemain <= 5;
+
   return (
-    <div style={{ minHeight: "100vh", background: "#0d0f12", color: "#fff", fontFamily: "'Hiragino Kaku Gothic ProN', sans-serif", padding: 12 }}>
+    <div style={{ minHeight: "100vh", background: "#0d0f12", color: "#fff", fontFamily: "'Hiragino Kaku Gothic ProN', sans-serif", padding: 12, paddingBottom: showJellyBanner ? 90 : 12 }}>
 
       {/* 音声が止まったとき全画面強制タップ */}
       {soundOn && soundDead && (
@@ -308,6 +348,21 @@ export default function Kitchen() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {showJellyBanner && (
+        <div style={{
+          position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 500,
+          background: "linear-gradient(90deg, #e08a1a, #f0b23a)",
+          color: "#1a1200", padding: "16px 20px",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 14,
+          boxShadow: "0 -4px 16px rgba(0,0,0,0.4)"
+        }}>
+          <span style={{ fontSize: 34 }}>🍮</span>
+          <span style={{ fontSize: 26, fontWeight: 900 }}>
+            コーヒーゼリー、残り{Math.max(0, coffeeJellyRemain)}個になりました
+          </span>
         </div>
       )}
     </div>
