@@ -47,6 +47,23 @@ function jstDate(offsetDays = 0) {
   return d.toISOString().slice(0, 10);
 }
 
+// 指定日より前で、最後に保存された残数(remain)を取得する（1件だけ、再帰なし）
+async function getCarryover(beforeDate, itemName) {
+  try {
+    const { data } = await supabase
+      .from("cake_stock")
+      .select("remain,date")
+      .eq("item_name", itemName)
+      .lt("date", beforeDate)
+      .not("remain", "is", null)
+      .order("date", { ascending: false })
+      .limit(1);
+    return data?.[0]?.remain || 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
 function timeAgo(iso) {
   if (!iso) return "";
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -111,16 +128,12 @@ export default function Kitchen() {
       const TODAY_JST = jstDate(0);
       const YESTERDAY_JST = jstDate(-1);
 
-      const [{ data: yStock }, { data: ySales }, { data: tStock }, { data: tSales }] = await Promise.all([
-        supabase.from("cake_stock").select("thawed").eq("item_name", "コーヒーゼリー").eq("date", YESTERDAY_JST),
-        supabase.from("order_items").select("qty").eq("item_name", "コーヒーゼリー").eq("sale_date", YESTERDAY_JST),
+      const carryOver = await getCarryover(TODAY_JST, "コーヒーゼリー");
+
+      const [{ data: tStock }, { data: tSales }] = await Promise.all([
         supabase.from("cake_stock").select("thawed").eq("item_name", "コーヒーゼリー").eq("date", TODAY_JST),
         supabase.from("order_items").select("qty").eq("item_name", "コーヒーゼリー").eq("sale_date", TODAY_JST),
       ]);
-
-      const yThawed = yStock?.[0]?.thawed || 0;
-      const ySold = (ySales || []).reduce((sum, r) => sum + (r.qty || 1), 0);
-      const carryOver = Math.max(0, yThawed - ySold);
 
       const tThawed = tStock?.[0]?.thawed || 0;
       const tSold = (tSales || []).reduce((sum, r) => sum + (r.qty || 1), 0);
