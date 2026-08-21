@@ -110,6 +110,56 @@ async function supaFetch(path) {
   return res.json();
 }
 
+// 前日以前の持ち越し在庫を再帰的に正しく解決する（複数日ギャップに対応・自己修復）
+async function resolveCarryover(dateStr, items, depth) {
+  depth = depth || 0;
+  const result = {};
+  items.forEach(item => result[item] = 0);
+  if (depth > 14) return result;
+
+  const [stockRaw, salesRaw] = await Promise.all([
+    supaFetch('/rest/v1/cake_stock?select=item_name,thawed,remain&date=eq.' + dateStr),
+    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + dateStr + '&limit=1000'),
+  ]);
+
+  const thawedMap = {}, remainMap = {}, soldMap = {};
+  items.forEach(item => { thawedMap[item] = 0; remainMap[item] = null; soldMap[item] = 0; });
+  (stockRaw||[]).forEach(r => {
+    if (thawedMap[r.item_name] !== undefined) thawedMap[r.item_name] = r.thawed || 0;
+    if (remainMap[r.item_name] !== undefined) remainMap[r.item_name] = (r.remain === null || r.remain === undefined) ? null : r.remain;
+  });
+  (salesRaw||[]).forEach(r => { if (soldMap[r.item_name] !== undefined) soldMap[r.item_name] += (r.qty||1); });
+
+  const needResolve = items.filter(item => remainMap[item] === null);
+  let carryMap = {};
+  if (needResolve.length > 0) {
+    carryMap = await resolveCarryover(prevDate(dateStr), needResolve, depth + 1);
+  }
+
+  const toSave = [];
+  items.forEach(item => {
+    let r;
+    if (remainMap[item] !== null) {
+      r = remainMap[item];
+    } else {
+      const carryIn = carryMap[item] || 0;
+      r = Math.max(0, carryIn + thawedMap[item] - soldMap[item]);
+      toSave.push({ date: dateStr, item_name: item, thawed: thawedMap[item], sold: soldMap[item], remain: r });
+    }
+    result[item] = r;
+  });
+
+  if (toSave.length > 0) {
+    fetch(SUPA_URL + '/rest/v1/cake_stock?on_conflict=date,item_name', {
+      method: 'POST',
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(toSave)
+    }).catch(function(){});
+  }
+
+  return result;
+}
+
 // ========== 定休日・休日前の自動判定 ==========
 let holidaySetCache = null;
 async function getHolidaySet() {
@@ -190,28 +240,15 @@ async function load() {
   TARGET_DEFAULT = await computeDefaultTargetDate();
   TARGET_DATE = TARGET_DEFAULT;
 
-  const [ystockRaw, todayStockRaw, salesRaw, yesterdaySalesRaw] = await Promise.all([
-    supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold&date=eq.' + YESTERDAY),
+  const [todayStockRaw, salesRaw] = await Promise.all([
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + TODAY),
     supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + TODAY + '&limit=1000'),
-    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + YESTERDAY + '&limit=1000'),
   ]);
 
   await loadTargetData(TARGET_DATE);
 
-  const leftoverFromYesterday = {};
-  ITEMS.forEach(item => leftoverFromYesterday[item] = 0);
-  (ystockRaw||[]).forEach(r => {
-    if (ITEMS_SET.has(r.item_name)) leftoverFromYesterday[r.item_name] = r.thawed || 0;
-  });
-  const soldYesterday = {};
-  ITEMS.forEach(item => soldYesterday[item] = 0);
-  (yesterdaySalesRaw||[]).forEach(r => {
-    if (ITEMS_SET.has(r.item_name)) soldYesterday[r.item_name] += (r.qty||1);
-  });
-  ITEMS.forEach(item => {
-    leftoverFromYesterday[item] = Math.max(0, leftoverFromYesterday[item] - soldYesterday[item]);
-  });
+  // 前日までの持ち越し在庫を再帰的に正しく解決（複数日ギャップに対応）
+  const leftoverFromYesterday = await resolveCarryover(YESTERDAY, ITEMS);
 
   const todayAdded = {};
   ITEMS.forEach(item => todayAdded[item] = 0);

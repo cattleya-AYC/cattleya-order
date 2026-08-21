@@ -221,6 +221,56 @@ async function supaFetch(path) {
   return res.json();
 }
 
+// 前日以前の持ち越し在庫を再帰的に正しく解決する（複数日ギャップに対応・自己修復）
+async function resolveCarryover(dateStr, items, depth) {
+  depth = depth || 0;
+  const result = {};
+  items.forEach(item => result[item] = 0);
+  if (depth > 14) return result;
+
+  const [stockRaw, salesRaw] = await Promise.all([
+    supaFetch('/rest/v1/cake_stock?select=item_name,thawed,remain&date=eq.' + dateStr),
+    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + dateStr + '&limit=1000'),
+  ]);
+
+  const thawedMap = {}, remainMap = {}, soldMap = {};
+  items.forEach(item => { thawedMap[item] = 0; remainMap[item] = null; soldMap[item] = 0; });
+  (stockRaw||[]).forEach(r => {
+    if (thawedMap[r.item_name] !== undefined) thawedMap[r.item_name] = r.thawed || 0;
+    if (remainMap[r.item_name] !== undefined) remainMap[r.item_name] = (r.remain === null || r.remain === undefined) ? null : r.remain;
+  });
+  (salesRaw||[]).forEach(r => { if (soldMap[r.item_name] !== undefined) soldMap[r.item_name] += (r.qty||1); });
+
+  const needResolve = items.filter(item => remainMap[item] === null);
+  let carryMap = {};
+  if (needResolve.length > 0) {
+    carryMap = await resolveCarryover(prevDate(dateStr), needResolve, depth + 1);
+  }
+
+  const toSave = [];
+  items.forEach(item => {
+    let r;
+    if (remainMap[item] !== null) {
+      r = remainMap[item];
+    } else {
+      const carryIn = carryMap[item] || 0;
+      r = Math.max(0, carryIn + thawedMap[item] - soldMap[item]);
+      toSave.push({ date: dateStr, item_name: item, thawed: thawedMap[item], sold: soldMap[item], remain: r });
+    }
+    result[item] = r;
+  });
+
+  if (toSave.length > 0) {
+    fetch(SUPA_URL + '/rest/v1/cake_stock?on_conflict=date,item_name', {
+      method: 'POST',
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(toSave)
+    }).catch(function(){});
+  }
+
+  return result;
+}
+
 function monthLabel(ym) { return ym.slice(0,4) + '年' + parseInt(ym.slice(5,7)) + '月'; }
 function prevMonth(ym) { const d = new Date(ym+'-01'); d.setMonth(d.getMonth()-1); return d.toISOString().slice(0,7); }
 function nextMonth(ym) { const d = new Date(ym+'-01'); d.setMonth(d.getMonth()+1); return d.toISOString().slice(0,7); }
@@ -288,28 +338,13 @@ async function loadToday() {
 
   const YESTERDAY = prevDate(selectedDate);
 
-  // 前日のcake_stock（残数 = thawed - 実売上）
-  const [ystockRaw, todayStockRaw, salesRaw, yesterdaySalesRaw] = await Promise.all([
-    supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold&date=eq.' + YESTERDAY),
+  const [todayStockRaw, salesRaw] = await Promise.all([
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold&date=eq.' + selectedDate),
     supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + selectedDate + '&limit=1000'),
-    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + YESTERDAY + '&limit=1000')
   ]);
 
-  // 前日の実売上を集計（保存された sold 列ではなく order_items から都度計算）
-  const soldYesterday = {};
-  ITEMS.forEach(item => soldYesterday[item] = 0);
-  (yesterdaySalesRaw||[]).forEach(r => {
-    if (ITEMS_SET.has(r.item_name)) soldYesterday[r.item_name] += (r.qty||1);
-  });
-
-  // 前日残数を在庫として設定
-  stockMap = {};
-  ITEMS.forEach(item => stockMap[item] = 0);
-  (ystockRaw||[]).forEach(r => {
-    const remain = (r.thawed||0) - (soldYesterday[r.item_name]||0);
-    stockMap[r.item_name] = Math.max(0, remain);
-  });
+  // 前日までの持ち越し在庫を再帰的に正しく解決（複数日ギャップに対応）
+  stockMap = await resolveCarryover(YESTERDAY, ITEMS);
 
   // 今日すでに保存されてる解凍追加数
   todayStockSaved = {};
@@ -699,11 +734,9 @@ async function loadTomorrow() {
   const TOMORROW_T = nextDate(TODAY);
   tomorrowDateForRec = TOMORROW_T;
 
-  const [ystockRaw, todayStockRaw, todaySalesRaw, yesterdaySalesRaw, tomorrowStockRaw] = await Promise.all([
-    supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + YESTERDAY_T),
+  const [todayStockRaw, todaySalesRaw, tomorrowStockRaw] = await Promise.all([
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + TODAY),
     supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + TODAY + '&limit=1000'),
-    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + YESTERDAY_T + '&limit=1000'),
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed,recommended&date=eq.' + TOMORROW_T),
   ]);
 
@@ -711,25 +744,25 @@ async function loadTomorrow() {
   tomorrowAutoPattern = await getPatternForDate(TOMORROW_T);
   tomorrowAutoQty = patternQty[tomorrowAutoPattern] || {};
 
-  const yesterdayThawed = {}, todayAdded = {}, soldToday = {}, soldYesterday = {}, tomorrowThawed = {};
+  const todayAdded = {}, soldToday = {}, tomorrowThawed = {};
   WAITRESS_ITEMS.forEach(item => {
-    yesterdayThawed[item] = 0; todayAdded[item] = 0; soldToday[item] = 0; soldYesterday[item] = 0; tomorrowThawed[item] = 0;
+    todayAdded[item] = 0; soldToday[item] = 0; tomorrowThawed[item] = 0;
   });
   recommendedMap = {};
   WAITRESS_ITEMS.forEach(item => recommendedMap[item] = '');
-  (ystockRaw||[]).forEach(r => { if (yesterdayThawed[r.item_name] !== undefined) yesterdayThawed[r.item_name] = r.thawed || 0; });
   (todayStockRaw||[]).forEach(r => { if (todayAdded[r.item_name] !== undefined) todayAdded[r.item_name] = r.thawed || 0; });
   (todaySalesRaw||[]).forEach(r => { if (soldToday[r.item_name] !== undefined) soldToday[r.item_name] += (r.qty||1); });
-  (yesterdaySalesRaw||[]).forEach(r => { if (soldYesterday[r.item_name] !== undefined) soldYesterday[r.item_name] += (r.qty||1); });
   (tomorrowStockRaw||[]).forEach(r => {
     if (tomorrowThawed[r.item_name] !== undefined) tomorrowThawed[r.item_name] = r.thawed || 0;
     if (recommendedMap[r.item_name] !== undefined && r.recommended) recommendedMap[r.item_name] = String(r.recommended);
   });
 
+  // 前日までの持ち越し在庫を再帰的に正しく解決（複数日ギャップに対応）
+  const leftoverFromYesterday = await resolveCarryover(YESTERDAY_T, WAITRESS_ITEMS);
+
   const remainToday = {};
   WAITRESS_ITEMS.forEach(item => {
-    const leftoverFromYesterday = Math.max(0, yesterdayThawed[item] - soldYesterday[item]);
-    const total = leftoverFromYesterday + todayAdded[item];
+    const total = leftoverFromYesterday[item] + todayAdded[item];
     remainToday[item] = Math.max(0, total - soldToday[item]);
   });
 
