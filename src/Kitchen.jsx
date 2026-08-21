@@ -47,6 +47,56 @@ function jstDate(offsetDays = 0) {
   return d.toISOString().slice(0, 10);
 }
 
+function prevDateStr(d) {
+  const dt = new Date(d + "T00:00:00Z");
+  dt.setUTCDate(dt.getUTCDate() - 1);
+  return dt.toISOString().slice(0, 10);
+}
+
+async function resolveCarryover(dateStr, items, depth = 0) {
+  const result = {};
+  items.forEach(item => (result[item] = 0));
+  if (depth > 14) return result;
+
+  const [{ data: stockRaw }, { data: salesRaw }] = await Promise.all([
+    supabase.from("cake_stock").select("item_name,thawed,remain").eq("date", dateStr).in("item_name", items),
+    supabase.from("order_items").select("item_name,qty").eq("sale_date", dateStr).in("item_name", items),
+  ]);
+
+  const thawedMap = {}, remainMap = {}, soldMap = {};
+  items.forEach(item => { thawedMap[item] = 0; remainMap[item] = null; soldMap[item] = 0; });
+  (stockRaw || []).forEach(r => {
+    thawedMap[r.item_name] = r.thawed || 0;
+    remainMap[r.item_name] = (r.remain === null || r.remain === undefined) ? null : r.remain;
+  });
+  (salesRaw || []).forEach(r => { soldMap[r.item_name] = (soldMap[r.item_name] || 0) + (r.qty || 1); });
+
+  const needResolve = items.filter(item => remainMap[item] === null);
+  let carryMap = {};
+  if (needResolve.length > 0) {
+    carryMap = await resolveCarryover(prevDateStr(dateStr), needResolve, depth + 1);
+  }
+
+  const toSave = [];
+  items.forEach(item => {
+    let r;
+    if (remainMap[item] !== null) {
+      r = remainMap[item];
+    } else {
+      const carryIn = carryMap[item] || 0;
+      r = Math.max(0, carryIn + thawedMap[item] - soldMap[item]);
+      toSave.push({ date: dateStr, item_name: item, thawed: thawedMap[item], sold: soldMap[item], remain: r });
+    }
+    result[item] = r;
+  });
+
+  if (toSave.length > 0) {
+    supabase.from("cake_stock").upsert(toSave, { onConflict: "date,item_name" }).then(() => {});
+  }
+
+  return result;
+}
+
 function timeAgo(iso) {
   if (!iso) return "";
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -111,17 +161,13 @@ export default function Kitchen() {
       const TODAY_JST = jstDate(0);
       const YESTERDAY_JST = jstDate(-1);
 
-      const [{ data: yStock }, { data: ySales }, { data: tStock }, { data: tSales }] = await Promise.all([
-        supabase.from("cake_stock").select("thawed").eq("item_name", "コーヒーゼリー").eq("date", YESTERDAY_JST),
-        supabase.from("order_items").select("qty").eq("item_name", "コーヒーゼリー").eq("sale_date", YESTERDAY_JST),
+      const [carryMap, { data: tStock }, { data: tSales }] = await Promise.all([
+        resolveCarryover(YESTERDAY_JST, ["コーヒーゼリー"]),
         supabase.from("cake_stock").select("thawed").eq("item_name", "コーヒーゼリー").eq("date", TODAY_JST),
         supabase.from("order_items").select("qty").eq("item_name", "コーヒーゼリー").eq("sale_date", TODAY_JST),
       ]);
 
-      const yThawed = yStock?.[0]?.thawed || 0;
-      const ySold = (ySales || []).reduce((sum, r) => sum + (r.qty || 1), 0);
-      const carryOver = Math.max(0, yThawed - ySold);
-
+      const carryOver = carryMap["コーヒーゼリー"] || 0;
       const tThawed = tStock?.[0]?.thawed || 0;
       const tSold = (tSales || []).reduce((sum, r) => sum + (r.qty || 1), 0);
 
