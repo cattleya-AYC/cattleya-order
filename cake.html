@@ -110,6 +110,22 @@ async function supaFetch(path) {
   return res.json();
 }
 
+// 指定日より前で、最後に保存された残数(remain)を商品ごとに1件だけ取得する。
+// 何日空いても「直近の保存」を1回見に行くだけなので、遡り計算による暴走は起きない。
+async function getCarryover(beforeDate, items) {
+  const result = {};
+  items.forEach(item => result[item] = 0);
+  const rows = await supaFetch('/rest/v1/cake_stock?select=item_name,remain,date&date=lt.' + beforeDate + '&remain=not.is.null&order=date.desc&limit=200');
+  const seen = new Set();
+  (rows||[]).forEach(r => {
+    if (items.indexOf(r.item_name) !== -1 && !seen.has(r.item_name)) {
+      result[r.item_name] = r.remain || 0;
+      seen.add(r.item_name);
+    }
+  });
+  return result;
+}
+
 // ========== 定休日・休日前の自動判定 ==========
 let holidaySetCache = null;
 async function getHolidaySet() {
@@ -157,12 +173,16 @@ async function computeDefaultTargetDate() {
 let remainMap = {};      // 今日の売れ残り（見るだけ）
 let targetMap = {};      // 対象日の解凍数入力（数値）
 let recommendedMap = {}; // 対象日の推奨準備数（まりが設定・見るだけ）
+let targetCarryover = {}; // 対象日への持ち越し在庫（保存時のremain計算用）
 
 async function loadTargetData(dateStr) {
   const [targetStockRaw, patternRowsRaw] = await Promise.all([
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed,recommended&date=eq.' + dateStr),
     supaFetch('/rest/v1/cake_recommended_patterns?select=pattern,item_name,quantity'),
   ]);
+
+  // 対象日への持ち越し在庫（保存時にremainを正しく書き込むため）
+  targetCarryover = await getCarryover(dateStr, ITEMS);
 
   const autoPattern = await getPatternForDate(dateStr);
   const autoQty = {};
@@ -190,28 +210,15 @@ async function load() {
   TARGET_DEFAULT = await computeDefaultTargetDate();
   TARGET_DATE = TARGET_DEFAULT;
 
-  const [ystockRaw, todayStockRaw, salesRaw, yesterdaySalesRaw] = await Promise.all([
-    supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold&date=eq.' + YESTERDAY),
+  const [todayStockRaw, salesRaw] = await Promise.all([
     supaFetch('/rest/v1/cake_stock?select=item_name,thawed&date=eq.' + TODAY),
     supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + TODAY + '&limit=1000'),
-    supaFetch('/rest/v1/order_items?select=item_name,qty&sale_date=eq.' + YESTERDAY + '&limit=1000'),
   ]);
 
   await loadTargetData(TARGET_DATE);
 
-  const leftoverFromYesterday = {};
-  ITEMS.forEach(item => leftoverFromYesterday[item] = 0);
-  (ystockRaw||[]).forEach(r => {
-    if (ITEMS_SET.has(r.item_name)) leftoverFromYesterday[r.item_name] = r.thawed || 0;
-  });
-  const soldYesterday = {};
-  ITEMS.forEach(item => soldYesterday[item] = 0);
-  (yesterdaySalesRaw||[]).forEach(r => {
-    if (ITEMS_SET.has(r.item_name)) soldYesterday[r.item_name] += (r.qty||1);
-  });
-  ITEMS.forEach(item => {
-    leftoverFromYesterday[item] = Math.max(0, leftoverFromYesterday[item] - soldYesterday[item]);
-  });
+  // 直近に保存された残数（remain）を持ち越し在庫として使う（何日空いても正しく取れる）
+  const leftoverFromYesterday = await getCarryover(TODAY, ITEMS);
 
   const todayAdded = {};
   ITEMS.forEach(item => todayAdded[item] = 0);
@@ -356,12 +363,17 @@ function render() {
     const btn = document.getElementById('save-btn');
     btn.disabled = true; btn.textContent = '保存中...';
 
-    const upserts = ITEMS.map(item => ({
-      date: TARGET_DATE,
-      item_name: item,
-      thawed: Math.max(0, parseInt(targetMap[item]) || 0),
-      sold: 0
-    }));
+    const upserts = ITEMS.map(item => {
+      const add = Math.max(0, parseInt(targetMap[item]) || 0);
+      const carry = targetCarryover[item] || 0;
+      return {
+        date: TARGET_DATE,
+        item_name: item,
+        thawed: add,
+        sold: 0,
+        remain: Math.max(0, carry + add)
+      };
+    });
 
     try {
       const res = await fetch(SUPA_URL + '/rest/v1/cake_stock?on_conflict=date,item_name', {
