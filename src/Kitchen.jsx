@@ -47,18 +47,34 @@ function jstDate(offsetDays = 0) {
   return d.toISOString().slice(0, 10);
 }
 
-// 指定日より前で、最後に保存された残数(remain)を取得する（1件だけ、再帰なし）
+// 指定日より前で、最後に保存された残数(remain)を取得し、保存日を含めて指定日の前日までに
+// 実際に売れた数（order_items）のうち、保存時点でまだ引かれていなかった分を追加で差し引く（再帰なし）
 async function getCarryover(beforeDate, itemName) {
   try {
-    const { data } = await supabase
+    const { data: remainRows } = await supabase
       .from("cake_stock")
-      .select("remain,date")
+      .select("remain,sold,date")
       .eq("item_name", itemName)
       .lt("date", beforeDate)
       .not("remain", "is", null)
       .order("date", { ascending: false })
       .limit(1);
-    return data?.[0]?.remain || 0;
+
+    const lastRemain = remainRows?.[0]?.remain || 0;
+    const lastDate = remainRows?.[0]?.date;
+    const lastSoldAtSave = remainRows?.[0]?.sold || 0;
+    if (!lastDate) return 0;
+
+    const { data: salesRows } = await supabase
+      .from("order_items")
+      .select("qty,sale_date")
+      .eq("item_name", itemName)
+      .gte("sale_date", lastDate)
+      .lt("sale_date", beforeDate);
+
+    const soldTotal = (salesRows || []).reduce((sum, r) => sum + (r.qty || 1), 0);
+    const adjustment = Math.max(0, soldTotal - lastSoldAtSave);
+    return Math.max(0, lastRemain - adjustment);
   } catch (e) {
     return 0;
   }
