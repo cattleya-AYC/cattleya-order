@@ -221,18 +221,46 @@ async function supaFetch(path) {
   return res.json();
 }
 
-// 指定日より前で、最後に保存された残数(remain)を商品ごとに1件だけ取得する。
-// 何日空いても「直近の保存」を1回見に行くだけなので、遡り計算による暴走は起きない。
+// 指定日より前で、最後に保存された残数(remain)を商品ごとに1件だけ取得し、
+// 保存日を含めて指定日の前日までに実際に売れた数（order_items＝レジの記録）のうち、
+// 保存時点でまだ引かれていなかった分を追加で差し引く。
+// 「解凍数を足し算し続ける」処理は一切しないので暴走リスクはない。
 async function getCarryover(beforeDate, items) {
   const result = {};
   items.forEach(item => result[item] = 0);
-  const rows = await supaFetch('/rest/v1/cake_stock?select=item_name,remain,date&date=lt.' + beforeDate + '&remain=not.is.null&order=date.desc&limit=200');
+
+  const remainRows = await supaFetch('/rest/v1/cake_stock?select=item_name,remain,sold,date&date=lt.' + beforeDate + '&remain=not.is.null&order=date.desc&limit=200');
+  const lastRemain = {}, lastDate = {}, lastSoldAtSave = {};
+  items.forEach(item => { lastRemain[item] = 0; lastDate[item] = null; lastSoldAtSave[item] = 0; });
   const seen = new Set();
-  (rows||[]).forEach(r => {
+  (remainRows||[]).forEach(r => {
     if (items.indexOf(r.item_name) !== -1 && !seen.has(r.item_name)) {
-      result[r.item_name] = r.remain || 0;
+      lastRemain[r.item_name] = r.remain || 0;
+      lastDate[r.item_name] = r.date;
+      lastSoldAtSave[r.item_name] = r.sold || 0;
       seen.add(r.item_name);
     }
+  });
+
+  let earliestDate = null;
+  items.forEach(item => {
+    if (lastDate[item] && (!earliestDate || lastDate[item] < earliestDate)) earliestDate = lastDate[item];
+  });
+
+  const soldTotal = {};
+  items.forEach(item => soldTotal[item] = 0);
+  if (earliestDate) {
+    const salesRows = await supaFetch('/rest/v1/order_items?select=item_name,qty,sale_date&sale_date=gte.' + earliestDate + '&sale_date=lt.' + beforeDate + '&limit=5000');
+    (salesRows||[]).forEach(r => {
+      if (items.indexOf(r.item_name) !== -1 && lastDate[r.item_name] && r.sale_date >= lastDate[r.item_name]) {
+        soldTotal[r.item_name] += (r.qty||1);
+      }
+    });
+  }
+
+  items.forEach(item => {
+    const adjustment = Math.max(0, soldTotal[item] - lastSoldAtSave[item]);
+    result[item] = Math.max(0, lastRemain[item] - adjustment);
   });
   return result;
 }
