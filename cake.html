@@ -402,7 +402,8 @@ function render() {
         item_name: item,
         thawed: add,
         sold: 0,
-        remain: Math.max(0, carry + add)
+        remain: Math.max(0, carry + add),
+        saved_at: new Date().toISOString()
       };
     });
 

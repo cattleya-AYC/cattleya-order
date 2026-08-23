@@ -87,6 +87,7 @@
   <button class="tab active" data-tab="today">📋 今日の状況</button>
   <button class="tab" data-tab="month">📊 月次集計</button>
   <button class="tab" data-tab="daily">📅 日別売上</button>
+  <button class="tab" data-tab="thawhistory">🧊 解凍履歴</button>
   <button class="tab" data-tab="frozen">🧊 冷凍在庫</button>
   <button class="tab" data-tab="tomorrow">🌙 明日の予定</button>
   <button class="tab" data-tab="patterns">⚙️ 推奨数パターン</button>
@@ -124,6 +125,16 @@
   <div id="daily-body" style="display:none"></div>
 </div>
 
+<div id="thawhistory-content" class="content" style="display:none">
+  <div class="month-bar">
+    <button class="month-btn" id="thawhistory-prev">‹</button>
+    <div class="month-label" id="thawhistory-label"></div>
+    <button class="month-btn" id="thawhistory-next">›</button>
+  </div>
+  <div class="loading" id="thawhistory-loading">読み込み中...</div>
+  <div id="thawhistory-body" style="display:none"></div>
+</div>
+
 <div id="frozen-content" class="content" style="display:none">
   <div class="loading" id="frozen-loading">読み込み中...</div>
   <div id="frozen-body" style="display:none"></div>
@@ -145,6 +156,7 @@ const SUPA_KEY = 'sb_publishable_LLIkeICkSI-IS-2xMKO9_A_I8MAo2IT';
 
 const ITEMS = ['ミルクレープ','ガトーショコラ','フォンダンショコラ','チーズケーキ','紅茶のシフォン','栗のモンブラン','コーヒーゼリー'];
 const ITEMS_SET = new Set(ITEMS);
+let lastCarryoverDebug = {}; // 持ち越し計算の内訳（今日タブに表示用）
 
 function itemKey(item) {
   return 'i' + ITEMS.indexOf(item);
@@ -227,6 +239,7 @@ async function supaFetch(path) {
 // 「解凍数を足し算し続ける」処理は一切しないので暴走リスクはない。
 async function getCarryover(beforeDate, items) {
   const result = {};
+  const debug = {};
   items.forEach(item => result[item] = 0);
 
   const remainRows = await supaFetch('/rest/v1/cake_stock?select=item_name,remain,sold,date&date=lt.' + beforeDate + '&remain=not.is.null&order=date.desc&limit=200');
@@ -261,7 +274,15 @@ async function getCarryover(beforeDate, items) {
   items.forEach(item => {
     const adjustment = Math.max(0, soldTotal[item] - lastSoldAtSave[item]);
     result[item] = Math.max(0, lastRemain[item] - adjustment);
+    debug[item] = {
+      lastDate: lastDate[item],
+      lastRemain: lastRemain[item],
+      soldSinceIncludingSaveDay: soldTotal[item],
+      adjustment: adjustment,
+      result: result[item]
+    };
   });
+  lastCarryoverDebug = debug;
   return result;
 }
 
@@ -274,6 +295,8 @@ let currentMonth = TODAY.slice(0,7);
 let dailyMonth = TODAY.slice(0,7);
 let dailyData = [];
 let monthSoldTotals = {};
+let thawHistoryMonth = TODAY.slice(0,7);
+let thawHistoryData = [];
 
 // タブ切替
 document.querySelectorAll('.tab').forEach(btn => {
@@ -281,11 +304,12 @@ document.querySelectorAll('.tab').forEach(btn => {
     const tab = btn.dataset.tab;
     document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    ['today','month','daily','frozen','tomorrow','patterns'].forEach(t => {
+    ['today','month','daily','thawhistory','frozen','tomorrow','patterns'].forEach(t => {
       document.getElementById(t+'-content').style.display = t === tab ? 'block' : 'none';
     });
     if (tab === 'month') loadMonth();
     if (tab === 'daily') loadDaily();
+    if (tab === 'thawhistory') loadThawHistory();
     if (tab === 'frozen') loadFrozen();
     if (tab === 'tomorrow') loadTomorrow();
     if (tab === 'patterns') loadPatterns();
@@ -376,6 +400,16 @@ function renderToday() {
   if (isPast) {
     html += '<div class="notice-box">⚠️ 今日ではない日付を表示・編集しています。保存すると、この日付のデータが上書きされます。</div>';
   }
+
+  html += '<details style="margin-bottom:14px;background:#faf6ee;border:1px solid #e0d2b0;border-radius:10px;padding:10px 14px;font-size:13px;color:#7a6a4a;">';
+  html += '<summary style="cursor:pointer;font-weight:700;">🔍 在庫の計算内訳を見る</summary>';
+  html += '<table style="width:100%;margin-top:10px;border-collapse:collapse;font-size:12px;">';
+  html += '<tr style="text-align:left;color:#a08858;"><th>商品</th><th>前回保存日</th><th>その日の残数</th><th>それ以降の販売</th><th>今日の持ち越し</th></tr>';
+  ITEMS.forEach(item => {
+    const d = lastCarryoverDebug[item] || {};
+    html += '<tr><td>' + item + '</td><td>' + (d.lastDate ? d.lastDate.replace(/-/g,'/') : '記録なし') + '</td><td>' + (d.lastRemain ?? '-') + '</td><td>' + (d.adjustment ?? '-') + '</td><td><strong>' + (d.result ?? 0) + '</strong></td></tr>';
+  });
+  html += '</table></details>';
 
   ITEMS.forEach(item => {
     const stock = stockMap[item] || 0;
@@ -533,6 +567,55 @@ async function loadMonth() {
 document.getElementById('daily-prev').addEventListener('click', () => { dailyMonth = prevMonth(dailyMonth); loadDaily(); });
 document.getElementById('daily-next').addEventListener('click', () => { dailyMonth = nextMonth(dailyMonth); loadDaily(); });
 document.getElementById('daily-pdf').addEventListener('click', printDaily);
+
+document.getElementById('thawhistory-prev').addEventListener('click', () => { thawHistoryMonth = prevMonth(thawHistoryMonth); loadThawHistory(); });
+document.getElementById('thawhistory-next').addEventListener('click', () => { thawHistoryMonth = nextMonth(thawHistoryMonth); loadThawHistory(); });
+
+async function loadThawHistory() {
+  document.getElementById('thawhistory-label').textContent = monthLabel(thawHistoryMonth);
+  document.getElementById('thawhistory-loading').style.display = 'block';
+  document.getElementById('thawhistory-body').style.display = 'none';
+
+  const from = thawHistoryMonth + '-01';
+  const last = lastDay(thawHistoryMonth);
+  const to = thawHistoryMonth + '-' + pad(last);
+  const data = await supaFetch('/rest/v1/cake_stock?select=item_name,thawed,sold,remain,date&date=gte.' + from + '&date=lte.' + to);
+
+  const byDateItem = {};
+  (data||[]).forEach(r => {
+    if (!ITEMS_SET.has(r.item_name)) return;
+    byDateItem[r.date + '__' + r.item_name] = { thawed: r.thawed||0, sold: r.sold||0, remain: r.remain };
+  });
+
+  thawHistoryData = [];
+  for (let d = 1; d <= last; d++) {
+    const date = thawHistoryMonth + '-' + pad(d);
+    const row = {};
+    ITEMS.forEach(item => row[item] = byDateItem[date+'__'+item] || null);
+    thawHistoryData.push({ date, row });
+  }
+
+  let thead = '<thead><tr><th>日付</th>';
+  ITEMS.forEach(item => thead += '<th>' + item + '</th>');
+  thead += '</tr></thead>';
+
+  let tbody = '<tbody>';
+  thawHistoryData.forEach(r => {
+    tbody += '<tr><td>' + r.date.slice(5) + '</td>';
+    ITEMS.forEach(item => {
+      const v = r.row[item];
+      if (!v) { tbody += '<td>-</td>'; return; }
+      const remainText = v.remain === null || v.remain === undefined ? '?' : v.remain;
+      tbody += '<td class="has-val" style="font-size:11px;line-height:1.5;">解凍' + v.thawed + '<br>売' + v.sold + '<br><strong>残' + remainText + '</strong></td>';
+    });
+    tbody += '</tr>';
+  });
+  tbody += '</tbody>';
+
+  document.getElementById('thawhistory-body').innerHTML = '<div class="table-wrap"><table>' + thead + tbody + '</table></div>';
+  document.getElementById('thawhistory-loading').style.display = 'none';
+  document.getElementById('thawhistory-body').style.display = 'block';
+}
 
 async function loadDaily() {
   document.getElementById('daily-label').textContent = monthLabel(dailyMonth);
