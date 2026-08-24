@@ -1169,7 +1169,7 @@ export default function Register() {
   };
   const isCouponPeriodC = () => {
     const jstDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
-    return jstDate <= "2026-08-31";
+    return jstDate <= "2026-09-30";
   };
 
   // Aクーポン専用：発行日(issued_at)から14日間有効
@@ -1204,7 +1204,7 @@ export default function Register() {
       const { data } = await supabase.from("coupons").select("*").eq("coupon_no", fullNo).eq("is_used", true);
       if (data && data.length > 0) { setCouponError("このクーポンはすでに使用済みです"); return; }
     } else if (couponType === "C") {
-      if (!isCouponPeriodC()) { setCouponError("Cクーポンの利用期間は8月31日までです"); return; }
+      if (!isCouponPeriodC()) { setCouponError("Cクーポンの利用期間は9月30日までです"); return; }
     } else {
 
       const result = await checkCouponAValidity(fullNo);
