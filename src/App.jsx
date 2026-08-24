@@ -6,6 +6,22 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODM2MTksImV4cCI6MjA5NTI1OTYxOX0.vNndS7JEzIUsa007EPO2zRoYhUr-z01LM32BKIhMSz4"
 );
 
+function speakPicon() {
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    synth.cancel();
+    setTimeout(() => {
+      const u = new SpeechSynthesisUtterance("ピコン");
+      u.lang = "ja-JP";
+      u.rate = 1.3;
+      u.pitch = 1.5;
+      u.volume = 1.0;
+      synth.speak(u);
+    }, 100);
+  } catch (e) {}
+}
+
 const MENU = {
   コーヒー: [
     { id: 1, name: "コーヒー（HOT）", price: 650 },
@@ -198,6 +214,7 @@ export default function App() {
     const channel = supabase.channel("print_notifications_channel")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "print_notifications" }, (payload) => {
         setPrintNotif(payload.new);
+        speakPicon();
       })
       .subscribe();
     return () => supabase.removeChannel(channel);
@@ -208,7 +225,12 @@ export default function App() {
       fetchUnserved();
       fetchAllOrders();
       supabase.from("print_notifications").select("*").eq("dismissed", false).order("sent_at", { ascending: false }).limit(1)
-        .then(({ data }) => { if (data && data.length > 0) setPrintNotif(data[0]); else setPrintNotif(null); });
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            if (!printNotif || printNotif.id !== data[0].id) speakPicon();
+            setPrintNotif(data[0]);
+          } else setPrintNotif(null);
+        });
       if (announcementExpiresRef.current && new Date(announcementExpiresRef.current) <= new Date()) {
         setAnnouncement(""); announcementExpiresRef.current = null;
       }
