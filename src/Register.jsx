@@ -1028,8 +1028,9 @@ export default function Register() {
 
     await supabase.from("orders").delete().eq("table_no", String(t));
     const saleDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
-    await supabase.from("sales").insert({ table_no: String(t), amount, pay_method: payMethod, receipt_type: receiptType, people_count: people, sale_time: now, checkin_time: checkinTime, takeout: (freshOrders || []).some(o => o.takeout === true), sale_date: saleDate });
-    await fetchTodaySales();
+        const { data: newSale } = await supabase.from("sales").insert({ table_no: String(t), amount, pay_method: payMethod, receipt_type: receiptType, people_count: people, sale_time: now, checkin_time: checkinTime, takeout: (freshOrders || []).some(o => o.takeout === true), sale_date: saleDate }).select().single();
+    const newSaleId = newSale ? newSale.id : null;
+  await fetchTodaySales();
     const record = { table: t, amount, time: now, pay: payMethod, receipt: receiptType, timestamp: Date.now() };
     setHistory((prev) => [record, ...prev]);
     setLastCheckout(record);
@@ -1039,9 +1040,9 @@ export default function Register() {
     // クーポン使用記録
         if (couponApplied && couponType && couponNo) {
       const fullNoUsed = `${couponType}${couponNo}`;
-          if (couponType === "A") {
+                    if (couponType === "A") {
       await supabase.from("coupons")
-        .update({ used_at: new Date().toISOString(), is_used: true, amount_before: amount + couponDiscount, discount_amount: couponDiscount })
+        .update({ used_at: new Date().toISOString(), is_used: true, amount_before: amount + couponDiscount, discount_amount: couponDiscount, used_sale_id: newSaleId })
         .eq("coupon_no", fullNoUsed).eq("is_used", false);
     } else if (couponType === "C") {
       await supabase.from("coupons").insert({
@@ -1051,6 +1052,7 @@ export default function Register() {
         is_used: true,
         amount_before: amount + couponDiscount,
         discount_amount: couponDiscount,
+        used_sale_id: newSaleId,
       });
     } else {
       await supabase.from("coupons").insert({
@@ -1060,8 +1062,10 @@ export default function Register() {
         is_used: true,
         amount_before: amount + couponDiscount,
         discount_amount: couponDiscount,
+        used_sale_id: newSaleId,
       });
     }
+
 
       setCouponApplied(false); setCouponDiscount(0); setCouponType(null); setCouponNo("");
     }
