@@ -291,6 +291,7 @@ let icqrEditingDate = null;
 let currentTab = 'paycas';
 let salesData = [];
 let orderItemsData = [];
+let couponBySaleId = {};
 let selectedDate = '';
 
 const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
@@ -335,6 +336,15 @@ async function loadAll() {
 
   salesData = sales || [];
   orderItemsData = items || [];
+
+  const saleIds = salesData.map(s => s.id).filter(id => id != null);
+  couponBySaleId = {};
+  if (saleIds.length > 0) {
+    const { data: couponsForSales } = await sb.from("coupons")
+      .select("used_sale_id, coupon_type, discount_amount")
+      .in("used_sale_id", saleIds);
+    (couponsForSales || []).forEach(c => { couponBySaleId[c.used_sale_id] = c; });
+  }
 
   renderPaycas();
   renderVisit();
@@ -964,6 +974,10 @@ function renderVisit() {
       String(o.table_no) === String(sale.table_no) && o.sale_time === sale.sale_time
     );
     const payColor = sale.pay_method === 'ペイキャス' ? '#5a8aca' : '#4aaa5a';
+    const usedCoupon = couponBySaleId[sale.id];
+    const couponBadge = usedCoupon
+      ? `<span style="display:inline-block;margin-top:4px;padding:2px 8px;background:#3d2c14;border:1px solid #c9952a;border-radius:20px;color:#c9952a;font-size:11px;font-weight:700;">🎟 ${usedCoupon.coupon_type}クーポン -¥${(usedCoupon.discount_amount || 0).toLocaleString()}</span>`
+      : '';
 
     html += `
     <div class="visit-card">
@@ -971,6 +985,7 @@ function renderVisit() {
         <div>
           <div class="vtable">テーブル ${sale.table_no}</div>
           <div class="vinfo">退店 ${sale.sale_time || '-'}　${sale.people_count || '-'}名</div>
+          ${couponBadge}
         </div>
         <div class="vtotal">
           <div class="vtotal-amount">¥${sale.amount.toLocaleString()}</div>
