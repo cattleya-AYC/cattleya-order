@@ -7,6 +7,10 @@ const supabase = createClient(
 );
 
 const TABLES = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"];
+const RETAIL_ITEMS = [
+  { name: "多肉植物（小）", price: 300 },
+  { name: "多肉植物（大）", price: 500 },
+];
 
 const TOBACCO = [
   { id: 1, name: "ピースライト ボックス", price: 600 },
@@ -822,6 +826,8 @@ export default function Register() {
   const [receiptType, setReceiptType] = useState(null);
   const [receivedAmount, setReceivedAmount] = useState("");
   const [mode, setMode] = useState("register");
+  const [showRetailModal, setShowRetailModal] = useState(false);
+  const [retailQty, setRetailQty] = useState({});
   const [tobaccoConfirming, setTobaccoConfirming] = useState(null);
   const [tobaccoReceiptType, setTobaccoReceiptType] = useState(null);
   const [tobaccoReceived, setTobaccoReceived] = useState("");
@@ -971,6 +977,26 @@ export default function Register() {
   );
   const canTobaccoCheckout = tobaccoReceiptType && tobaccoReceived && tobaccoChange !== null && tobaccoChange >= 0;
 
+  const retailTotal = RETAIL_ITEMS.reduce((sum, item) => sum + (retailQty[item.name] || 0) * item.price, 0);
+  const retailHasItems = RETAIL_ITEMS.some(item => (retailQty[item.name] || 0) > 0);
+
+  const submitRetail = async () => {
+    const itemsToAdd = RETAIL_ITEMS.filter(item => (retailQty[item.name] || 0) > 0);
+    for (const item of itemsToAdd) {
+      await supabase.from("orders").insert({
+        table_no: "物販",
+        item_name: item.name,
+        price: item.price,
+        qty: retailQty[item.name],
+        status: "pending",
+      });
+    }
+    await fetchOrders();
+    setRetailQty({});
+    setShowRetailModal(false);
+    setSelected("物販");
+  };
+
   const checkout = async () => {
     if (checkingOut) return; // 二重送信防止
     setCheckingOut(true);
@@ -1028,9 +1054,8 @@ export default function Register() {
 
     await supabase.from("orders").delete().eq("table_no", String(t));
     const saleDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
-        const { data: newSale } = await supabase.from("sales").insert({ table_no: String(t), amount, pay_method: payMethod, receipt_type: receiptType, people_count: people, sale_time: now, checkin_time: checkinTime, takeout: (freshOrders || []).some(o => o.takeout === true), sale_date: saleDate }).select().single();
-    const newSaleId = newSale ? newSale.id : null;
-  await fetchTodaySales();
+    await supabase.from("sales").insert({ table_no: String(t), amount, pay_method: payMethod, receipt_type: receiptType, people_count: people, sale_time: now, checkin_time: checkinTime, takeout: (freshOrders || []).some(o => o.takeout === true), sale_date: saleDate });
+    await fetchTodaySales();
     const record = { table: t, amount, time: now, pay: payMethod, receipt: receiptType, timestamp: Date.now() };
     setHistory((prev) => [record, ...prev]);
     setLastCheckout(record);
@@ -1040,9 +1065,9 @@ export default function Register() {
     // クーポン使用記録
         if (couponApplied && couponType && couponNo) {
       const fullNoUsed = `${couponType}${couponNo}`;
-                    if (couponType === "A") {
+          if (couponType === "A") {
       await supabase.from("coupons")
-        .update({ used_at: new Date().toISOString(), is_used: true, amount_before: amount + couponDiscount, discount_amount: couponDiscount, used_sale_id: newSaleId })
+        .update({ used_at: new Date().toISOString(), is_used: true, amount_before: amount + couponDiscount, discount_amount: couponDiscount })
         .eq("coupon_no", fullNoUsed).eq("is_used", false);
     } else if (couponType === "C") {
       await supabase.from("coupons").insert({
@@ -1052,7 +1077,6 @@ export default function Register() {
         is_used: true,
         amount_before: amount + couponDiscount,
         discount_amount: couponDiscount,
-        used_sale_id: newSaleId,
       });
     } else {
       await supabase.from("coupons").insert({
@@ -1062,10 +1086,8 @@ export default function Register() {
         is_used: true,
         amount_before: amount + couponDiscount,
         discount_amount: couponDiscount,
-        used_sale_id: newSaleId,
       });
     }
-
 
       setCouponApplied(false); setCouponDiscount(0); setCouponType(null); setCouponNo("");
     }
@@ -1196,47 +1218,34 @@ export default function Register() {
 
 
 
-    const logCouponAttempt = async (result, reason, fullNo) => {
-    await supabase.from("coupon_apply_log").insert({
-      coupon_type: couponType,
-      coupon_no: couponNo,
-      full_no: fullNo || null,
-      table_no: selected ? String(selected) : null,
-      result,
-      reason: reason || null,
-    });
-  };
-
   const applyCoupon = async () => {
     setCouponError("");
-    if (!couponType) { setCouponError("AまたはBを選んでください"); await logCouponAttempt("error", "種類未選択", null); return; }
+    if (!couponType) { setCouponError("AまたはBを選んでください"); return; }
     const no = couponNo.trim();
-    if (!no || !/^\d{5}$/.test(no)) { setCouponError("5桁の数字を入力してください"); await logCouponAttempt("error", "番号形式不正", null); return; }
+    if (!no || !/^\d{5}$/.test(no)) { setCouponError("5桁の数字を入力してください"); return; }
     const fullNo = `${couponType}${no}`;
 
       if (couponType === "B") {
-      if (!isCouponPeriodB()) { setCouponError("Bクーポンの利用期間は7月31日までです"); await logCouponAttempt("error", "B期間外", fullNo); return; }
+      if (!isCouponPeriodB()) { setCouponError("Bクーポンの利用期間は7月31日までです"); return; }
       const { data } = await supabase.from("coupons").select("*").eq("coupon_no", fullNo).eq("is_used", true);
-      if (data && data.length > 0) { setCouponError("このクーポンはすでに使用済みです"); await logCouponAttempt("error", "使用済み(B)", fullNo); return; }
+      if (data && data.length > 0) { setCouponError("このクーポンはすでに使用済みです"); return; }
     } else if (couponType === "C") {
-      if (!isCouponPeriodC()) { setCouponError("Cクーポンの利用期間は9月30日までです"); await logCouponAttempt("error", "C期間外", fullNo); return; }
+      if (!isCouponPeriodC()) { setCouponError("Cクーポンの利用期間は9月30日までです"); return; }
     } else {
 
       const result = await checkCouponAValidity(fullNo);
-      if (!result.ok) { setCouponError(result.reason); await logCouponAttempt("error", result.reason, fullNo); return; }
+      if (!result.ok) { setCouponError(result.reason); return; }
     }
 
         const base = selectedTotal - _setDiscAmt;
 
-    if (base < 1000) { setCouponError("1,000円未満はクーポンをご利用いただけません"); await logCouponAttempt("error", "1000円未満", fullNo); return; }
+    if (base < 1000) { setCouponError("1,000円未満はクーポンをご利用いただけません"); return; }
     const disc = Math.floor(base * 0.05 / 10) * 10;
     setCouponDiscount(disc);
     setCouponApplied(true);
     setShowCoupon(false);
     setCouponError("");
-    await logCouponAttempt("success", null, fullNo);
   };
-
 
   const removeCoupon = () => {
     setCouponApplied(false);
@@ -1617,6 +1626,45 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
         </div>
       )}
 
+      {showRetailModal && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000cc", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 250, padding: 20 }}>
+          <div style={{ background: "#2a1a2a", border: "1px solid #c95aca", borderRadius: 14, padding: 22, width: "100%", maxWidth: 380 }}>
+            <div style={{ color: "#e0a8e0", fontSize: 18, fontWeight: 900, marginBottom: 16 }}>🌵 物販販売</div>
+            <div style={{ color: "#c8a0c8", fontSize: 13, marginBottom: 14 }}>個数を入力してください</div>
+
+            {RETAIL_ITEMS.map(item => (
+              <div key={item.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid #4a2a4a" }}>
+                <div>
+                  <div style={{ color: "#f0d0f0", fontSize: 15, fontWeight: 700 }}>{item.name}</div>
+                  <div style={{ color: "#a880a8", fontSize: 12 }}>¥{item.price.toLocaleString()}</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <button onClick={() => setRetailQty(q => ({ ...q, [item.name]: Math.max(0, (q[item.name] || 0) - 1) }))}
+                    style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid #c95aca", background: "transparent", color: "#e0a8e0", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>−</button>
+                  <div style={{ width: 28, textAlign: "center", color: "#fff", fontSize: 18, fontWeight: 900 }}>{retailQty[item.name] || 0}</div>
+                  <button onClick={() => setRetailQty(q => ({ ...q, [item.name]: (q[item.name] || 0) + 1 }))}
+                    style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid #c95aca", background: "#c95aca", color: "#fff", fontSize: 18, fontWeight: 900, cursor: "pointer" }}>＋</button>
+                </div>
+              </div>
+            ))}
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "16px 0" }}>
+              <span style={{ color: "#c8a0c8", fontSize: 14, fontWeight: 700 }}>合計</span>
+              <span style={{ color: "#fff", fontFamily: "serif", fontSize: 26, fontWeight: 900 }}>¥{retailTotal.toLocaleString()}</span>
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => { setShowRetailModal(false); setRetailQty({}); }}
+                style={{ flex: 1, padding: 14, background: "transparent", border: "1px solid #5a3a5a", borderRadius: 10, color: "#c8a0c8", cursor: "pointer" }}>キャンセル</button>
+              <button onClick={submitRetail} disabled={!retailHasItems}
+                style={{ flex: 2, padding: 14, background: retailHasItems ? "#c95aca" : "#4a2a4a", border: "none", borderRadius: 10, color: "#fff", fontWeight: 700, fontSize: 16, cursor: retailHasItems ? "pointer" : "not-allowed" }}>
+                会計へ進む
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showPinModal && (
         <div style={{ position: "fixed", inset: 0, background: "#000000dd", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }}>
           <div style={{ background: "#1a120a", border: "2px solid #c9952a", borderRadius: 16, padding: 28, width: 300, textAlign: "center" }}>
@@ -1891,6 +1939,17 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
                   style={{ padding: "0", background: "#1a2a1a", border: takeoutOcc ? "3px solid #2aaa6a" : "none", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
                   <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/takeout.PNG" style={{ width: "100%", height: 70, objectFit: "cover", display: "block" }} />
                   {takeoutOcc && <div style={{ background: "#2aaa6a", color: "#fff", fontSize: 11, fontWeight: 900, textAlign: "center", padding: "2px 0" }}>● 注文あり</div>}
+                </button>
+              );
+            })()}
+
+            {(() => {
+              const retailOcc = tableOrders("物販").length > 0;
+              return (
+                <button onClick={() => { if (retailOcc) { setSelected("物販"); } else { setShowRetailModal(true); setRetailQty({}); } }}
+                  style={{ padding: "14px 4px", background: "#2a1a2a", border: retailOcc ? "3px solid #c95aca" : "1px solid #5a3a5a", borderRadius: 10, cursor: "pointer", color: "#e0a8e0", fontSize: 14, fontWeight: 900, textAlign: "center" }}>
+                  🌵 物販
+                  {retailOcc && <div style={{ background: "#c95aca", color: "#fff", fontSize: 11, fontWeight: 900, textAlign: "center", padding: "2px 0", marginTop: 4, borderRadius: 6 }}>● 会計待ち</div>}
                 </button>
               );
             })()}
