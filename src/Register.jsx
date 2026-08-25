@@ -1192,34 +1192,47 @@ export default function Register() {
 
 
 
+    const logCouponAttempt = async (result, reason, fullNo) => {
+    await supabase.from("coupon_apply_log").insert({
+      coupon_type: couponType,
+      coupon_no: couponNo,
+      full_no: fullNo || null,
+      table_no: selected ? String(selected) : null,
+      result,
+      reason: reason || null,
+    });
+  };
+
   const applyCoupon = async () => {
     setCouponError("");
-    if (!couponType) { setCouponError("AまたはBを選んでください"); return; }
+    if (!couponType) { setCouponError("AまたはBを選んでください"); await logCouponAttempt("error", "種類未選択", null); return; }
     const no = couponNo.trim();
-    if (!no || !/^\d{5}$/.test(no)) { setCouponError("5桁の数字を入力してください"); return; }
+    if (!no || !/^\d{5}$/.test(no)) { setCouponError("5桁の数字を入力してください"); await logCouponAttempt("error", "番号形式不正", null); return; }
     const fullNo = `${couponType}${no}`;
 
       if (couponType === "B") {
-      if (!isCouponPeriodB()) { setCouponError("Bクーポンの利用期間は7月31日までです"); return; }
+      if (!isCouponPeriodB()) { setCouponError("Bクーポンの利用期間は7月31日までです"); await logCouponAttempt("error", "B期間外", fullNo); return; }
       const { data } = await supabase.from("coupons").select("*").eq("coupon_no", fullNo).eq("is_used", true);
-      if (data && data.length > 0) { setCouponError("このクーポンはすでに使用済みです"); return; }
+      if (data && data.length > 0) { setCouponError("このクーポンはすでに使用済みです"); await logCouponAttempt("error", "使用済み(B)", fullNo); return; }
     } else if (couponType === "C") {
-      if (!isCouponPeriodC()) { setCouponError("Cクーポンの利用期間は9月30日までです"); return; }
+      if (!isCouponPeriodC()) { setCouponError("Cクーポンの利用期間は9月30日までです"); await logCouponAttempt("error", "C期間外", fullNo); return; }
     } else {
 
       const result = await checkCouponAValidity(fullNo);
-      if (!result.ok) { setCouponError(result.reason); return; }
+      if (!result.ok) { setCouponError(result.reason); await logCouponAttempt("error", result.reason, fullNo); return; }
     }
 
         const base = selectedTotal - _setDiscAmt;
 
-    if (base < 1000) { setCouponError("1,000円未満はクーポンをご利用いただけません"); return; }
+    if (base < 1000) { setCouponError("1,000円未満はクーポンをご利用いただけません"); await logCouponAttempt("error", "1000円未満", fullNo); return; }
     const disc = Math.floor(base * 0.05 / 10) * 10;
     setCouponDiscount(disc);
     setCouponApplied(true);
     setShowCoupon(false);
     setCouponError("");
+    await logCouponAttempt("success", null, fullNo);
   };
+
 
   const removeCoupon = () => {
     setCouponApplied(false);
