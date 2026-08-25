@@ -229,6 +229,7 @@
   <div class="tab" onclick="switchTab('monthly')" id="tab-monthly">📅 月別</div>
   <div class="tab" onclick="switchTab('tax')" id="tab-tax">🧾 消費税</div>
   <div class="tab" onclick="switchTab('cashcheck')" id="tab-cashcheck">💴 現金チェック</div>
+  <div class="tab" onclick="switchTab('coupon')" id="tab-coupon">🎟 クーポン</div>
 </div>
 
 <div class="content" id="content-paycas">
@@ -252,6 +253,10 @@
 </div>
 
 <div class="content" id="content-cashcheck" style="display:none">
+  <div class="loading">読み込み中...</div>
+</div>
+
+<div class="content" id="content-coupon" style="display:none">
   <div class="loading">読み込み中...</div>
 </div>
 
@@ -300,15 +305,18 @@ function switchTab(tab) {
   document.getElementById('tab-monthly').className = 'tab' + (tab === 'monthly' ? ' active' : '');
   document.getElementById('tab-tax').className = 'tab' + (tab === 'tax' ? ' active' : '');
   document.getElementById('tab-cashcheck').className = 'tab' + (tab === 'cashcheck' ? ' active' : '');
+  document.getElementById('tab-coupon').className = 'tab' + (tab === 'coupon' ? ' active' : '');
   document.getElementById('content-paycas').style.display = tab === 'paycas' ? '' : 'none';
   document.getElementById('content-visit').style.display = tab === 'visit' ? '' : 'none';
   document.getElementById('content-summary').style.display = tab === 'summary' ? '' : 'none';
   document.getElementById('content-monthly').style.display = tab === 'monthly' ? '' : 'none';
   document.getElementById('content-tax').style.display = tab === 'tax' ? '' : 'none';
   document.getElementById('content-cashcheck').style.display = tab === 'cashcheck' ? '' : 'none';
+  document.getElementById('content-coupon').style.display = tab === 'coupon' ? '' : 'none';
   if (tab === 'monthly') loadPaycasMonthly();
   if (tab === 'tax') loadTaxSummary();
   if (tab === 'cashcheck') loadCashCheck();
+  if (tab === 'coupon') loadCouponSummary();
 }
 
 async function loadAll() {
@@ -333,6 +341,7 @@ async function loadAll() {
   renderSummary();
   if (currentTab === 'monthly') loadPaycasMonthly();
   if (currentTab === 'tax') loadTaxSummary();
+  if (currentTab === 'coupon') loadCouponSummary();
 }
 
 function renderPaycas() {
@@ -643,6 +652,95 @@ async function printTaxSummary() {
   w.document.write(html);
   w.document.close();
   w.print();
+}
+
+async function loadCouponSummary() {
+  document.getElementById('content-coupon').innerHTML = '<div class="loading">読み込み中...</div>';
+
+  const dateVal = document.getElementById('dateInput').value;
+  const ym = dateVal ? dateVal.substring(0, 7) : new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).substring(0, 7);
+  const [year, month] = ym.split('-');
+  const startISO = `${year}-${month}-01T00:00:00+09:00`;
+  const nextMonth = Number(month) === 12 ? `${Number(year) + 1}-01` : `${year}-${String(Number(month) + 1).padStart(2, '0')}`;
+  const endISO = `${nextMonth}-01T00:00:00+09:00`;
+
+  const { data: usedCoupons } = await sb.from('coupons')
+    .select('coupon_no, coupon_type, used_at, discount_amount, amount_before')
+    .eq('is_used', true)
+    .gte('used_at', startISO).lt('used_at', endISO)
+    .order('used_at', { ascending: false })
+    .limit(2000);
+
+  const { count: issuedACount } = await sb.from('coupons')
+    .select('coupon_no', { count: 'exact', head: true })
+    .eq('coupon_type', 'A')
+    .gte('issued_at', startISO).lt('issued_at', endISO);
+
+  const rows = usedCoupons || [];
+  const byType = { A: { count: 0, amount: 0 }, B: { count: 0, amount: 0 }, C: { count: 0, amount: 0 } };
+  rows.forEach(c => {
+    const t = c.coupon_type || '?';
+    if (!byType[t]) byType[t] = { count: 0, amount: 0 };
+    byType[t].count += 1;
+    byType[t].amount += (c.discount_amount || 0);
+  });
+  const totalCount = rows.length;
+  const totalAmount = rows.reduce((a, c) => a + (c.discount_amount || 0), 0);
+
+  const typeLabel = { A: 'Aクーポン（再来店）', B: 'Bクーポン', C: 'Cクーポン（配布）' };
+  let typeCardsHtml = '';
+  ['A', 'B', 'C'].forEach(t => {
+    const d = byType[t];
+    if (!d || (d.count === 0 && t !== 'A')) return;
+    typeCardsHtml += `
+      <div style="background:#181008;border:1px solid #3d2c14;border-radius:10px;padding:14px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="color:#f0e6d0;font-size:14px;font-weight:700;">${typeLabel[t] || t}</span>
+          <span style="color:#8a7050;font-size:12px;">${d.count}件</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;">
+          <span style="color:#8a7050;font-size:12px;">${t === 'A' ? '発行 ' + issuedACount + '件 / ' : ''}割引合計</span>
+          <span style="color:#9a9af0;font-size:15px;font-weight:900;">-¥${d.amount.toLocaleString()}</span>
+        </div>
+      </div>`;
+  });
+  if (!typeCardsHtml) typeCardsHtml = '<div style="color:#8a7050;font-size:13px;text-align:center;padding:20px 0;">この月の利用実績はまだありません</div>';
+
+  let listHtml = '';
+  rows.slice(0, 50).forEach(c => {
+    const d = new Date(c.used_at);
+    const dstr = d.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    listHtml += `
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #2a1f10;font-size:13px;">
+        <span style="color:#8a7050;">${dstr}　${c.coupon_type}</span>
+        <span style="color:#f0e6d0;">-¥${(c.discount_amount || 0).toLocaleString()}</span>
+      </div>`;
+  });
+
+  document.getElementById('content-coupon').innerHTML = `
+    <div style="color:#c9952a;font-size:15px;font-weight:700;margin-bottom:14px;letter-spacing:1px;">🎟 クーポン利用 ${year}年${parseInt(month)}月</div>
+
+    <div style="background:#181008;border:2px solid #c9952a;border-radius:12px;padding:16px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="color:#c9952a;font-size:14px;font-weight:700;">利用件数合計</span>
+        <span style="color:#c9952a;font-family:serif;font-size:26px;font-weight:900;">${totalCount}件</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;">
+        <span style="color:#8a7050;font-size:12px;">割引合計額</span>
+        <span style="color:#c9952a;font-size:15px;font-weight:700;">-¥${totalAmount.toLocaleString()}</span>
+      </div>
+    </div>
+
+    ${typeCardsHtml}
+
+    ${rows.length > 0 ? `
+    <div style="color:#8a7050;font-size:12px;margin:16px 0 6px;">利用履歴（新しい順・最大50件）</div>
+    <div style="background:#181008;border:1px solid #3d2c14;border-radius:10px;padding:10px 14px;">
+      ${listHtml}
+    </div>` : ''}
+
+    <div style="color:#8a7050;font-size:10px;margin-top:12px;text-align:center;">Aクーポンは発行から2週間有効。集計は「使用済み（is_used）」になった時点の月に計上されます。</div>
+  `;
 }
 
 async function loadPaycasMonthly() {
