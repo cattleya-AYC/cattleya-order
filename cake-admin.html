@@ -160,11 +160,11 @@ let lastCarryoverDebug = {}; // 持ち越し計算の内訳（今日タブに表
 
 // 冷凍庫在庫チェック用（毎週金曜・紙の在庫確認表と同じ10品目）
 const FROZEN_CAKE_ITEMS = ['ミルクレープ','ガトーショコラ','フォンダンショコラ','チーズケーキ','紅茶のシフォン','栗のモンブラン'];
-const FROZEN_DRINK_ITEMS = ['カルピス濃縮ボトル','グアバジュース','コーヒーゼリー','バドワイザー'];
+const FROZEN_DRINK_ITEMS = ['カルピス濃縮ボトル20杯用','カルピス濃縮ボトル9杯用','グアバジュース','コーヒーゼリー','バドワイザー'];
 const FROZEN_ITEMS = FROZEN_CAKE_ITEMS.concat(FROZEN_DRINK_ITEMS);
 // ドリンクは「1本(個)＝何杯分か」。レジの商品名（order_itemsのitem_name）も対応させる
-const FROZEN_DRINK_RATIO = { 'カルピス濃縮ボトル': 20, 'グアバジュース': 1, 'コーヒーゼリー': 1, 'バドワイザー': 1 };
-const FROZEN_DRINK_SALES_NAME = { 'カルピス濃縮ボトル': 'カルピス', 'グアバジュース': 'グアバジュース', 'コーヒーゼリー': 'コーヒーゼリー', 'バドワイザー': 'バドワイザー' };
+const FROZEN_DRINK_RATIO = { 'カルピス濃縮ボトル20杯用': 20, 'カルピス濃縮ボトル9杯用': 9, 'グアバジュース': 1, 'コーヒーゼリー': 1, 'バドワイザー': 1 };
+const FROZEN_DRINK_SALES_NAME = { 'カルピス濃縮ボトル20杯用': 'カルピス', 'カルピス濃縮ボトル9杯用': 'カルピス', 'グアバジュース': 'グアバジュース', 'コーヒーゼリー': 'コーヒーゼリー', 'バドワイザー': 'バドワイザー' };
 
 function itemKey(item) {
   const i = ITEMS.indexOf(item);
@@ -800,23 +800,49 @@ function renderFrozen() {
   });
 
   html += '<div style="font-weight:700;color:#8b5e3c;margin:20px 0 8px;">🥤 ドリンク（売上と比べて減りすぎていないかチェック）</div>';
-  FROZEN_DRINK_ITEMS.forEach((item) => {
+
+  // --- カルピス（20杯用・9杯用の合体カード） ---
+  const calpisSold = frozenSoldSince['カルピス濃縮ボトル20杯用'] || 0; // 両方に同じ売上数が入っている
+  const calpis20Qty = frozenQty['カルピス濃縮ボトル20杯用'] || 0;
+  const calpis9Qty = frozenQty['カルピス濃縮ボトル9杯用'] || 0;
+  const calpisTotalCupsLast = calpis20Qty * 20 + calpis9Qty * 9;
+  const calpisExpectedCupsNow = calpisTotalCupsLast - calpisSold;
+  html += `
+    <div class="item-card" id="fcard-calpis">
+      <div class="item-top">
+        <div class="item-name">カルピス濃縮ボトル</div>
+        <div class="item-sold">最終棚卸し: ${frozenUpdated['カルピス濃縮ボトル20杯用'].replace(/-/g,'/')}（20杯用${calpis20Qty}本／9杯用${calpis9Qty}本＝残り約${calpisTotalCupsLast}杯分）</div>
+      </div>
+      <div class="item-bottom">
+        <div class="col">
+          <div class="col-label">前回からの売上</div>
+          <div class="col-val col-sold">${calpisSold}杯</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;font-size:13px;color:#7a6a4a;">今回数えた本数</div>
+      <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+        <input class="col-input" style="flex:1" type="number" min="0" placeholder="20杯用（本）" id="finput-calpis20" />
+        <input class="col-input" style="flex:1" type="number" min="0" placeholder="9杯用（本）" id="finput-calpis9" />
+        <button class="save-btn" style="width:auto;padding:10px 16px;margin-top:0;font-size:14px;" onclick="recountCalpis()">✅ 記録する</button>
+      </div>
+      <div id="fcheck-calpis" style="margin-top:8px;font-size:13px;"></div>
+    </div>`;
+
+  // --- その他ドリンク（1本(個)＝1杯扱い） ---
+  ['グアバジュース','コーヒーゼリー','バドワイザー'].forEach((item) => {
     const qty = frozenQty[item] || 0;
     const soldCups = frozenSoldSince[item] || 0;
-    const ratio = FROZEN_DRINK_RATIO[item] || 1;
-    const expectedConsumed = soldCups / ratio;
-    const expectedRemain = qty; // 前回棚卸し数（今回入力前の基準値）
     const key = itemKey(item);
     html += `
       <div class="item-card" id="fcard-${key}">
         <div class="item-top">
           <div class="item-name">${item}</div>
-          <div class="item-sold">最終棚卸し: ${frozenUpdated[item].replace(/-/g,'/')}（${qty}${ratio>1?'本':'個'}）</div>
+          <div class="item-sold">最終棚卸し: ${frozenUpdated[item].replace(/-/g,'/')}（残り約${qty}杯分）</div>
         </div>
         <div class="item-bottom">
           <div class="col">
             <div class="col-label">前回からの売上</div>
-            <div class="col-val col-sold">${soldCups}杯${ratio>1 ? '（÷'+ratio+'＝約'+expectedConsumed.toFixed(1)+'本）' : ''}</div>
+            <div class="col-val col-sold">${soldCups}杯</div>
           </div>
         </div>
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
@@ -829,26 +855,75 @@ function renderFrozen() {
 
   document.getElementById('frozen-body').innerHTML = html;
 
-  // ドリンクは入力のたびに異常チェックを表示
-  FROZEN_DRINK_ITEMS.forEach((item) => {
+  // カルピス合体カードの異常チェック
+  (function() {
+    const input20 = document.getElementById('finput-calpis20');
+    const input9 = document.getElementById('finput-calpis9');
+    const checkBox = document.getElementById('fcheck-calpis');
+    const check = () => {
+      const v20 = parseInt(input20.value);
+      const v9 = parseInt(input9.value);
+      if (isNaN(v20) && isNaN(v9)) { checkBox.innerHTML = ''; return; }
+      const newCups = (isNaN(v20)?0:v20)*20 + (isNaN(v9)?0:v9)*9;
+      const diff = calpisExpectedCupsNow - newCups;
+      if (diff > 5) {
+        checkBox.innerHTML = '<span style="color:#c0392b;font-weight:700;">⚠️ 売上換算では約' + calpisExpectedCupsNow.toFixed(0) + '杯分残るはずが、今回は約' + newCups + '杯分。約' + diff.toFixed(0) + '杯分、説明のつかない減りがあります。</span>';
+      } else {
+        checkBox.innerHTML = '<span style="color:#4a8f4a;">✅ 売上換算の範囲内です（予想: 約' + calpisExpectedCupsNow.toFixed(0) + '杯分）</span>';
+      }
+    };
+    input20.addEventListener('input', check);
+    input9.addEventListener('input', check);
+  })();
+
+  // その他ドリンクの異常チェック
+  ['グアバジュース','コーヒーゼリー','バドワイザー'].forEach((item) => {
     const key = itemKey(item);
     const input = document.getElementById('finput-'+key);
     const checkBox = document.getElementById('fcheck-'+key);
     input.addEventListener('input', () => {
       const newVal = parseInt(input.value);
       if (isNaN(newVal)) { checkBox.innerHTML = ''; return; }
-      const ratio = FROZEN_DRINK_RATIO[item] || 1;
       const soldCups = frozenSoldSince[item] || 0;
-      const expectedConsumed = soldCups / ratio;
-      const expectedNow = (frozenQty[item] || 0) - expectedConsumed;
-      const diff = expectedNow - newVal; // プラス＝予想より減りすぎ
+      const expectedNow = (frozenQty[item] || 0) - soldCups;
+      const diff = expectedNow - newVal;
       if (diff > 0.5) {
-        checkBox.innerHTML = '<span style="color:#c0392b;font-weight:700;">⚠️ 売上換算では約' + expectedNow.toFixed(1) + (ratio>1?'本':'個') + '残るはずが、' + newVal + (ratio>1?'本':'個') + '。約' + diff.toFixed(1) + (ratio>1?'本':'個') + '分、説明のつかない減りがあります。</span>';
+        checkBox.innerHTML = '<span style="color:#c0392b;font-weight:700;">⚠️ 売上換算では約' + expectedNow + '個残るはずが、' + newVal + '個。約' + diff + '個分、説明のつかない減りがあります。</span>';
       } else {
-        checkBox.innerHTML = '<span style="color:#4a8f4a;">✅ 売上換算の範囲内です（予想: 約' + expectedNow.toFixed(1) + (ratio>1?'本':'個') + '）</span>';
+        checkBox.innerHTML = '<span style="color:#4a8f4a;">✅ 売上換算の範囲内です（予想: 約' + expectedNow + '個）</span>';
       }
     });
   });
+}
+
+async function recountCalpis() {
+  const v20 = parseInt(document.getElementById('finput-calpis20').value);
+  const v9 = parseInt(document.getElementById('finput-calpis9').value);
+  if (isNaN(v20) && isNaN(v9)) { alert('20杯用・9杯用、どちらか数字を入力してください'); return; }
+
+  const rows = [];
+  if (!isNaN(v20) && v20 >= 0) rows.push({ item_name: 'カルピス濃縮ボトル20杯用', quantity: v20, updated_date: TODAY });
+  if (!isNaN(v9) && v9 >= 0) rows.push({ item_name: 'カルピス濃縮ボトル9杯用', quantity: v9, updated_date: TODAY });
+
+  try {
+    const res = await fetch(SUPA_URL + '/rest/v1/cake_frozen_stock?on_conflict=item_name', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify(rows)
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error('保存に失敗しました (' + res.status + ') ' + errText);
+    }
+  } catch (err) {
+    alert('保存できませんでした。通信状況を確認してもう一度試してください。\n\n' + err.message);
+    return;
+  }
+
+  loadFrozen();
 }
 
 async function recountFrozen(item) {
