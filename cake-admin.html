@@ -736,15 +736,20 @@ async function loadFrozen() {
   });
 
   const earliestDate = FROZEN_ITEMS.reduce((min, item) => frozenUpdated[item] < min ? frozenUpdated[item] : min, TODAY);
+
+  // ケーキ：冷凍庫→日々の解凍（cake_stock.thawed）で減る
+  const thawRaw = await supaFetch('/rest/v1/cake_stock?select=item_name,thawed,date&date=gt.' + earliestDate + '&date=lte.' + TODAY);
+  // ドリンク：レジの実売上（order_items）で減る
   const salesRaw = await supaFetch('/rest/v1/order_items?select=item_name,qty,sale_date&sale_date=gt.' + earliestDate + '&sale_date=lte.' + TODAY + '&limit=5000');
 
-  frozenSoldSince = {};
+  frozenSoldSince = {}; // ケーキ＝解凍された数、ドリンク＝売れた杯数（名前は既存のまま流用）
   FROZEN_ITEMS.forEach(item => frozenSoldSince[item] = 0);
+  (thawRaw||[]).forEach(r => {
+    if (FROZEN_CAKE_ITEMS.indexOf(r.item_name) !== -1 && r.date > frozenUpdated[r.item_name]) {
+      frozenSoldSince[r.item_name] += (r.thawed||0);
+    }
+  });
   (salesRaw||[]).forEach(r => {
-    // ケーキ6品目はレジの商品名そのまま、ドリンクは換算用の商品名で照合
-    FROZEN_CAKE_ITEMS.forEach(item => {
-      if (r.item_name === item && r.sale_date > frozenUpdated[item]) frozenSoldSince[item] += (r.qty||1);
-    });
     FROZEN_DRINK_ITEMS.forEach(item => {
       if (r.item_name === FROZEN_DRINK_SALES_NAME[item] && r.sale_date > frozenUpdated[item]) frozenSoldSince[item] += (r.qty||1);
     });
@@ -758,10 +763,13 @@ async function loadFrozen() {
 function renderFrozen() {
   let html = '<div class="date-label">🧊 冷凍庫・ドリンク在庫（毎週金曜の棚卸し）</div>';
 
-  html += '<div style="font-weight:700;color:#8b5e3c;margin:16px 0 8px;">🍰 ケーキ（随時仕入れのため増減チェックなし）</div>';
+  html += '<div style="font-weight:700;color:#8b5e3c;margin:16px 0 8px;">🍰 ケーキ（棚卸し数から、それ以降に解凍した数を自動で差し引き）</div>';
   FROZEN_CAKE_ITEMS.forEach((item) => {
     const qty = frozenQty[item] || 0;
+    const thawed = frozenSoldSince[item] || 0;
+    const current = qty - thawed;
     const key = itemKey(item);
+    const dispClass = current <= 0 ? 'col-remain-out' : current <= 3 ? 'col-remain-low' : 'col-remain-ok';
     html += `
       <div class="item-card" id="fcard-${key}">
         <div class="item-top">
@@ -770,8 +778,18 @@ function renderFrozen() {
         </div>
         <div class="item-bottom">
           <div class="col">
-            <div class="col-label">現在の棚卸し数</div>
+            <div class="col-label">棚卸し数</div>
             <div class="col-val col-stock">${qty}</div>
+          </div>
+          <div class="minus-sign">−</div>
+          <div class="col">
+            <div class="col-label">それ以降の解凍数</div>
+            <div class="col-val col-sold">${thawed}</div>
+          </div>
+          <div class="eq-sign">=</div>
+          <div class="col">
+            <div class="col-label">現在の冷凍庫在庫</div>
+            <div class="col-val ${dispClass}">${current}</div>
           </div>
         </div>
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
