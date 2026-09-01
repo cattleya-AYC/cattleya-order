@@ -46,6 +46,8 @@
   .icon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:#fbf7ee;border:1px solid #eee1c5;font-size:24px;flex:0 0 auto}
   .label{color:var(--gold);font-size:12px;line-height:1.1;font-weight:900;letter-spacing:.13em}
   .title{font-size:23px;line-height:1.25;font-weight:900;margin:0 0 8px;letter-spacing:-.02em}
+  .title.pulsing{animation:titlePulse 1s ease-in-out infinite}
+  @keyframes titlePulse{0%,100%{opacity:1}50%{opacity:.35}}
   .desc{color:var(--muted);font-size:14px;line-height:1.7;margin:0;font-weight:600}
   .arrow{position:absolute;right:20px;top:50%;transform:translateY(-50%);color:var(--gold);font-size:34px;font-weight:300}
   .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #d9b557;color:#8b6515;background:#fffaf0;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:800;margin-left:auto}
@@ -157,7 +159,7 @@
       <a class="card" onclick="sendEmail(event)">
         <div class="topline"><div class="icon">✉️</div><div class="label">MAIL</div></div>
         <h3 class="title">メールを送る</h3>
-        <p class="desc">月次資料を平賀さん・まりへメール送信します。</p>
+        <p class="desc">月次資料を平賀さんへメール送信します。</p>
         <div class="arrow">›</div>
       </a>
 
@@ -654,7 +656,7 @@ async function sendEmail(ev) {
   const card = ev ? ev.currentTarget : null;
   const titleEl = card ? card.querySelector('.title') : null;
   const originalTitle = titleEl ? titleEl.textContent : null;
-  if (titleEl) titleEl.textContent = '給与データ読込中…';
+  if (titleEl) { titleEl.textContent = 'メール作成中…'; titleEl.classList.add('pulsing'); }
 
   const year = document.getElementById('yearPicker').value;
   const month = parseInt(document.getElementById('monthPicker').value);
@@ -698,7 +700,7 @@ async function sendEmail(ev) {
   const subject = encodeURIComponent('カトレア月次集計 ' + year + '年' + month + '月');
   window.location.href = 'mailto:' + to + '?bcc=' + encodeURIComponent(bcc) + '&subject=' + subject + '&body=' + encodeURIComponent(body);
 
-  if (titleEl && originalTitle) titleEl.textContent = originalTitle;
+  if (titleEl && originalTitle) { titleEl.textContent = originalTitle; titleEl.classList.remove('pulsing'); }
 }
 
 // ===== 開いたら自動で「先月」を選択し、自動で読み込む =====
