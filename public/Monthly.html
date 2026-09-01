@@ -154,7 +154,7 @@
         <div class="arrow">›</div>
       </a>
 
-      <a class="card" onclick="sendEmail()">
+      <a class="card" onclick="sendEmail(event)">
         <div class="topline"><div class="icon">✉️</div><div class="label">MAIL</div></div>
         <h3 class="title">メールを送る</h3>
         <p class="desc">月次資料を平賀さん・まりへメール送信します。</p>
@@ -203,6 +203,164 @@
 
     <div class="footer-note">Lounge Cattleya　Monthly Management</div>
   </main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, query, where, getDocs, doc, getDoc }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyA0P2xZW4uXbBL4dOFhuYLoFuXPAz68Ef4",
+  authDomain: "cattleya-timecard.firebaseapp.com",
+  projectId: "cattleya-timecard",
+  storageBucket: "cattleya-timecard.firebasestorage.app",
+  messagingSenderId: "308051028432",
+  appId: "1:308051028432:web:f84c12cd3114878982f1d5"
+};
+const fbApp = initializeApp(FIREBASE_CONFIG);
+const fbDb = getFirestore(fbApp);
+
+// ※ このスタッフ一覧・計算ルールは timecard-payroll の index.html と同じ内容にしています。
+// 給与の計算ルール（時給・丸め方・交通費など）を変えた時は、両方のファイルを直してください。
+const PAYROLL_STAFF = [
+  {id:"tencho",   name:"店長"},
+  {id:"chief",    name:"チーフ"},
+  {id:"sasaki",   name:"佐々木"},
+  {id:"shirota",  name:"小泉"},
+  {id:"miyagawa", name:"宮川"},
+  {id:"ibuchi",   name:"井渕"},
+  {id:"suenaga",  name:"末永"},
+  {id:"bunya",    name:"文屋"},
+  {id:"help",     name:"ヘルプ"}
+];
+const PAYROLL_DEFAULT_RATE  = 1330;
+const PAYROLL_DEFAULT_BREAK = 30;
+const PAYROLL_TRANSPORT_DEFAULTS = {
+  "tencho":   {transType:"monthly", transport:6950,  dailyAllow:1500},
+  "chief":    {transType:"monthly", transport:12390, dailyAllow:1190},
+  "sasaki":   {transType:"daily",   transport:0,     dailyAllow:0},
+  "shirota":  {transType:"daily",   transport:0,     dailyAllow:0},
+  "miyagawa": {transType:"monthly", transport:5620,  dailyAllow:0},
+  "ibuchi":   {transType:"daily",   transport:0,     dailyAllow:0},
+  "suenaga":  {transType:"daily",   transport:0,     dailyAllow:0},
+  "help":     {transType:"daily",   transport:0,     dailyAllow:0}
+};
+
+function payrollGetSetting(settings, id){
+  const s  = settings[id] || {};
+  const td = PAYROLL_TRANSPORT_DEFAULTS[id] || {};
+  return {
+    rate:       s.rate       ?? PAYROLL_DEFAULT_RATE,
+    allowance:  s.allowance  || 0,
+    dailyAllow: s.dailyAllow !== undefined ? s.dailyAllow : (td.dailyAllow || 0),
+    transport:  s.transport  !== undefined ? s.transport  : (td.transport  || 0),
+    transType:  s.transType  || td.transType || "monthly",
+    brk:        s.brk        ?? PAYROLL_DEFAULT_BREAK,
+    incomeTax:  s.incomeTax  || 0,
+    dayBreaks:  s.dayBreaks  || {}
+  };
+}
+function payrollTransAmount(set,workDays){ return set.transType==="daily" ? (set.transport||0)*workDays : (set.transport||0); }
+function payrollDailyAllowAmount(set,workDays){ return (set.dailyAllow||0)*workDays; }
+function payrollEffectiveTime(r){ return r.correctedTime || r.time; }
+function payrollEffectiveBreak(settings, staffId, dk, baseBrk){
+  const dayBreaks = payrollGetSetting(settings, staffId).dayBreaks;
+  if (dayBreaks && Object.prototype.hasOwnProperty.call(dayBreaks, dk)) {
+    return dayBreaks[dk] ? baseBrk : 0;
+  }
+  return baseBrk;
+}
+function payrollRoundIn(d){
+  const x = new Date(d);
+  let total = x.getHours()*60 + x.getMinutes();
+  total = Math.ceil(total/30)*30;
+  if (total < 9*60) total = 9*60;
+  x.setHours(Math.floor(total/60), total%60, 0, 0);
+  return x;
+}
+function payrollRoundOut(d){
+  const x = new Date(d);
+  let total = x.getHours()*60 + x.getMinutes();
+  if (total <= 20*60) total = Math.floor(total/30)*30;
+  else total = Math.floor(total/15)*15;
+  x.setHours(Math.floor(total/60), total%60, 0, 0);
+  return x;
+}
+function payrollYen(n){ return "¥" + Math.round(n).toLocaleString("ja-JP"); }
+function payrollDurStr(min){ return Math.floor(min/60) + "時間" + String(min%60).padStart(2,"0") + "分"; }
+
+async function payrollLoadSettings(){
+  try{
+    const snap = await getDoc(doc(fbDb, "settings", "payroll"));
+    return snap.exists() ? snap.data() : {};
+  }catch(e){ console.warn(e); return {}; }
+}
+async function payrollGetMonthRecords(y, m){
+  const prefix = `${y}-${String(m).padStart(2,"0")}`;
+  const q = query(collection(fbDb, "records"),
+    where("dateKey", ">=", prefix+"-01"), where("dateKey", "<=", prefix+"-31"));
+  const snap = await getDocs(q);
+  const arr = []; snap.forEach(d => arr.push(d.data()));
+  return arr;
+}
+
+// year: 数値(例2026) / month: 1〜12
+window.getPayrollSummaryText = async function(year, month){
+  try{
+    const settings = await payrollLoadSettings();
+    const recs = await payrollGetMonthRecords(year, month);
+    const lines = [];
+
+    for (const s of PAYROLL_STAFF) {
+      const myRecs = recs.filter(r => r.staffId === s.id);
+      const set = payrollGetSetting(settings, s.id);
+
+      const days = {};
+      myRecs.forEach(r => {
+        if (!days[r.dateKey]) days[r.dateKey] = { ins:[], outs:[] };
+        (r.type==="in" ? days[r.dateKey].ins : days[r.dateKey].outs).push(r);
+      });
+
+      let totalMin = 0, workDays = 0;
+      Object.keys(days).forEach(dk => {
+        const day = days[dk];
+        const inRec  = day.ins.length  ? day.ins.reduce((a,b)=>new Date(payrollEffectiveTime(a))<=new Date(payrollEffectiveTime(b))?a:b) : null;
+        const outRec = day.outs.length ? day.outs.reduce((a,b)=>new Date(payrollEffectiveTime(a))>=new Date(payrollEffectiveTime(b))?a:b) : null;
+        const fi = inRec  ? new Date(payrollEffectiveTime(inRec))  : null;
+        const lo = outRec ? new Date(payrollEffectiveTime(outRec)) : null;
+        if (fi && lo) {
+          const brk = payrollEffectiveBreak(settings, s.id, dk, set.brk);
+          const gross = Math.max(0, Math.round((payrollRoundOut(lo)-payrollRoundIn(fi))/60000));
+          const mins = Math.max(0, gross-brk);
+          if (gross > 0) { totalMin += mins; workDays++; }
+        }
+      });
+
+      const totalHours = totalMin/60;
+      const wageAmount  = set.rate * totalHours;
+      const transp      = payrollTransAmount(set, workDays);
+      const dailyAllow  = payrollDailyAllowAmount(set, workDays);
+      const allowTotal  = set.allowance + transp + dailyAllow;
+      const grossTotal  = wageAmount + allowTotal;
+      const grandTotal  = grossTotal - set.incomeTax;
+      if (grossTotal <= 0) continue; // 支給額0円のスタッフは含めない
+
+      lines.push(
+        s.name + '様（出勤' + workDays + '日／' + payrollDurStr(totalMin) + '）\n' +
+        '　時給' + payrollYen(set.rate) + '　勤務' + totalHours.toFixed(2) + 'h→' + payrollYen(wageAmount) + '\n' +
+        '　交通費' + payrollYen(transp) + (set.transType==="daily" ? '（¥'+set.transport.toLocaleString()+'×'+workDays+'日）' : '（定期代）') + '\n' +
+        '　手当' + payrollYen(dailyAllow+set.allowance) + '　交通費＋手当合計' + payrollYen(allowTotal) + '\n' +
+        '　総支給額（控除前）' + payrollYen(grossTotal) + '　所得税-' + payrollYen(set.incomeTax) + '\n' +
+        '　差引支給額　' + payrollYen(grandTotal)
+      );
+    }
+    return lines.length ? lines.join('\n\n') : '（この月の給与データが見つかりませんでした）';
+  }catch(e){
+    console.error(e);
+    return '（給与データの取得に失敗しました：' + e.message + '）';
+  }
+};
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -491,8 +649,13 @@ function printPayroll() {
   window.open(PAYROLL_URL + '?y=' + year + '&m=' + monthIndex + '&auto=1', '_blank');
 }
 
-function sendEmail() {
+async function sendEmail(ev) {
   if (salesData.length === 0) { alert('先に更新するを押してください'); return; }
+  const card = ev ? ev.currentTarget : null;
+  const titleEl = card ? card.querySelector('.title') : null;
+  const originalTitle = titleEl ? titleEl.textContent : null;
+  if (titleEl) titleEl.textContent = '給与データ読込中…';
+
   const year = document.getElementById('yearPicker').value;
   const month = parseInt(document.getElementById('monthPicker').value);
 
@@ -526,12 +689,36 @@ function sendEmail() {
     return day + '日  ¥' + d.total.toLocaleString() + '  現金¥' + d.cash.toLocaleString() + '  ペイキャス¥' + d.pay.toLocaleString() + '  ' + d.count + '組  ' + d.people + '名';
   }).join('\n');
 
-  const body = 'Lounge Cattleya 月次集計レポート\n' + year + '年' + month + '月\n━━━━━━━━━━━━━━━━\n月間総売上　¥' + grandTotal.toLocaleString() + '\n消費税合計　¥' + taxTotal.toLocaleString() + '\n　内10%　¥' + dineInTax.toLocaleString() + '\n　内8%　　¥' + takeoutTax.toLocaleString() + '\n\n現金合計　　¥' + cashTotal.toLocaleString() + '\nペイキャス　¥' + payTotal.toLocaleString() + '\n\n来客組数　' + totalCount + '組\n来客人数　' + totalPeople + '名\n━━━━━━━━━━━━━━━━\n日別売上\n' + dayLines + '\n━━━━━━━━━━━━━━━━\nLounge Cattleya';
+  const payrollText = await window.getPayrollSummaryText(parseInt(year), month);
 
-  const to = 'h0910akio@docomo.ne.jp,mari247k@gmail.com';
+  const body = 'Lounge Cattleya 月次集計レポート\n' + year + '年' + month + '月\n━━━━━━━━━━━━━━━━\n月間総売上　¥' + grandTotal.toLocaleString() + '\n消費税合計　¥' + taxTotal.toLocaleString() + '\n　内10%　¥' + dineInTax.toLocaleString() + '\n　内8%　　¥' + takeoutTax.toLocaleString() + '\n\n現金合計　　¥' + cashTotal.toLocaleString() + '\nペイキャス　¥' + payTotal.toLocaleString() + '\n\n来客組数　' + totalCount + '組\n来客人数　' + totalPeople + '名\n━━━━━━━━━━━━━━━━\n日別売上\n' + dayLines + '\n━━━━━━━━━━━━━━━━\nスタッフ給与（' + year + '年' + month + '月分）\n' + payrollText + '\n━━━━━━━━━━━━━━━━\nLounge Cattleya';
+
+  const to = 'h0910akio@docomo.ne.jp';
+  const bcc = 'ctlyayc@gmail.com';
   const subject = encodeURIComponent('カトレア月次集計 ' + year + '年' + month + '月');
-  window.location.href = 'mailto:' + to + '?subject=' + subject + '&body=' + encodeURIComponent(body);
+  window.location.href = 'mailto:' + to + '?bcc=' + encodeURIComponent(bcc) + '&subject=' + subject + '&body=' + encodeURIComponent(body);
+
+  if (titleEl && originalTitle) titleEl.textContent = originalTitle;
 }
+
+// ===== 開いたら自動で「先月」を選択し、自動で読み込む =====
+(function initDefaultMonth(){
+  const yearSel = document.getElementById('yearPicker');
+  const monthSel = document.getElementById('monthPicker');
+  const now = new Date();
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1); // 先月
+  const y = String(prev.getFullYear());
+  const m = String(prev.getMonth() + 1).padStart(2, '0');
+
+  if (![...yearSel.options].some(o => o.value === y)) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y + '年';
+    yearSel.appendChild(opt);
+  }
+  yearSel.value = y;
+  monthSel.value = m;
+})();
+loadData();
 </script>
 </body>
 </html>
