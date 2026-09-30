@@ -1230,7 +1230,7 @@ export default function Register() {
       const { data } = await supabase.from("coupons").select("*").eq("coupon_no", fullNo).eq("is_used", true);
       if (data && data.length > 0) { setCouponError("このクーポンはすでに使用済みです"); return; }
     } else if (couponType === "C") {
-      if (!isCouponPeriodC()) { setCouponError("Cクーポンの利用期間は9月30日までです"); return; }
+      if (!isCouponPeriodC()) { setCouponError("Cクーポンの利用期間は12月31日までです"); return; }
     } else {
 
       const result = await checkCouponAValidity(fullNo);
