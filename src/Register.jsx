@@ -1838,7 +1838,8 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
 
             {/* クーポンボタン：お会計金額の直下・支払い方法の直前 */}
             {!couponApplied ? (
-              selectedTotal >= 1000 ? (
+                            selectedTotal > 0 ? (
+
                 <button onClick={() => setShowCoupon(true)}
                   style={{ width: "100%", padding: 14, background: "#1a1a30", border: "2px solid #5a5ac9", borderRadius: 10, color: "#9a9af0", fontWeight: 900, fontSize: 16, cursor: "pointer", marginBottom: 16 }}>
                   🎟 クーポン割引を適用する
