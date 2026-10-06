@@ -2102,10 +2102,22 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
                       <div style={{ color: "#ffaa44", fontSize: 15, fontWeight: 900, marginBottom: 6, textAlign: "center" }}>⚠️ 必ずご注文内容を確認してください</div>
                       <div style={{ color: "#f0e6d0", fontSize: 14, lineHeight: 1.8, textAlign: "center" }}>
                         {selectedOrders.filter(o => o.price > 0).map(o => o.item_name).join("、")}
-                        <span style={{ color: "#ffaa44" }}>、でよろしかったでしょうか？</span>
+                                                <span style={{ color: "#ffaa44" }}>、でよろしかったでしょうか？</span>
                       </div>
                     </div>
+                    {selected === "持ち帰り" && (
+                      <div style={{ marginTop: 14, background: "#2a1a3a", border: "3px solid #c95aca", borderRadius: 12, padding: 16 }}>
+                        <div style={{ color: "#e0a8e0", fontSize: 18, fontWeight: 900, marginBottom: 8 }}>🛍️ 袋について</div>
+                        <div style={{ color: "#fff", fontSize: 16, fontWeight: 700, lineHeight: 1.7 }}>
+                          紙袋は<span style={{ color: "#7ae08a" }}>無料</span>です。<br />
+                          保冷バッグは<span style={{ color: "#ffd84a", fontSize: 20 }}>1枚100円</span>です。<br />
+                          保冷バッグは持ち帰り商品とは別に、<span style={{ color: "#ffd84a" }}>「物販」から会計</span>してください。<br />
+                          <span style={{ fontSize: 13, color: "#c8a0c8" }}>（消費税率がちがうため）</span>
+                        </div>
+                      </div>
+                    )}
                   </>
+
                 )}
               </div>
 
