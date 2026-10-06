@@ -10,7 +10,10 @@ const TABLES = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,"A","B","C","D","E","F","G",
 const RETAIL_ITEMS = [
   { name: "多肉植物（小）", price: 300 },
   { name: "多肉植物（大）", price: 500 },
+  { name: "カトレア封筒", price: 300 },
+  { name: "新橋封筒", price: 300 },
 ];
+
 
 const TOBACCO = [
   { id: 1, name: "ピースライト ボックス", price: 600 },
