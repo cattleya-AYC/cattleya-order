@@ -11,8 +11,10 @@ const RETAIL_ITEMS = [
   { name: "多肉植物（小）", price: 300 },
   { name: "多肉植物（大）", price: 500 },
   { name: "カトレア封筒", price: 300 },
-  { name: "新橋封筒", price: 300 },
+    { name: "新橋封筒", price: 300 },
+  { name: "保冷バッグ", price: 100 },
 ];
+
 
 
 const TOBACCO = [
