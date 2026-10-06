@@ -1921,34 +1921,34 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
 
           {/* 操作ボタン（大きめ） */}
           <div style={{ padding: "8px 8px", display: "flex", flexDirection: "column", gap: 6 }}>
-            <button onClick={() => setMode("tobacco")}
-              style={{ padding: "0", background: "#1a2a1a", border: "none", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
-              <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/tabaco.PNG" style={{ width: "100%", height: 70, objectFit: "cover", display: "block" }} />
+                        <button onClick={() => setMode("tobacco")}
+              style={{ padding: 0, background: "transparent", border: "none", cursor: "pointer" }}>
+              <img src="/btn_tabaco.png" alt="たばこ" style={{ width: "100%", height: "auto", display: "block" }} />
             </button>
             <button onClick={openDrawer}
-              style={{ padding: "0", background: "#1a2a1a", border: "none", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
-              <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/draw.PNG" style={{ width: "100%", height: 70, objectFit: "cover", display: "block" }} />
+              style={{ padding: 0, background: "transparent", border: "none", cursor: "pointer" }}>
+              <img src="/btn_drawer.png" alt="ドロア" style={{ width: "100%", height: "auto", display: "block" }} />
             </button>
 
             {/* カウントアプリリンク */}
             <button onClick={() => window.open("https://cattleya-order.vercel.app/Cash.html", "_blank")}
-              style={{ padding: "0", background: "#f9a8b8", border: "none", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
-              <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/kaunto.PNG" style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }} />
+              style={{ padding: 0, background: "transparent", border: "none", cursor: "pointer" }}>
+              <img src="/btn_count.png" alt="カウント" style={{ width: "100%", height: "auto", display: "block" }} />
             </button>
 
             {/* 集計アプリリンク */}
             <button onClick={() => window.open("https://cattleya-order.vercel.app/Summary.html", "_blank")}
-              style={{ padding: "0", background: "#0a1a2a", border: "none", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
-              <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/shukei2.PNG" style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }} />
+              style={{ padding: 0, background: "transparent", border: "none", cursor: "pointer" }}>
+              <img src="/btn_shukei.png" alt="集計" style={{ width: "100%", height: "auto", display: "block" }} />
             </button>
 
             {(() => {
               const takeoutOcc = tableOrders("持ち帰り").length > 0;
               return (
                 <button onClick={() => setSelected("持ち帰り")}
-                  style={{ padding: "0", background: "#1a2a1a", border: takeoutOcc ? "3px solid #2aaa6a" : "none", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
-                  <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/takeout.PNG" style={{ width: "100%", height: 70, objectFit: "cover", display: "block" }} />
-                  {takeoutOcc && <div style={{ background: "#2aaa6a", color: "#fff", fontSize: 11, fontWeight: 900, textAlign: "center", padding: "2px 0" }}>● 注文あり</div>}
+                  style={{ padding: 0, background: "transparent", border: "none", cursor: "pointer" }}>
+                  <img src="/btn_takeout.png" alt="持ち帰り" style={{ width: "100%", height: "auto", display: "block" }} />
+                  {takeoutOcc && <div style={{ background: "#2aaa6a", color: "#fff", fontSize: 12, fontWeight: 900, textAlign: "center", padding: "3px 0", marginTop: 3, borderRadius: 6 }}>● 注文あり</div>}
                 </button>
               );
             })()}
@@ -1957,24 +1957,25 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
               const retailOcc = tableOrders("物販").length > 0;
               return (
                 <button onClick={() => { if (retailOcc) { setSelected("物販"); } else { setShowRetailModal(true); setRetailQty({}); } }}
-                  style={{ padding: "14px 4px", background: "#2a1a2a", border: retailOcc ? "3px solid #c95aca" : "1px solid #5a3a5a", borderRadius: 10, cursor: "pointer", color: "#e0a8e0", fontSize: 14, fontWeight: 900, textAlign: "center" }}>
-                  🌵 物販
-                  {retailOcc && <div style={{ background: "#c95aca", color: "#fff", fontSize: 11, fontWeight: 900, textAlign: "center", padding: "2px 0", marginTop: 4, borderRadius: 6 }}>● 会計待ち</div>}
+                  style={{ padding: 0, background: "transparent", border: "none", cursor: "pointer" }}>
+                  <img src="/btn_buppan.png" alt="物販" style={{ width: "100%", height: "auto", display: "block" }} />
+                  {retailOcc && <div style={{ background: "#c95aca", color: "#fff", fontSize: 12, fontWeight: 900, textAlign: "center", padding: "3px 0", marginTop: 3, borderRadius: 6 }}>● 会計待ち</div>}
                 </button>
               );
             })()}
-            
+
             {/* ケーキ解凍数アプリリンク */}
-<button onClick={() => window.open("https://cattleya-order.vercel.app/cake.html", "_blank")}
-  style={{ padding: "0", background: "#fdf0f2", border: "none", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
-  <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/cake.PNG" style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }} />
-</button>
+            <button onClick={() => window.open("https://cattleya-order.vercel.app/cake.html", "_blank")}
+              style={{ padding: 0, background: "transparent", border: "none", cursor: "pointer" }}>
+              <img src="/btn_cake.png" alt="ケーキ解凍数" style={{ width: "100%", height: "auto", display: "block" }} />
+            </button>
 
             {/* 更新ボタン */}
             <button onClick={() => fetchOrders()}
-              style={{ padding: "0", background: "#1a2a1a", border: "3px solid #4aaa5a", borderRadius: 10, cursor: "pointer", overflow: "hidden" }}>
-              <img src="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/public/koushin.GIF" style={{ width: "100%", height: 100, objectFit: "cover", display: "block" }} />
+              style={{ padding: 0, background: "transparent", border: "none", cursor: "pointer" }}>
+              <img src="/btn_koushin.png" alt="画面更新" style={{ width: "100%", height: "auto", display: "block" }} />
             </button>
+
 
             <button onClick={() => { setShowPinModal(true); setPinInput(""); setPinError(false); }}
               style={{ padding: "16px 4px", background: "#10182a", border: "1px solid #2a3a6a", borderRadius: 10, color: "#5a8aca", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
