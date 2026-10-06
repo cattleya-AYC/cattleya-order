@@ -2051,7 +2051,28 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
 
               <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
                 {selectedOrders.length === 0 ? (
-                  <div style={{ textAlign: "center", color: "#3d2c14", paddingTop: 40, fontSize: 14 }}>注文がありません</div>
+                                   selected === "持ち帰り" ? (
+                    <div style={{ paddingTop: 16 }}>
+                      <div style={{ background: "#3a1414", border: "3px solid #e04a3a", borderRadius: 12, padding: 16, marginBottom: 14 }}>
+                        <div style={{ color: "#ff6a5a", fontSize: 20, fontWeight: 900, marginBottom: 8 }}>⚠️ 注文がありません</div>
+                        <div style={{ color: "#fff", fontSize: 16, fontWeight: 700, lineHeight: 1.7 }}>
+                          ホール用注文アプリで<span style={{ color: "#ffd84a" }}>「持ち帰り」ボタン</span>を押し、メニューを選んで厨房にオーダーを送ってください。
+                        </div>
+                      </div>
+                      <div style={{ background: "#2a1a3a", border: "3px solid #c95aca", borderRadius: 12, padding: 16 }}>
+                        <div style={{ color: "#e0a8e0", fontSize: 18, fontWeight: 900, marginBottom: 8 }}>🛍️ 袋について</div>
+                        <div style={{ color: "#fff", fontSize: 16, fontWeight: 700, lineHeight: 1.7 }}>
+                          紙袋は<span style={{ color: "#7ae08a" }}>無料</span>です。<br />
+                          保冷バッグは<span style={{ color: "#ffd84a", fontSize: 20 }}>1枚100円</span>です。<br />
+                          保冷バッグは持ち帰り商品とは別に、<span style={{ color: "#ffd84a" }}>「物販」から会計</span>してください。<br />
+                          <span style={{ fontSize: 13, color: "#c8a0c8" }}>（消費税率がちがうため）</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: "center", color: "#3d2c14", paddingTop: 40, fontSize: 14 }}>注文がありません</div>
+                  )
+
                 ) : (
                   <>
                     <table style={{ width: "100%", borderCollapse: "collapse" }}>
