@@ -287,7 +287,16 @@ export default function Kitchen() {
           50%  { box-shadow: 0 0 0 40px rgba(201,149,42,0); transform: scale(1.06); }
           100% { box-shadow: 0 0 0 0 rgba(201,149,42,0); transform: scale(1); }
         }
+            @keyframes takeout-blink {
+          0%, 100% { background: #ffcc00; color: #000; }
+          50%      { background: #cc2222; color: #fff; }
+        }
+        @keyframes takeout-border {
+          0%, 100% { border-color: #ffcc00; }
+          50%      { border-color: #cc2222; }
+        }
       `}</style>
+
 
       {/* ヘッダー */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, borderBottom: "2px solid #2a3a2a", paddingBottom: 10 }}>
