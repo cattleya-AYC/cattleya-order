@@ -367,9 +367,16 @@ export default function Kitchen() {
             const items = byTable[table];
             const oldest = items[0]?.created_at;
             const mins = oldest ? Math.floor((Date.now() - new Date(oldest).getTime()) / 60000) : 0;
-            const urgent = mins >= 10;
+                        const urgent = mins >= 10;
+            const isTakeout = table === "持ち帰り";
             return (
-              <div key={table} style={{ background: "#1a1d22", border: `2.5px solid ${urgent ? "#c95a5a" : "#2a4a2a"}`, borderRadius: 14, padding: 16 }}>
+              <div key={table} style={{ background: isTakeout ? "#2a2410" : "#1a1d22", border: isTakeout ? "6px solid #ffcc00" : `2.5px solid ${urgent ? "#c95a5a" : "#2a4a2a"}`, borderRadius: 14, padding: 16, animation: isTakeout ? "takeout-border 1s infinite" : "none" }}>
+                {isTakeout && (
+                  <div style={{ fontSize: 44, fontWeight: 900, textAlign: "center", borderRadius: 10, padding: "14px 0", marginBottom: 14, animation: "takeout-blink 1s infinite" }}>
+                    🛍️ 持ち帰り
+                  </div>
+                )}
+
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
                   <span style={{ background: "#cc2222", color: "#fff", fontFamily: "serif", fontWeight: 900, fontSize: 32, borderRadius: 8, padding: "4px 14px", border: "3px solid #ff6666" }}>{table}</span>
                   <span style={{ fontSize: 15, color: urgent ? "#c95a5a" : "#888" }}>{timeAgo(oldest)}</span>
