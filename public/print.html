@@ -66,7 +66,7 @@
       text-align: center;
       margin-bottom: 4px;
     }
-    #announceText {
+    .text-input {
       width: 100%;
       max-width: 320px;
       padding: 14px 12px;
@@ -77,15 +77,16 @@
       font-size: 18px;
       font-family: inherit;
     }
-    #announceText:focus { outline: none; border-color: #c9952a; }
-    #charCount {
+    .text-input:focus { outline: none; border-color: #c9952a; }
+    textarea.text-input { resize: none; height: 96px; line-height: 1.5; }
+    .char-count {
       color: #8a7050;
       font-size: 12px;
       text-align: right;
       width: 100%;
       max-width: 320px;
     }
-    #charCount.over { color: #ff6666; }
+    .char-count.over { color: #ff6666; }
     .btn-row {
       display: flex;
       gap: 10px;
@@ -103,6 +104,11 @@
       background: #1c1208;
       color: #c9952a;
     }
+    .btn-kitchen {
+      border-color: #33aa66;
+      color: #55cc88;
+      background: #06140c;
+    }
     .btn-clear {
       flex: 1;
       padding: 18px 0;
@@ -115,6 +121,13 @@
       color: #8a7050;
     }
     .btn-announce:active, .btn-clear:active { opacity: 0.7; }
+    .result-msg {
+      font-size: 14px;
+      font-weight: 900;
+      color: #4aaa5a;
+      min-height: 20px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -130,13 +143,24 @@
   <div class="divider"></div>
 
   <div class="section-title">📢 お知らせを流す（テーブル画面上部に10分表示）</div>
-  <input id="announceText" type="text" maxlength="20" placeholder="例：15時までに片付けお願いします" />
-  <div id="charCount">0 / 20</div>
+  <input id="announceText" class="text-input" type="text" maxlength="20" placeholder="例：15時までに片付けお願いします" />
+  <div id="charCount" class="char-count">0 / 20</div>
   <div class="btn-row">
     <button class="btn-clear" onclick="clearAnnouncement()">消す</button>
     <button class="btn-announce" onclick="sendAnnouncement()">送信する（10分表示）</button>
   </div>
-  <div id="announceMsg" style="font-size:14px;font-weight:900;color:#4aaa5a;min-height:20px;text-align:center;"></div>
+  <div id="announceMsg" class="result-msg"></div>
+
+  <div class="divider"></div>
+
+  <div class="section-title">🍳 厨房にメッセージ<br/>（閉店時 20時〜翌10時だけ流れる・10時で自動で消える）</div>
+  <textarea id="kitchenText" class="text-input" maxlength="50" placeholder="例：明日はケーキ解凍を多めにお願いします"></textarea>
+  <div id="kitchenCount" class="char-count">0 / 50</div>
+  <div class="btn-row">
+    <button class="btn-clear" onclick="clearKitchenMessage()">消す</button>
+    <button class="btn-announce btn-kitchen" onclick="sendKitchenMessage()">厨房に送る</button>
+  </div>
+  <div id="kitchenMsg" class="result-msg"></div>
 
   <script>
     const { createClient } = supabase;
@@ -144,6 +168,9 @@
       "https://zxdgiszrsmumjjxmvszb.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODM2MTksImV4cCI6MjA5NTI1OTYxOX0.vNndS7JEzIUsa007EPO2zRoYhUr-z01LM32BKIhMSz4"
     );
+
+    // 厨房メッセージは announcements テーブルの id=2 を使う（id=1 はホール用）
+    const KITCHEN_ANNOUNCE_ID = 2;
 
     async function sendNotif(title, message) {
       const btns = document.querySelectorAll(".btn");
@@ -169,25 +196,32 @@
       }
     }
 
-    const announceInput = document.getElementById("announceText");
-    const charCount = document.getElementById("charCount");
-    announceInput.addEventListener("input", () => {
-      const len = announceInput.value.length;
-      charCount.textContent = `${len} / 20`;
-      charCount.classList.toggle("over", len >= 20);
-    });
+    function bindCounter(inputId, countId, max) {
+      const input = document.getElementById(inputId);
+      const count = document.getElementById(countId);
+      input.addEventListener("input", () => {
+        const len = input.value.length;
+        count.textContent = `${len} / ${max}`;
+        count.classList.toggle("over", len >= max);
+      });
+    }
+    bindCounter("announceText", "charCount", 20);
+    bindCounter("kitchenText", "kitchenCount", 50);
 
+    function showResult(el, text, ok, ms) {
+      el.textContent = text;
+      el.style.color = ok === null ? "#aaa" : (ok ? "#4aaa5a" : "#ff6666");
+      if (ms) setTimeout(() => { el.textContent = ""; }, ms);
+    }
+
+    // ===== ホール用お知らせ（10分） =====
     async function sendAnnouncement() {
-      const text = announceInput.value.trim();
-      const announceMsg = document.getElementById("announceMsg");
-      if (!text) {
-        announceMsg.textContent = "❌ テキストを入力してください";
-        announceMsg.style.color = "#ff6666";
-        return;
-      }
+      const input = document.getElementById("announceText");
+      const text = input.value.trim();
+      const out = document.getElementById("announceMsg");
+      if (!text) { showResult(out, "❌ テキストを入力してください", false); return; }
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-      announceMsg.textContent = "送信中…";
-      announceMsg.style.color = "#aaa";
+      showResult(out, "送信中…", null);
 
       const { error } = await sb.from("announcements").upsert(
         { id: 1, text, expires_at: expiresAt, updated_at: new Date().toISOString() },
@@ -195,36 +229,66 @@
       );
 
       if (error) {
-        announceMsg.textContent = "❌ エラーが発生しました";
-        announceMsg.style.color = "#ff6666";
+        showResult(out, "❌ エラーが発生しました", false);
       } else {
-        announceMsg.textContent = "✅ お知らせを送りました（10分間表示）";
-        announceMsg.style.color = "#4aaa5a";
-        announceInput.value = "";
-        charCount.textContent = "0 / 20";
-        charCount.classList.remove("over");
-        setTimeout(() => { announceMsg.textContent = ""; }, 3000);
+        showResult(out, "✅ お知らせを送りました（10分間表示）", true, 3000);
+        input.value = "";
+        document.getElementById("charCount").textContent = "0 / 20";
+        document.getElementById("charCount").classList.remove("over");
       }
     }
 
     async function clearAnnouncement() {
-      const announceMsg = document.getElementById("announceMsg");
-      announceMsg.textContent = "消去中…";
-      announceMsg.style.color = "#aaa";
-
+      const out = document.getElementById("announceMsg");
+      showResult(out, "消去中…", null);
       const { error } = await sb.from("announcements").upsert(
         { id: 1, text: "", expires_at: null, updated_at: new Date().toISOString() },
         { onConflict: "id" }
       );
+      if (error) showResult(out, "❌ エラーが発生しました", false);
+      else showResult(out, "✅ お知らせを消しました", true, 2000);
+    }
+
+    // ===== 厨房メッセージ（次の朝10時まで・表示は20時〜10時だけ） =====
+    function next10amJST() {
+      const jst = new Date(Date.now() + 9 * 3600 * 1000);
+      let d = jst.getUTCDate();
+      if (jst.getUTCHours() >= 10) d += 1;
+      // JST 10:00 = UTC 01:00
+      return new Date(Date.UTC(jst.getUTCFullYear(), jst.getUTCMonth(), d, 1, 0, 0)).toISOString();
+    }
+
+    async function sendKitchenMessage() {
+      const input = document.getElementById("kitchenText");
+      const text = input.value.trim();
+      const out = document.getElementById("kitchenMsg");
+      if (!text) { showResult(out, "❌ テキストを入力してください", false); return; }
+      showResult(out, "送信中…", null);
+
+      const { error } = await sb.from("announcements").upsert(
+        { id: KITCHEN_ANNOUNCE_ID, text, expires_at: next10amJST(), updated_at: new Date().toISOString() },
+        { onConflict: "id" }
+      );
 
       if (error) {
-        announceMsg.textContent = "❌ エラーが発生しました";
-        announceMsg.style.color = "#ff6666";
+        showResult(out, "❌ エラーが発生しました", false);
       } else {
-        announceMsg.textContent = "✅ お知らせを消しました";
-        announceMsg.style.color = "#4aaa5a";
-        setTimeout(() => { announceMsg.textContent = ""; }, 2000);
+        showResult(out, "✅ 厨房に送りました（翌朝10時まで）", true, 3000);
+        input.value = "";
+        document.getElementById("kitchenCount").textContent = "0 / 50";
+        document.getElementById("kitchenCount").classList.remove("over");
       }
+    }
+
+    async function clearKitchenMessage() {
+      const out = document.getElementById("kitchenMsg");
+      showResult(out, "消去中…", null);
+      const { error } = await sb.from("announcements").upsert(
+        { id: KITCHEN_ANNOUNCE_ID, text: "", expires_at: null, updated_at: new Date().toISOString() },
+        { onConflict: "id" }
+      );
+      if (error) showResult(out, "❌ エラーが発生しました", false);
+      else showResult(out, "✅ 厨房メッセージを消しました", true, 2000);
     }
   </script>
 </body>
