@@ -123,7 +123,8 @@ export default function Kitchen() {
           return acc;
         }, {});
         const itemText = Object.entries(counts).map(([name, qty]) => `${name} ${qty}点`).join("、");
-        const msg = `注文が入りました。${itemText}`;
+                const msg = table === "持ち帰り" ? `持ち帰りの注文が入りました。${itemText}` : `注文が入りました。${itemText}`;
+
         setTimeout(() => { speak(msg); lastSpokeRef.current = Date.now(); }, i * 3000);
       });
     }
