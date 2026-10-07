@@ -22,8 +22,69 @@ function speak(text) {
   } catch (e) {}
 }
 
+// ===== 夜間通知用（チャイム・時間帯・端末メモ） =====
+let audioCtx = null;
+
+// 画面をタップしたときに音の再生を許可しておく（iPadはタップしないと音が出せない）
+function unlockAudio() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!audioCtx) audioCtx = new AC();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const buf = audioCtx.createBuffer(1, 1, 22050);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+    src.start(0);
+  } catch (e) {}
+}
+
+// 目立つチャイム（ピンポンパンポン×2）
+function playChime() {
+  try {
+    if (!audioCtx) return;
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const notes = [523, 659, 784, 1047, 523, 659, 784, 1047];
+    const start = audioCtx.currentTime + 0.05;
+    notes.forEach((freq, i) => {
+      const t = start + i * 0.2 + (i >= 4 ? 0.15 : 0);
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "square";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.19);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.2);
+    });
+  } catch (e) {}
+}
+
+// 閉店時間帯（20時〜翌10時）かどうか
+function inClosedWindow() {
+  const h = new Date(Date.now() + 9 * 3600 * 1000).getUTCHours();
+  return h >= 20 || h < 10;
+}
+
+// 今の閉店時間帯が始まった時刻（直近の20時）
+function closedWindowStartISO() {
+  const jst = new Date(Date.now() + 9 * 3600 * 1000);
+  let d = jst.getUTCDate();
+  if (jst.getUTCHours() < 10) d -= 1;
+  // JST 20:00 = UTC 11:00
+  return new Date(Date.UTC(jst.getUTCFullYear(), jst.getUTCMonth(), d, 11, 0, 0)).toISOString();
+}
+
+function lsGet(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
 // iOSのspeechSynthesisが止まる対策
 function keepSynthAlive() {
+  if (audioCtx && audioCtx.state === "suspended") { try { audioCtx.resume(); } catch (e) {} }
   const synth = window.speechSynthesis;
   if (!synth) return;
   if (synth.paused) { synth.resume(); return; }
@@ -96,6 +157,78 @@ export default function Kitchen() {
   const prevIds = useRef(new Set());
   const lastSpokeRef = useRef(Date.now()); // 最後に音が鳴った時刻
   const [coffeeJellyRemain, setCoffeeJellyRemain] = useState(null);
+
+  // ===== 夜間通知（印刷のお知らせ・厨房メッセージ） =====
+  const [printNotice, setPrintNotice] = useState(null);
+  const [kitchenMsg, setKitchenMsg] = useState("");
+  const spokenPrintRef = useRef(lsGet("kitchen_print_spoken"));
+
+  const fetchNightNotices = async () => {
+    if (!inClosedWindow()) { setPrintNotice(null); setKitchenMsg(""); return; }
+    try {
+      const since = closedWindowStartISO();
+      const { data } = await supabase
+        .from("print_notifications")
+        .select("*")
+        .gte("sent_at", since)
+        .order("sent_at", { ascending: false })
+        .limit(10);
+      const hit = (data || []).find(r => {
+        try { return (JSON.parse(r.message).title || "").includes("印刷"); } catch (e) { return false; }
+      });
+      const key = hit ? String(hit.id ?? hit.sent_at) : "";
+      if (hit && key !== lsGet("kitchen_print_done")) setPrintNotice({ key });
+      else setPrintNotice(null);
+
+      const { data: a } = await supabase
+        .from("announcements")
+        .select("text,expires_at")
+        .eq("id", 2)
+        .limit(1);
+      const row = a?.[0];
+      setKitchenMsg(row && row.text && row.expires_at && new Date(row.expires_at) > new Date() ? row.text : "");
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    fetchNightNotices();
+    const iv = setInterval(fetchNightNotices, 10000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // 画面タップで音の再生を許可
+  useEffect(() => {
+    const h = () => unlockAudio();
+    document.addEventListener("touchend", h);
+    document.addEventListener("click", h);
+    return () => {
+      document.removeEventListener("touchend", h);
+      document.removeEventListener("click", h);
+    };
+  }, []);
+
+  // 印刷のお知らせ：チャイム＋読み上げを2回（1回の通知につき1度だけ）
+  const printKey = printNotice?.key || "";
+  useEffect(() => {
+    if (!printKey || !soundOn) return;
+    if (spokenPrintRef.current === printKey) return;
+    spokenPrintRef.current = printKey;
+    lsSet("kitchen_print_spoken", printKey);
+    const msg = "書類を送りました。印刷してください。";
+    lastSpokeRef.current = Date.now();
+    playChime();
+    const timers = [
+      setTimeout(() => { speak(msg); lastSpokeRef.current = Date.now(); }, 2000),
+      setTimeout(() => playChime(), 8000),
+      setTimeout(() => { speak(msg); lastSpokeRef.current = Date.now(); }, 10000),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [printKey, soundOn]);
+
+  const dismissPrintNotice = () => {
+    if (printNotice) lsSet("kitchen_print_done", printNotice.key);
+    setPrintNotice(null);
+  };
 
   const fetchOrders = async () => {
     const { data } = await supabase
@@ -296,6 +429,14 @@ export default function Kitchen() {
           0%, 100% { border-color: #ffcc00; }
           50%      { border-color: #cc2222; }
         }
+        @keyframes print-blink {
+          0%, 100% { background: #ff6600; border-color: #ffee00; color: #fff; }
+          50%      { background: #ffee00; border-color: #ff6600; color: #000; }
+        }
+        @keyframes kitchen-marquee {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-100%); }
+        }
       `}</style>
 
 
@@ -325,6 +466,30 @@ export default function Kitchen() {
           )}
         </div>
       </div>
+
+      {/* 夜間：印刷のお知らせ（点滅） */}
+      {printNotice && (
+        <div style={{ border: "8px solid", borderRadius: 18, padding: "24px 16px", marginBottom: 14, textAlign: "center", animation: "print-blink 0.8s infinite" }}>
+          <div style={{ fontSize: 48, fontWeight: 900, lineHeight: 1.3 }}>📄 書類を送りました</div>
+          <div style={{ fontSize: 40, fontWeight: 900, marginTop: 6 }}>印刷してください</div>
+          <button onClick={dismissPrintNotice} style={{
+            marginTop: 20, width: "100%", maxWidth: 520, padding: "28px 0",
+            background: "#fff", border: "5px solid #000", borderRadius: 16,
+            color: "#000", fontSize: 32, fontWeight: 900, cursor: "pointer"
+          }}>
+            ✅ 印刷しました（タップで消す）
+          </button>
+        </div>
+      )}
+
+      {/* 夜間：厨房メッセージ（流れる文字） */}
+      {kitchenMsg && (
+        <div style={{ overflow: "hidden", whiteSpace: "nowrap", background: "#0f2a18", border: "3px solid #4aaa5a", borderRadius: 12, padding: "16px 0", marginBottom: 14 }}>
+          <div style={{ display: "inline-block", paddingLeft: "100%", fontSize: 44, fontWeight: 900, color: "#aaffbb", animation: `kitchen-marquee ${10 + kitchenMsg.length * 0.4}s linear infinite` }}>
+            📢 {kitchenMsg}
+          </div>
+        </div>
+      )}
 
       {/* 注文カード */}
       {loading ? (
