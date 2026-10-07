@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="物販在庫">
+<title>カトレア 物販在庫</title>
+<style>
+  :root{
+    --bg:#0d0905; --card:#1a1208; --line:#3d2c14; --text:#f0e6d0; --muted:#a08a68;
+    --gold:#c9952a; --purple:#9a4ab0; --purple-soft:#e0a8e0; --red:#e05a4a; --green:#4aaa5a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans",sans-serif;-webkit-text-size-adjust:100%}
+  .wrap{max-width:760px;margin:0 auto;padding:16px 16px calc(40px + env(safe-area-inset-bottom))}
+  header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+  h1{margin:0;font-size:24px;color:var(--purple-soft)}
+  .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .btn{border:none;border-radius:10px;padding:10px 14px;font-size:15px;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .btn:active{transform:scale(.98)}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:22px}
+  .item{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px}
+  .item.low{border-color:var(--red)}
+  .item .name{font-size:17px;font-weight:800;margin-bottom:6px}
+  .item .stock{font-size:44px;font-weight:900;color:var(--gold);line-height:1.1}
+  .item .stock small{font-size:16px;color:var(--muted);font-weight:700;margin-left:4px}
+  .item.low .stock{color:var(--red)}
+  .item .warn{color:var(--red);font-weight:800;font-size:14px;margin-top:4px}
+  .item .detail{color:var(--muted);font-size:12px;margin-top:8px;line-height:1.7}
+  .item .nobase{color:#ffcc44;font-size:13px;font-weight:700;margin-top:6px}
+  section.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:18px}
+  section.panel h2{margin:0 0 12px;font-size:18px}
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tab{flex:1;padding:14px 0;border-radius:10px;border:2px solid var(--line);background:transparent;color:var(--muted);font-size:17px;font-weight:900;cursor:pointer}
+  .tab.on.purchase{background:#1a3a1a;border-color:var(--green);color:#9ae0a4}
+  .tab.on.count{background:#2a1a3a;border-color:var(--purple);color:var(--purple-soft)}
+  label{display:block;font-size:14px;color:var(--muted);margin:10px 0 6px;font-weight:700}
+  select,input{width:100%;font-size:20px;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0d0905;color:var(--text);font-family:inherit}
+  .qtyrow{display:flex;align-items:center;gap:10px}
+  .qtyrow button{width:56px;height:56px;border-radius:12px;border:2px solid var(--purple);background:transparent;color:var(--purple-soft);font-size:28px;font-weight:900;cursor:pointer;flex:none}
+  .qtyrow input{text-align:center;font-size:30px;font-weight:900}
+  .help{font-size:13px;color:var(--muted);line-height:1.7;margin-top:8px}
+  .submit{width:100%;margin-top:16px;padding:18px 0;font-size:20px;color:#fff}
+  .submit.purchase{background:var(--green)}
+  .submit.count{background:var(--purple)}
+  .submit:disabled{opacity:.4}
+  .msg{margin-top:10px;font-weight:800;text-align:center;min-height:22px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:9px 6px;border-bottom:1px solid #3d2c1466;text-align:left;vertical-align:middle}
+  th{color:var(--muted);font-weight:700;font-size:12px}
+  td.num{text-align:right;font-weight:800;white-space:nowrap}
+  .kind{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:800;white-space:nowrap}
+  .kind.purchase{background:#1a3a1a;color:#9ae0a4}
+  .kind.count{background:#2a1a3a;color:var(--purple-soft)}
+  .del{background:transparent;border:1px solid #c95a5a;color:#e08888;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer;white-space:nowrap}
+  .loading{color:var(--muted);text-align:center;padding:30px}
+  .err{color:var(--red);background:#2a0808;border:1px solid var(--red);border-radius:10px;padding:12px;margin-bottom:14px;font-size:14px;line-height:1.6}
+  @media (max-width:420px){ .item .stock{font-size:38px} }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <div>
+      <h1>🌵 物販 在庫管理</h1>
+      <div class="sub" id="asof">読み込み中…</div>
+    </div>
+    <button class="btn btn-ghost" onclick="loadAll()">🔄 更新</button>
+  </header>
+
+  <div id="error"></div>
+  <div class="grid" id="cards"><div class="loading">読み込み中…</div></div>
+
+  <section class="panel">
+    <h2>入力</h2>
+    <div class="tabs">
+      <button class="tab purchase on" id="tab-purchase" onclick="setMode('purchase')">📦 仕入</button>
+      <button class="tab count" id="tab-count" onclick="setMode('count')">🔢 棚卸</button>
+    </div>
+    <label for="item">商品</label>
+    <select id="item"></select>
+    <div id="dateBox">
+      <label for="dday">納品日</label>
+      <input id="dday" type="date">
+    </div>
+    <label for="qty" id="qtyLabel">仕入れた数</label>
+    <div class="qtyrow">
+      <button type="button" onclick="bump(-1)">−</button>
+      <input id="qty" type="number" inputmode="numeric" min="0" value="0">
+      <button type="button" onclick="bump(1)">＋</button>
+    </div>
+    <label for="note">メモ（なくてもOK）</label>
+    <input id="note" type="text" placeholder="例：〇〇から10個">
+    <div class="help" id="help"></div>
+    <button class="btn submit purchase" id="submit" onclick="submitEntry()">仕入を記録する</button>
+    <div class="msg" id="msg"></div>
+  </section>
+
+  <section class="panel">
+    <h2>記録の履歴（新しい順）</h2>
+    <div id="history"><div class="loading">読み込み中…</div></div>
+  </section>
+</main>
+
+<script>
+const SB_URL = "https://zxdgiszrsmumjjxmvszb.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODM2MTksImV4cCI6MjA5NTI1OTYxOX0.vNndS7JEzIUsa007EPO2zRoYhUr-z01LM32BKIhMSz4";
+const HEAD = { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY, "Content-Type": "application/json" };
+
+// レジの物販と同じ商品名にしてください（名前が違うと販売数が数えられません）
+const ITEMS = [
+  { name: "多肉植物（小）", low: 3 },
+  { name: "多肉植物（大）", low: 3 },
+  { name: "カトレア封筒",   low: 5 },
+  { name: "新橋封筒",       low: 5 },
+  { name: "花束封筒",       low: 5 },
+  // 商品を増やすときは、この上に1行足す（例：{ name: "クリスマス金封", low: 5 },）
+];
+
+let mode = "purchase";
+
+function jstParts(iso){
+  const d = new Date(iso);
+  const s = d.toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }); // "2026-10-07 13:45:12"
+  return { date: s.slice(0,10), time: s.slice(11,16), full: s.slice(0,16) };
+}
+function fmtDT(iso){ const p = jstParts(iso); return `${Number(p.date.slice(5,7))}/${Number(p.date.slice(8,10))} ${p.time}`; }
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+
+async function sbGet(path){
+  const r = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: HEAD });
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  return r.json();
+}
+
+async function loadAll(){
+  document.getElementById("error").innerHTML = "";
+  try {
+    const entries = await sbGet("retail_stock?select=*&order=created_at.desc&limit=500");
+    const results = [];
+    for (const it of ITEMS){
+      const mine = entries.filter(e => e.item_name === it.name);
+      const lastCount = mine.find(e => e.kind === "count"); // 新しい順なので最初が最新
+      const base = lastCount ? jstParts(lastCount.created_at) : null;
+      const firstEntry = mine.length ? mine[mine.length - 1] : null;
+      const from = base || (firstEntry ? jstParts(firstEntry.created_at) : null);
+
+      const purchases = mine.filter(e => e.kind === "purchase" &&
+        (!lastCount || new Date(e.created_at) > new Date(lastCount.created_at)));
+      const purchased = purchases.reduce((s, e) => s + (e.qty || 0), 0);
+
+      let sold = 0;
+      if (from){
+        const rows = await sbGet(`order_items?select=qty,sale_date,sale_time&item_name=eq.${encodeURIComponent(it.name)}&sale_date=gte.${from.date}`);
+        rows.forEach(r => {
+          const t = `${r.sale_date} ${(r.sale_time || "00:00").slice(0,5)}`;
+          if (t >= from.full) sold += (r.qty || 1);
+        });
+      }
+      const baseQty = lastCount ? lastCount.qty : 0;
+      results.push({ ...it, stock: baseQty + purchased - sold, baseQty, purchased, sold, lastCount, hasAny: mine.length > 0 });
+    }
+    renderCards(results);
+    renderHistory(entries);
+    document.getElementById("asof").textContent = "更新：" + fmtDT(new Date().toISOString());
+  } catch (e) {
+    const msg = String(e.message || e);
+    document.getElementById("error").innerHTML = `<div class="err">データを読み込めませんでした。<br>${
+      msg.includes("retail_stock") || msg.includes("delivered_on") || msg.includes("404") || msg.includes("42P01")
+        ? "Supabaseに「retail_stock」テーブルがまだ無いかもしれません。最初のSQLを実行してください。"
+        : esc(msg)}</div>`;
+    document.getElementById("cards").innerHTML = "";
+    document.getElementById("history").innerHTML = "";
+  }
+}
+
+function renderCards(list){
+  document.getElementById("cards").innerHTML = list.map(r => {
+    const low = r.hasAny && r.stock <= r.low;
+    const detail = r.lastCount
+      ? `棚卸 ${fmtDT(r.lastCount.created_at)}：${r.baseQty}個<br>その後の仕入 ＋${r.purchased}　販売 −${r.sold}`
+      : (r.hasAny ? `仕入 ＋${r.purchased}　販売 −${r.sold}` : "");
+    return `<div class="item${low ? " low" : ""}">
+      <div class="name">${esc(r.name)}</div>
+      <div class="stock">${r.hasAny ? r.stock : "—"}<small>${r.hasAny ? "個" : ""}</small></div>
+      ${low ? `<div class="warn">⚠️ 残りわずか（${r.low}個以下）</div>` : ""}
+      ${!r.lastCount ? `<div class="nobase">最初に「棚卸」で今の数を入れてください</div>` : ""}
+      ${detail ? `<div class="detail">${detail}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+function renderHistory(entries){
+  if (!entries.length){ document.getElementById("history").innerHTML = `<div class="loading">まだ記録がありません</div>`; return; }
+  document.getElementById("history").innerHTML = `<table>
+    <tr><th>記録日時</th><th>種類</th><th>商品</th><th style="text-align:right">数</th><th></th></tr>
+    ${entries.slice(0, 60).map(e => `<tr>
+      <td style="white-space:nowrap">${fmtDT(e.created_at)}</td>
+      <td><span class="kind ${e.kind}">${e.kind === "count" ? "棚卸" : "仕入"}</span></td>
+      <td>${esc(e.item_name)}${e.delivered_on ? `<div style="color:#9ae0a4;font-size:12px">納品日 ${Number(e.delivered_on.slice(5,7))}/${Number(e.delivered_on.slice(8,10))}</div>` : ""}${e.note ? `<div style="color:var(--muted);font-size:12px">${esc(e.note)}</div>` : ""}</td>
+      <td class="num">${e.kind === "count" ? "" : "＋"}${e.qty}</td>
+      <td><button class="del" onclick="delEntry(${Number(e.id)})">削除</button></td>
+    </tr>`).join("")}
+  </table>`;
+}
+
+function setMode(m){
+  mode = m;
+  document.getElementById("tab-purchase").classList.toggle("on", m === "purchase");
+  document.getElementById("tab-count").classList.toggle("on", m === "count");
+  const btn = document.getElementById("submit");
+  btn.className = "btn submit " + m;
+  btn.textContent = m === "purchase" ? "仕入を記録する" : "棚卸を記録する";
+  document.getElementById("dateBox").style.display = m === "purchase" ? "block" : "none";
+  document.getElementById("qtyLabel").textContent = m === "purchase" ? "仕入れた数" : "今、実際にある数";
+  document.getElementById("help").innerHTML = m === "purchase"
+    ? "届いた数を入れてください。今の在庫に足されます。"
+    : "お店にある数を数えて入れてください。<br>この数が新しいスタートになります（最初の1回と、数が合わないときに使います）。";
+  document.getElementById("msg").textContent = "";
+}
+
+function bump(n){
+  const el = document.getElementById("qty");
+  el.value = Math.max(0, (parseInt(el.value) || 0) + n);
+}
+
+async function submitEntry(){
+  const item = document.getElementById("item").value;
+  const qty = parseInt(document.getElementById("qty").value);
+  const note = document.getElementById("note").value.trim();
+  const dday = document.getElementById("dday").value;
+  const msg = document.getElementById("msg");
+  if (isNaN(qty) || qty < 0 || (mode === "purchase" && qty === 0)){
+    msg.style.color = "var(--red)"; msg.textContent = "数を入れてください"; return;
+  }
+  if (mode === "purchase" && !dday){
+    msg.style.color = "var(--red)"; msg.textContent = "納品日を入れてください"; return;
+  }
+  const label = mode === "purchase" ? "仕入" : "棚卸";
+  const dtext = mode === "purchase" ? `\n納品日：${Number(dday.slice(5,7))}/${Number(dday.slice(8,10))}` : "";
+  if (!confirm(`${item}\n${label}：${qty}個${dtext}\n\nこれで記録しますか？`)) return;
+  const btn = document.getElementById("submit");
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/retail_stock`, {
+      method: "POST", headers: { ...HEAD, Prefer: "return=minimal" },
+      body: JSON.stringify({ kind: mode, item_name: item, qty, note: note || null, delivered_on: mode === "purchase" ? dday : null })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    msg.style.color = "var(--green)"; msg.textContent = `✅ ${item} の${label}を記録しました`;
+    document.getElementById("qty").value = 0;
+    document.getElementById("note").value = "";
+    await loadAll();
+  } catch (e) {
+    msg.style.color = "var(--red)"; msg.textContent = "保存できませんでした：" + (e.message || e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function delEntry(id){
+  if (!confirm("この記録を削除しますか？")) return;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/retail_stock?id=eq.${id}`, { method: "DELETE", headers: HEAD });
+    if (!r.ok) throw new Error(await r.text());
+    await loadAll();
+  } catch (e) { alert("削除できませんでした：" + (e.message || e)); }
+}
+
+document.getElementById("dday").value = jstParts(new Date().toISOString()).date;
+document.getElementById("item").innerHTML = ITEMS.map(i => `<option>${esc(i.name)}</option>`).join("");
+setMode("purchase");
+loadAll();
+</script>
+</body>
+</html>
