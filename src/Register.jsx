@@ -1977,7 +1977,14 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
             </button>
 
 
+                       {/* シフト印刷リンク */}
+            <button onClick={() => window.open("https://timecard-owner.vercel.app/shift-print.html", "_blank")}
+              style={{ padding: 0, background: "transparent", border: "none", cursor: "pointer" }}>
+              <img src="/btn_shift.png" alt="シフト印刷" style={{ width: "100%", height: "auto", display: "block" }} />
+            </button>
+
             <button onClick={() => { setShowPinModal(true); setPinInput(""); setPinError(false); }}
+
               style={{ padding: "16px 4px", background: "#10182a", border: "1px solid #2a3a6a", borderRadius: 10, color: "#5a8aca", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
               ⚙️ 管理
             </button>
