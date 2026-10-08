@@ -975,7 +975,7 @@ export default function Register() {
   const selectedDiscount = selectedSubtotal - selectedTotal;
   const selectedPeople = selected ? tablePeopleStr(selected) : "-";
 
-  const _setDiscAmt = setCount * 150;
+  const _setDiscAmt = setCount * 120;
   const _coupDiscAmt = couponApplied ? couponDiscount : 0;
   const _finalAmt = Math.round(selectedTotal - _setDiscAmt - _coupDiscAmt);
   const change = receivedAmount ? Math.round(parseInt(receivedAmount) - _finalAmt) : null;
@@ -1018,7 +1018,7 @@ export default function Register() {
       .order("created_at", { ascending: true }).limit(1);
     const checkinTime = firstOrder && firstOrder[0] ? firstOrder[0].created_at : null;
     const couponDisc = couponApplied ? couponDiscount : 0;
-    const setDisc = setCount * 150;
+    const setDisc = setCount * 120;
     const now = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
     const chg = payMethod === "現金" ? change : null;
     const receiptType = "レシート"; // 常に自動レシート印刷
@@ -1029,7 +1029,7 @@ export default function Register() {
       await supabase.from("orders").delete().eq("id", d.id);
     }
     for (let i = 0; i < setCount; i++) {
-      await supabase.from("orders").insert({ table_no: String(t), item_name: "セット値引き", price: -150, qty: 1, status: "pending" });
+      await supabase.from("orders").insert({ table_no: String(t), item_name: "セット値引き", price: -120, qty: 1, status: "pending" });
     }
     await fetchOrders();
     // stateの更新を待たずSupabaseから直接取得（値引き・人数の追加分も確実に含める）
@@ -1148,7 +1148,7 @@ export default function Register() {
         const showPreview = async (type) => {
     const fallbackItems = [
       { item_name: "アイスコーヒー", price: 670, qty: 1 },
-      { item_name: "セット値引き", price: -150, qty: 1 },
+      { item_name: "セット値引き", price: -120, qty: 1 },
       { item_name: "シフォンケーキ", price: 650, qty: 2 },
       { item_name: "アイスミルクティ", price: 670, qty: 1 },
     ];
@@ -1303,7 +1303,7 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
   }, [confirming, selected]);
 
   const addDiscount = () => {
-    supabase.from("orders").insert({ table_no: String(selected), item_name: "セット値引き", price: -150, qty: 1, status: "pending" }).then(() => fetchOrders());
+    supabase.from("orders").insert({ table_no: String(selected), item_name: "セット値引き", price: -120, qty: 1, status: "pending" }).then(() => fetchOrders());
   };
 
   const removeDiscount = (orderId) => {
@@ -1813,7 +1813,7 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ color: "#4aaa5a", fontWeight: 700, fontSize: 14 }}>🍽 セット割引</span>
                 <span style={{ color: setCount > 0 ? "#4aaa5a" : "#8a7050", fontWeight: 700, fontSize: 14 }}>
-                  {setCount > 0 ? `-¥${(setCount * 150).toLocaleString()}` : "なし"}
+                  {setCount > 0 ? `-¥${(setCount * 120).toLocaleString()}` : "なし"}
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8 }}>
@@ -1826,7 +1826,7 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
             </div>
             <div style={{ background: "#1a1208", border: "2px solid #c9952a", borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
               {(() => {
-                const setDisc = setCount * 150;
+                const setDisc = setCount * 120;
                 const coupDisc = couponApplied ? couponDiscount : 0;
                 const totalDisc = setDisc + coupDisc;
                 const finalAmount = selectedSubtotal - totalDisc;
@@ -1880,7 +1880,7 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
                 </div>
                 <div style={{ fontSize: 32, fontFamily: "serif", color: receivedAmount ? "#f0e6d0" : "#3d2c14", marginBottom: 4 }}>¥{receivedAmount || "0"}</div>
                 {(() => {
-                  const setDisc = setCount * 150;
+                  const setDisc = setCount * 120;
                   const coupDisc = couponApplied ? couponDiscount : 0;
                   const finalAmount = selectedSubtotal - setDisc - coupDisc;
                   const chg = receivedAmount ? parseInt(receivedAmount) - finalAmount : null;
