@@ -1056,9 +1056,28 @@ export default function Register() {
       : baseItems;
 
 
-    await supabase.from("orders").delete().eq("table_no", String(t));
+        // ★税務用：①売上(sales)を保存して会計IDを受け取る → ②明細に会計ID・持ち帰り・税率を付けて保存 → ③注文を消す
     const saleDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
-    await supabase.from("sales").insert({ table_no: String(t), amount, pay_method: payMethod, receipt_type: receiptType, people_count: people, sale_time: now, checkin_time: checkinTime, takeout: (freshOrders || []).some(o => o.takeout === true), sale_date: saleDate });
+    const { data: saleRow, error: saleErr } = await supabase.from("sales").insert({ table_no: String(t), amount, pay_method: payMethod, receipt_type: receiptType, people_count: people, sale_time: now, checkin_time: checkinTime, takeout: (freshOrders || []).some(o => o.takeout === true), sale_date: saleDate }).select("id").single();
+    if (saleErr || !saleRow) {
+      alert("会計の保存に失敗しました。注文は残っています。「画面更新」を押して、もう一度会計してください。");
+      setCheckingOut(false);
+      return;
+    }
+    const itemRows = tableOrderItems.map(item => ({
+      sales_id: saleRow.id,
+      table_no: String(t),
+      item_name: item.item_name,
+      price: item.price,
+      qty: item.qty,
+      sale_time: now,
+      sale_date: saleDate,
+      takeout: item.takeout === true,
+      tax_rate: item.takeout === true ? 8 : 10,
+    }));
+    const { error: itemErr } = await supabase.from("order_items").insert(itemRows);
+    if (itemErr) alert("明細の保存に失敗しました（売上は保存済み）。まりに連絡してください。会計ID：" + saleRow.id);
+    await supabase.from("orders").delete().eq("table_no", String(t));
     await fetchTodaySales();
     const record = { table: t, amount, time: now, pay: payMethod, receipt: receiptType, timestamp: Date.now() };
     setHistory((prev) => [record, ...prev]);
