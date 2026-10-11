@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/Analytics.PNG">
 <link rel="icon" href="https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/Analytics.PNG">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -58,10 +59,13 @@
     display: flex;
     background: #181008;
     border-bottom: 2px solid #3d2c14;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .tab {
-    flex: 1;
-    padding: 12px 4px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 12px 12px;
     text-align: center;
     font-size: 13px;
     font-weight: 700;
@@ -208,6 +212,22 @@
     margin-top: 6px;
   }
   .btn-adjust:disabled { background: #3d2c14; color: #8a7050; cursor: not-allowed; }
+  /* ===== 税務用（取消・確定・履歴） ===== */
+  .btn-void { background: transparent; border: 1px solid #8a3a3a; color: #e08a8a; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .void-badge { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: #3a1414; border: 1px solid #8a3a3a; color: #e08a8a; }
+  .visit-card.is-reversal { border-color: #8a3a3a; }
+  .visit-card.is-reversal .visit-header { background: #2a1010; }
+  .visit-card.is-voided { opacity: 0.6; }
+  .memo-line { font-size: 12px; color: #e0c080; padding: 6px 14px; border-top: 1px solid #3d2c1444; }
+  .change-line { font-size: 12px; color: #e0a060; padding: 4px 14px; }
+  .sec-title { color: #c9952a; font-size: 15px; font-weight: 700; margin: 18px 0 10px; letter-spacing: 1px; }
+  .cl-row { display: grid; grid-template-columns: 48px 1fr 1fr 1fr 56px; gap: 4px; padding: 8px 0; border-bottom: 1px solid #3d2c1444; font-size: 13px; align-items: center; }
+  .cl-row.head { color: #8a7050; font-size: 11px; border-bottom: 1px solid #3d2c14; }
+  .cl-row span:not(:first-child) { text-align: right; }
+  .warn-box { background: #2a1010; border: 1px solid #8a3a3a; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; color: #e08a8a; font-size: 13px; }
+  .log-item { background: #181008; border: 1px solid #3d2c14; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: 12px; }
+  .log-item .lt { color: #8a7050; }
+  .log-item .lb { color: #f0e6d0; margin-top: 4px; line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -230,6 +250,7 @@
   <div class="tab" onclick="switchTab('tax')" id="tab-tax">🧾 消費税</div>
   <div class="tab" onclick="switchTab('cashcheck')" id="tab-cashcheck">💴 現金チェック</div>
   <div class="tab" onclick="switchTab('coupon')" id="tab-coupon">🎟 クーポン</div>
+  <div class="tab" onclick="switchTab('closing')" id="tab-closing">🔒 確定・履歴</div>
 </div>
 
 <div class="content" id="content-paycas">
@@ -257,6 +278,10 @@
 </div>
 
 <div class="content" id="content-coupon" style="display:none">
+  <div class="loading">読み込み中...</div>
+</div>
+
+<div class="content" id="content-closing" style="display:none">
   <div class="loading">読み込み中...</div>
 </div>
 
@@ -292,32 +317,80 @@ let currentTab = 'paycas';
 let salesData = [];
 let orderItemsData = [];
 let couponBySaleId = {};
+let tobaccoData = [];
+let voidBySaleId = {};     // 元の会計ID → 取消行
+let voidByTobaccoId = {};
+let auditBySaleId = {};    // 会計ID → 変更履歴
 let selectedDate = '';
 
 const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
 document.getElementById('dateInput').value = today;
 document.getElementById('headerDate').textContent = today;
 
+const TABS = ['paycas', 'visit', 'summary', 'monthly', 'tax', 'cashcheck', 'coupon', 'closing'];
 function switchTab(tab) {
   currentTab = tab;
-  document.getElementById('tab-paycas').className = 'tab' + (tab === 'paycas' ? ' active' : '');
-  document.getElementById('tab-visit').className = 'tab' + (tab === 'visit' ? ' active' : '');
-  document.getElementById('tab-summary').className = 'tab' + (tab === 'summary' ? ' active' : '');
-  document.getElementById('tab-monthly').className = 'tab' + (tab === 'monthly' ? ' active' : '');
-  document.getElementById('tab-tax').className = 'tab' + (tab === 'tax' ? ' active' : '');
-  document.getElementById('tab-cashcheck').className = 'tab' + (tab === 'cashcheck' ? ' active' : '');
-  document.getElementById('tab-coupon').className = 'tab' + (tab === 'coupon' ? ' active' : '');
-  document.getElementById('content-paycas').style.display = tab === 'paycas' ? '' : 'none';
-  document.getElementById('content-visit').style.display = tab === 'visit' ? '' : 'none';
-  document.getElementById('content-summary').style.display = tab === 'summary' ? '' : 'none';
-  document.getElementById('content-monthly').style.display = tab === 'monthly' ? '' : 'none';
-  document.getElementById('content-tax').style.display = tab === 'tax' ? '' : 'none';
-  document.getElementById('content-cashcheck').style.display = tab === 'cashcheck' ? '' : 'none';
-  document.getElementById('content-coupon').style.display = tab === 'coupon' ? '' : 'none';
+  TABS.forEach(t => {
+    document.getElementById('tab-' + t).className = 'tab' + (tab === t ? ' active' : '');
+    document.getElementById('content-' + t).style.display = tab === t ? '' : 'none';
+  });
   if (tab === 'monthly') loadPaycasMonthly();
   if (tab === 'tax') loadTaxSummary();
   if (tab === 'cashcheck') loadCashCheck();
   if (tab === 'coupon') loadCouponSummary();
+  if (tab === 'closing') loadClosing();
+}
+
+// ========== 共通：1000件を超えても全部取ってくる ==========
+async function fetchAll(table, build, orderCol = 'id') {
+  const size = 1000;
+  let all = [], from = 0;
+  while (true) {
+    const { data, error } = await build(sb.from(table).select('*')).order(orderCol, { ascending: true }).range(from, from + size - 1);
+    if (error) throw error;
+    all = all.concat(data || []);
+    if (!data || data.length < size) break;
+    from += size;
+  }
+  return all;
+}
+
+function monthRange() {
+  const dateVal = document.getElementById('dateInput').value;
+  const ym = dateVal ? dateVal.substring(0, 7) : today.substring(0, 7);
+  const [year, month] = ym.split('-');
+  const lastDay = new Date(Number(year), Number(month), 0).getDate();
+  return { ym, year, month, startDate: `${year}-${month}-01`, endDate: `${year}-${month}-${String(lastDay).padStart(2, '0')}` };
+}
+
+// 組数：プラスの会計を数え、取消（赤伝）の分を引く（日計確定と同じ数え方）
+function groupCount(rows) {
+  return rows.filter(s => s.amount > 0 && !s.void_of).length - rows.filter(s => s.void_of && s.amount < 0).length;
+}
+
+// 会計に紐づく明細：会計IDがあればそれで、古いデータはテーブル＋時刻で
+function itemsForSale(sale) {
+  const byId = orderItemsData.filter(o => o.sales_id === sale.id);
+  if (byId.length > 0) return byId;
+  return orderItemsData.filter(o => o.sales_id == null && String(o.table_no) === String(sale.table_no) && o.sale_time === sale.sale_time);
+}
+
+function esc(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function jstDateTime(iso) {
+  const t = new Date(iso).toLocaleString('sv-SE', { timeZone: 'Asia/Tokyo' });
+  return t.substring(5, 16).replace('-', '/');
+}
+
+const FIELD_LABEL = { amount: '金額', pay_method: '支払方法', people_count: '人数', table_no: 'テーブル', sale_date: '日付', sale_time: '時刻', receipt_type: 'レシート', memo: 'メモ', takeout: '持ち帰り', price: '金額', qty: '数量', item_name: '商品' };
+function describeChange(a) {
+  if (a.action === 'DELETE') return '🗑 行が削除されました（削除前：' + Object.entries(a.old_data || {}).filter(([k]) => FIELD_LABEL[k]).map(([k, v]) => FIELD_LABEL[k] + ' ' + v).join('・') + '）';
+  const o = a.old_data || {}, n = a.new_data || {};
+  const parts = Object.keys(FIELD_LABEL).filter(k => k in n && JSON.stringify(o[k]) !== JSON.stringify(n[k]))
+    .map(k => `${FIELD_LABEL[k]}：${o[k] == null ? '（なし）' : o[k]} → ${n[k] == null ? '（なし）' : n[k]}`);
+  return parts.length ? '✏️ ' + parts.join('、') : '✏️ 変更（表示項目以外）';
 }
 
 async function loadAll() {
@@ -329,15 +402,31 @@ async function loadAll() {
   document.getElementById('content-summary').innerHTML = '<div class="loading">読み込み中...</div>';
   document.getElementById('content-monthly').innerHTML = '<div class="loading">読み込み中...</div>';
 
-  const [{ data: sales }, { data: items }] = await Promise.all([
+  const [{ data: sales }, { data: items }, { data: tobacco }] = await Promise.all([
     sb.from("sales").select("*").eq("sale_date", selectedDate).order("sale_time", { ascending: true }),
     sb.from("order_items").select("*").eq("sale_date", selectedDate).order("sale_time", { ascending: true }),
+    sb.from("tobacco_sales").select("*").eq("sale_date", selectedDate).order("id", { ascending: true }),
   ]);
 
   salesData = sales || [];
   orderItemsData = items || [];
+  tobaccoData = tobacco || [];
 
   const saleIds = salesData.map(s => s.id).filter(id => id != null);
+  const tobaccoIds = tobaccoData.map(t => t.id);
+  voidBySaleId = {}; voidByTobaccoId = {}; auditBySaleId = {};
+  if (saleIds.length > 0) {
+    const [{ data: voids }, { data: audits }] = await Promise.all([
+      sb.from("sales").select("id, void_of, sale_date, sale_time, memo").in("void_of", saleIds),
+      sb.from("audit_log").select("*").eq("table_name", "sales").in("row_id", saleIds).order("changed_at", { ascending: true }),
+    ]);
+    (voids || []).forEach(v => { voidBySaleId[v.void_of] = v; });
+    (audits || []).forEach(a => { (auditBySaleId[a.row_id] = auditBySaleId[a.row_id] || []).push(a); });
+  }
+  if (tobaccoIds.length > 0) {
+    const { data: tv } = await sb.from("tobacco_sales").select("id, void_of, sale_date").in("void_of", tobaccoIds);
+    (tv || []).forEach(v => { voidByTobaccoId[v.void_of] = v; });
+  }
   couponBySaleId = {};
   if (saleIds.length > 0) {
     const { data: couponsForSales } = await sb.from("coupons")
@@ -352,6 +441,7 @@ async function loadAll() {
   if (currentTab === 'monthly') loadPaycasMonthly();
   if (currentTab === 'tax') loadTaxSummary();
   if (currentTab === 'coupon') loadCouponSummary();
+  if (currentTab === 'closing') loadClosing();
 }
 
 function renderPaycas() {
@@ -514,10 +604,7 @@ async function loadTaxSummary() {
   const lastDay = new Date(Number(year), Number(month), 0).getDate();
   const endDate = `${year}-${month}-${String(lastDay).padStart(2,'0')}`;
 
-  const { data: salesMonth } = await sb.from('sales')
-    .select('amount, takeout, sale_date')
-    .gte('sale_date', startDate).lte('sale_date', endDate)
-    .limit(5000);
+  const salesMonth = await fetchAll('sales', q => q.gte('sale_date', startDate).lte('sale_date', endDate));
 
   const rows = salesMonth || [];
 
@@ -525,14 +612,15 @@ async function loadTaxSummary() {
   let takeoutGross = 0, takeoutTax = 0, takeoutCount = 0;
 
   rows.forEach(s => {
+    const c = s.void_of ? -1 : 1; // 取消行は件数から引く
     if (s.takeout) {
       takeoutGross += s.amount;
       takeoutTax += Math.round(s.amount * 8 / 108);
-      takeoutCount += 1;
+      takeoutCount += c;
     } else {
       dineInGross += s.amount;
       dineInTax += Math.round(s.amount / 11);
-      dineInCount += 1;
+      dineInCount += c;
     }
   });
 
@@ -610,24 +698,22 @@ async function printTaxSummary() {
   const lastDay = new Date(Number(year), Number(month), 0).getDate();
   const endDate = `${year}-${month}-${String(lastDay).padStart(2,'0')}`;
 
-  const { data: salesMonth } = await sb.from('sales')
-    .select('amount, takeout')
-    .gte('sale_date', startDate).lte('sale_date', endDate)
-    .limit(5000);
+  const salesMonth = await fetchAll('sales', q => q.gte('sale_date', startDate).lte('sale_date', endDate));
 
   const rows = salesMonth || [];
   let dineInGross = 0, dineInTax = 0, dineInCount = 0;
   let takeoutGross = 0, takeoutTax = 0, takeoutCount = 0;
 
   rows.forEach(s => {
+    const c = s.void_of ? -1 : 1; // 取消行は件数から引く
     if (s.takeout) {
       takeoutGross += s.amount;
       takeoutTax += Math.round(s.amount * 8 / 108);
-      takeoutCount += 1;
+      takeoutCount += c;
     } else {
       dineInGross += s.amount;
       dineInTax += Math.round(s.amount / 11);
-      dineInCount += 1;
+      dineInCount += c;
     }
   });
 
@@ -766,10 +852,7 @@ async function loadPaycasMonthly() {
   const { data: paycasDaily } = await sb.from('paycas_daily')
     .select('*').gte('sale_date', startDate).lte('sale_date', endDate);
 
-  const { data: salesMonth } = await sb.from('sales')
-    .select('sale_date, amount, pay_method, table_no')
-    .eq('pay_method', 'ペイキャス')
-    .gte('sale_date', startDate).lte('sale_date', endDate);
+  const salesMonth = await fetchAll('sales', q => q.eq('pay_method', 'ペイキャス').gte('sale_date', startDate).lte('sale_date', endDate));
 
   // 調整レコード判定用（table_no='調整'を含む全データ）
   const adjustDates = new Set((salesMonth || []).filter(s => s.table_no === '調整').map(s => s.sale_date));
@@ -845,10 +928,7 @@ async function printPaycasMonthly() {
 
   const { data: paycasDaily } = await sb.from('paycas_daily')
     .select('*').gte('sale_date', startDate).lte('sale_date', endDate);
-  const { data: salesMonth } = await sb.from('sales')
-    .select('sale_date, amount, pay_method, table_no')
-    .eq('pay_method', 'ペイキャス')
-    .gte('sale_date', startDate).lte('sale_date', endDate);
+  const salesMonth = await fetchAll('sales', q => q.eq('pay_method', 'ペイキャス').gte('sale_date', startDate).lte('sale_date', endDate));
 
   const salesByDate = {};
   (salesMonth || []).forEach(s => {
@@ -967,31 +1047,40 @@ function renderVisit() {
       📄 来店者一覧 PDF印刷
     </button>
   </div>`;
-  html += `<div style="color:#8a7050;font-size:12px;margin-bottom:10px">${sorted.length}組 来店</div>`;
+  html += `<div style="color:#8a7050;font-size:12px;margin-bottom:10px">${groupCount(sorted)}組 来店（取消・調整を除く）</div>`;
 
   sorted.forEach(sale => {
-    const items = orderItemsData.filter(o =>
-      String(o.table_no) === String(sale.table_no) && o.sale_time === sale.sale_time
-    );
+    const items = itemsForSale(sale);
     const payColor = sale.pay_method === 'ペイキャス' ? '#5a8aca' : '#4aaa5a';
     const usedCoupon = couponBySaleId[sale.id];
     const couponBadge = usedCoupon
       ? `<span style="display:inline-block;margin-top:4px;padding:2px 8px;background:#3d2c14;border:1px solid #c9952a;border-radius:20px;color:#c9952a;font-size:11px;font-weight:700;">🎟 ${usedCoupon.coupon_type}クーポン -¥${(usedCoupon.discount_amount || 0).toLocaleString()}</span>`
       : '';
 
+    const isReversal = !!sale.void_of;
+    const voidRow = voidBySaleId[sale.id];
+    const canVoid = !isReversal && !voidRow && sale.table_no !== '調整';
+    const voidBadge = isReversal
+      ? `<span class="void-badge">↩ 取消（元ID ${sale.void_of}）</span>`
+      : voidRow ? `<span class="void-badge">取消済み ${voidRow.sale_date.substring(5).replace('-', '/')} ${voidRow.sale_time || ''}</span>` : '';
+    const changes = (auditBySaleId[sale.id] || []).map(a => `<div class="change-line">${jstDateTime(a.changed_at)} ${esc(describeChange(a))}</div>`).join('');
+
     html += `
-    <div class="visit-card">
+    <div class="visit-card${isReversal ? ' is-reversal' : ''}${voidRow ? ' is-voided' : ''}">
       <div class="visit-header">
         <div>
-          <div class="vtable">テーブル ${sale.table_no}</div>
-          <div class="vinfo">退店 ${sale.sale_time || '-'}　${sale.people_count || '-'}名</div>
-          ${couponBadge}
+          <div class="vtable">テーブル ${esc(sale.table_no)}</div>
+          <div class="vinfo">${isReversal ? '取消' : '退店'} ${sale.sale_time || '-'}　${sale.people_count || '-'}名　<span style="color:#5a4a30">ID ${sale.id}</span></div>
+          ${couponBadge}${voidBadge}
         </div>
         <div class="vtotal">
-          <div class="vtotal-amount">¥${sale.amount.toLocaleString()}</div>
+          <div class="vtotal-amount" style="${sale.amount < 0 ? 'color:#e08a8a' : ''}">${sale.amount < 0 ? '-' : ''}¥${Math.abs(sale.amount).toLocaleString()}</div>
           <div class="vtotal-pay" style="color:${payColor}">${sale.pay_method || '-'}</div>
+          ${canVoid ? `<button class="btn-void" style="margin-top:6px" onclick="voidSale(${sale.id})">取消</button>` : ''}
         </div>
-      </div>`;
+      </div>
+      ${sale.memo ? `<div class="memo-line">📝 ${esc(sale.memo)}</div>` : ''}
+      ${changes}`;
 
     if (items.length > 0) {
       html += `<div class="visit-body">`;
@@ -1015,7 +1104,56 @@ function renderVisit() {
     html += `</div>`;
   });
 
+  // タバコ
+  if (tobaccoData.length > 0) {
+    html += `<div class="sec-title">🚬 タバコ（${tobaccoData.length}件）</div>`;
+    tobaccoData.forEach(t => {
+      const isRev = !!t.void_of;
+      const vr = voidByTobaccoId[t.id];
+      html += `
+      <div class="pay-item" style="${isRev ? 'border-color:#8a3a3a' : ''}${vr ? ';opacity:0.6' : ''}">
+        <div>
+          <div class="time">${t.sale_time || '-'}　ID ${t.id}</div>
+          <div class="table" style="font-size:14px">${esc(t.item_name)}</div>
+          ${isRev ? `<span class="void-badge">↩ 取消（元ID ${t.void_of}）</span>` : vr ? `<span class="void-badge">取消済み</span>` : ''}
+          ${t.memo ? `<div style="color:#e0c080;font-size:11px;margin-top:4px">📝 ${esc(t.memo)}</div>` : ''}
+        </div>
+        <div style="text-align:right">
+          <div class="pamount" style="${t.price < 0 ? 'color:#e08a8a' : ''}">${t.price < 0 ? '-' : ''}¥${Math.abs(t.price).toLocaleString()}</div>
+          ${!isRev && !vr ? `<button class="btn-void" style="margin-top:6px" onclick="voidTobacco(${t.id})">取消</button>` : ''}
+        </div>
+      </div>`;
+    });
+  }
+
   document.getElementById('content-visit').innerHTML = html;
+}
+
+// ========== 取消（赤伝）：元の記録は残し、マイナスの行を追加する ==========
+async function voidSale(id) {
+  const s = salesData.find(x => x.id === id);
+  if (!s) return;
+  const reason = prompt(`テーブル${s.table_no}　${s.sale_time}　¥${s.amount.toLocaleString()}（${s.pay_method}）を取り消します。\n\n理由を入力してください（例：テーブル間違いで再会計）`);
+  if (reason === null) return;
+  if (!reason.trim()) { alert('理由が空なので取り消していません'); return; }
+  if (!confirm('本当に取り消しますか？\n\n元の記録はそのまま残り、マイナスの行が今日の日付で追加されます。\nこの操作は元に戻せません。')) return;
+  const { data, error } = await sb.rpc('void_sale', { p_sale_id: id, p_reason: reason.trim() });
+  if (error) { alert('取消できませんでした：' + error.message); return; }
+  alert('✅ 取り消しました（取消行 ID ' + data + '）');
+  loadAll();
+}
+
+async function voidTobacco(id) {
+  const t = tobaccoData.find(x => x.id === id);
+  if (!t) return;
+  const reason = prompt(`タバコ ${t.item_name}　¥${t.price.toLocaleString()} を取り消します。\n\n理由を入力してください`);
+  if (reason === null) return;
+  if (!reason.trim()) { alert('理由が空なので取り消していません'); return; }
+  if (!confirm('本当に取り消しますか？元の記録は残り、マイナスの行が追加されます。')) return;
+  const { data, error } = await sb.rpc('void_tobacco_sale', { p_id: id, p_reason: reason.trim() });
+  if (error) { alert('取消できませんでした：' + error.message); return; }
+  alert('✅ 取り消しました（取消行 ID ' + data + '）');
+  loadAll();
 }
 
 function printVisit() {
@@ -1023,9 +1161,7 @@ function printVisit() {
   const dateDisp = (selectedDate || '').replace(/-/g, '/');
 
   const rows = sorted.map(sale => {
-    const items = orderItemsData.filter(o =>
-      String(o.table_no) === String(sale.table_no) && o.sale_time === sale.sale_time
-    );
+    const items = itemsForSale(sale);
     const itemsHtml = items.length > 0
       ? items.map(o => {
           const subtotal = o.price * o.qty;
@@ -1039,8 +1175,8 @@ function printVisit() {
       <td>${sale.sale_time || '-'}</td>
       <td>${sale.people_count || '-'}名</td>
       <td>${sale.pay_method || '-'}</td>
-      <td style="text-align:right">¥${sale.amount.toLocaleString()}</td>
-      <td>${itemsHtml}</td>
+      <td style="text-align:right">${sale.amount < 0 ? '-' : ''}¥${Math.abs(sale.amount).toLocaleString()}</td>
+      <td>${itemsHtml}${sale.void_of ? '<div>※取消（元ID ' + sale.void_of + '）</div>' : ''}${voidBySaleId[sale.id] ? '<div>※取消済み</div>' : ''}${sale.memo ? '<div>メモ：' + esc(sale.memo) + '</div>' : ''}</td>
     </tr>`;
   }).join('');
 
@@ -1061,7 +1197,7 @@ function printVisit() {
     <div class="sub">対象日：${dateDisp}　出力日：${new Date().toLocaleString('ja-JP')}</div>
     <table>
       <thead><tr><th>テーブル</th><th>退店時刻</th><th>人数</th><th>支払方法</th><th>金額</th><th>注文明細</th></tr></thead>
-      <tbody>${rows}<tr class="tr"><td colspan="4">合計 ${sorted.length}組</td><td style="text-align:right">¥${grandTotal.toLocaleString()}</td><td></td></tr></tbody>
+      <tbody>${rows}<tr class="tr"><td colspan="4">合計 ${groupCount(sorted)}組</td><td style="text-align:right">¥${grandTotal.toLocaleString()}</td><td></td></tr></tbody>
     </table>
   </body></html>`;
 
@@ -1077,7 +1213,7 @@ function renderSummary() {
   const cashTotal = cashSales.reduce((a, s) => a + s.amount, 0);
   const paycasTotal = paycasSales.reduce((a, s) => a + s.amount, 0);
   const grandTotal = salesData.reduce((a, s) => a + s.amount, 0);
-  const totalCount = salesData.length;
+  const totalCount = groupCount(salesData);
   const totalPeople = salesData.reduce((a, s) => a + (s.people_count || 0), 0);
   const cashCount = cashSales.length;
   const paycasCount = paycasSales.length;
@@ -1134,7 +1270,7 @@ function printSummary() {
   const cashTotal = cashSales.reduce((a, s) => a + s.amount, 0);
   const paycasTotal = paycasSales.reduce((a, s) => a + s.amount, 0);
   const grandTotal = salesData.reduce((a, s) => a + s.amount, 0);
-  const totalCount = salesData.length;
+  const totalCount = groupCount(salesData);
   const totalPeople = salesData.reduce((a, s) => a + (s.people_count || 0), 0);
   const cashCount = cashSales.length;
   const paycasCount = paycasSales.length;
@@ -1187,6 +1323,208 @@ function printSummary() {
 
   const url = 'starpassprnt://v1/print/nopreview?back=' + encodeURIComponent(location.href) + '&html=' + encodeURIComponent(html);
   window.location.href = url;
+}
+
+// ========== 🔒 確定・履歴（税務用） ==========
+let closingCache = null;
+
+async function loadClosing() {
+  const el = document.getElementById('content-closing');
+  el.innerHTML = '<div class="loading">読み込み中...</div>';
+  const { ym, year, month, startDate, endDate } = monthRange();
+  const startISO = `${startDate}T00:00:00+09:00`;
+  const nextYm = Number(month) === 12 ? `${Number(year) + 1}-01` : `${year}-${String(Number(month) + 1).padStart(2, '0')}`;
+  const endISO = `${nextYm}-01T00:00:00+09:00`;
+
+  try {
+    const [closings, diffs, voids, tvoids, audits] = await Promise.all([
+      fetchAll('daily_closings', q => q.gte('sale_date', startDate).lte('sale_date', endDate), 'sale_date'),
+      fetchAll('daily_closing_diff', q => q.gte('sale_date', startDate).lte('sale_date', endDate), 'sale_date'),
+      fetchAll('sales', q => q.not('void_of', 'is', null).gte('sale_date', startDate).lte('sale_date', endDate)),
+      fetchAll('tobacco_sales', q => q.not('void_of', 'is', null).gte('sale_date', startDate).lte('sale_date', endDate)),
+      fetchAll('audit_log', q => q.gte('changed_at', startISO).lt('changed_at', endISO)),
+    ]);
+    closingCache = { ym, year, month, closings, diffs, voids, tvoids, audits };
+  } catch (e) {
+    el.innerHTML = `<div class="empty">読み込みに失敗しました：${esc(e.message || e)}</div>`;
+    return;
+  }
+  const { closings, diffs, voids, tvoids, audits } = closingCache;
+
+  const sum = k => closings.reduce((a, c) => a + (c[k] || 0), 0);
+  const diffMap = {}; diffs.forEach(d => { diffMap[d.sale_date] = d; });
+
+  let html = `<div class="sec-title" style="margin-top:0">🔒 確定済みの売上 ${year}年${parseInt(month)}月</div>`;
+
+  html += `
+  <div class="summary-card">
+    <div class="label">確定済み ${closings.length}日分の総売上（タバコ別）</div>
+    <div class="amount">¥${sum('sales_total').toLocaleString()}</div>
+    <div style="margin-top:12px">
+      <div class="summary-row"><span class="slabel">現金</span><span class="sval">¥${sum('cash_total').toLocaleString()}</span></div>
+      <div class="summary-row"><span class="slabel">ペイキャス</span><span class="sval">¥${sum('paycas_total').toLocaleString()}</span></div>
+      ${sum('other_total') ? `<div class="summary-row"><span class="slabel">その他（未回収など）</span><span class="sval">¥${sum('other_total').toLocaleString()}</span></div>` : ''}
+      <div class="summary-row"><span class="slabel">うち持ち帰り</span><span class="sval">¥${sum('takeout_total').toLocaleString()}</span></div>
+      <div class="summary-row"><span class="slabel">タバコ売上</span><span class="sval">¥${sum('tobacco_total').toLocaleString()}</span></div>
+      <div class="summary-row"><span class="slabel">組数・人数</span><span class="sval">${sum('group_count').toLocaleString()}組・${sum('people_count').toLocaleString()}名</span></div>
+    </div>
+  </div>
+  <div style="color:#8a7050;font-size:11px;margin:-6px 0 14px;">毎晩23:55に自動で確定。確定した数字はあとから書き換えできません。</div>`;
+
+  if (diffs.length > 0) {
+    html += `<div class="warn-box">⚠️ 確定後に数字が変わった日があります<br>` +
+      diffs.map(d => `${d.sale_date.substring(5).replace('-', '/')}　確定 ¥${Number(d.closed_total).toLocaleString()} → 今 ¥${Number(d.current_total).toLocaleString()}（${d.diff > 0 ? '+' : ''}¥${Number(d.diff).toLocaleString()}）`).join('<br>') +
+      `<br><span style="font-size:11px;color:#c08080">下の「変更履歴」で何が変わったか確認できます</span></div>`;
+  }
+
+  if (closings.length === 0) {
+    html += '<div class="empty">この月の確定データはまだありません</div>';
+  } else {
+    html += `<div class="cl-row head"><span>日付</span><span>総売上</span><span>現金</span><span>ペイキャス</span><span>組</span></div>`;
+    [...closings].reverse().forEach(c => {
+      const d = diffMap[c.sale_date];
+      html += `<div class="cl-row" style="${d ? 'color:#e08a8a' : ''}">
+        <span>${c.sale_date.substring(5).replace('-', '/')}${d ? ' ⚠️' : ''}</span>
+        <span style="color:#c9952a;font-weight:700">¥${c.sales_total.toLocaleString()}</span>
+        <span>¥${c.cash_total.toLocaleString()}</span>
+        <span>¥${c.paycas_total.toLocaleString()}</span>
+        <span>${c.group_count}</span>
+      </div>`;
+    });
+  }
+
+  html += `
+  <button onclick="printClosing()" style="width:100%;margin-top:14px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">📄 確定売上 PDF印刷</button>
+  <button id="btnBackup" onclick="downloadMonthlyBackup()" style="width:100%;margin-top:10px;padding:14px;background:#1a2a10;border:2px solid #4a8a3a;border-radius:10px;color:#8ae08a;font-size:16px;font-weight:900;cursor:pointer;">💾 ${parseInt(month)}月のバックアップ（ZIP）</button>
+  <div style="color:#8a7050;font-size:11px;margin-top:6px;text-align:center;">ダウンロードしたZIPは、Googleドライブの「カトレア税務バックアップ」フォルダへ。GitHubには置かないでください。</div>`;
+
+  // 取消一覧
+  const allVoids = [
+    ...voids.map(v => ({ kind: '会計', when: `${v.sale_date} ${v.sale_time || ''}`, label: `テーブル${v.table_no}・${v.pay_method || ''}`, amount: v.amount, memo: v.memo })),
+    ...tvoids.map(v => ({ kind: 'タバコ', when: `${v.sale_date} ${v.sale_time || ''}`, label: v.item_name, amount: v.price, memo: v.memo })),
+  ].sort((a, b) => b.when.localeCompare(a.when));
+  html += `<div class="sec-title">↩ 取消（赤伝） ${allVoids.length}件</div>`;
+  if (allVoids.length === 0) html += '<div style="color:#5a4a30;font-size:13px;text-align:center;padding:10px">この月の取消はありません</div>';
+  allVoids.forEach(v => {
+    html += `<div class="log-item"><div class="lt">${v.when.substring(5).replace('-', '/')}　${v.kind}　${esc(v.label)}　<span style="color:#e08a8a">-¥${Math.abs(v.amount).toLocaleString()}</span></div><div class="lb">${esc(v.memo || '')}</div></div>`;
+  });
+
+  // 変更履歴
+  html += `<div class="sec-title">✏️ 変更履歴 ${audits.length}件</div>`;
+  if (audits.length === 0) html += '<div style="color:#5a4a30;font-size:13px;text-align:center;padding:10px">この月に変更・削除はありません</div>';
+  const tLabel = { sales: '売上', order_items: '明細', tobacco_sales: 'タバコ' };
+  [...audits].reverse().slice(0, 200).forEach(a => {
+    const base = a.old_data || {};
+    const what = a.table_name === 'sales' ? `テーブル${base.table_no}・${base.sale_date} ${base.sale_time || ''}`
+      : a.table_name === 'order_items' ? `${base.item_name}（${base.sale_date}）`
+      : `${base.item_name}（${base.sale_date}）`;
+    html += `<div class="log-item"><div class="lt">${jstDateTime(a.changed_at)}　${tLabel[a.table_name] || a.table_name} ID ${a.row_id}　${esc(what)}</div><div class="lb">${esc(describeChange(a))}</div></div>`;
+  });
+  if (audits.length > 200) html += '<div style="color:#8a7050;font-size:11px;text-align:center">※画面には新しい200件まで。全件はバックアップZIPに入っています</div>';
+
+  el.innerHTML = html;
+}
+
+function printClosing() {
+  if (!closingCache) return;
+  const { year, month, closings, diffs, voids, tvoids } = closingCache;
+  const sum = k => closings.reduce((a, c) => a + (c[k] || 0), 0);
+  const diffDates = new Set(diffs.map(d => d.sale_date));
+  const rows = closings.map(c => `<tr${diffDates.has(c.sale_date) ? ' style="color:#c00"' : ''}>
+    <td>${c.sale_date.replace(/-/g, '/')}</td><td>¥${c.sales_total.toLocaleString()}</td><td>¥${c.cash_total.toLocaleString()}</td>
+    <td>¥${c.paycas_total.toLocaleString()}</td><td>¥${c.takeout_total.toLocaleString()}</td><td>¥${c.tobacco_total.toLocaleString()}</td>
+    <td>${c.group_count}</td><td>${c.people_count}</td><td>${new Date(c.closed_at).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</td></tr>`).join('');
+  const voidRows = [...voids.map(v => [v.sale_date, `テーブル${v.table_no}`, v.amount, v.memo]), ...tvoids.map(v => [v.sale_date, v.item_name, v.price, v.memo])]
+    .map(r => `<tr><td>${r[0]}</td><td>${esc(r[1])}</td><td>¥${Number(r[2]).toLocaleString()}</td><td style="text-align:left">${esc(r[3] || '')}</td></tr>`).join('');
+  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
+    @page{size:A4 landscape;margin:12mm}
+    body{font-family:'Hiragino Mincho ProN',serif;color:#000;font-size:11px}
+    h2{text-align:center;margin-bottom:4px} p.sub{text-align:center;color:#555;margin-bottom:12px}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px} th,td{border:1px solid #999;padding:4px 6px;text-align:right}
+    th{background:#eee;text-align:center} td:first-child{text-align:left}
+    .t td{font-weight:900;background:#f3f3f3}
+    @media print{ html{ -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style></head><body>
+    <h2>Lounge Cattleya　確定売上一覧　${year}年${parseInt(month)}月</h2>
+    <p class="sub">株式会社エー・ワイ・シー　出力日時：${new Date().toLocaleString('ja-JP')}　※毎日23:55に自動確定・確定後は変更不可</p>
+    <table><tr><th>日付</th><th>総売上</th><th>現金</th><th>ペイキャス</th><th>うち持ち帰り</th><th>タバコ</th><th>組数</th><th>人数</th><th>確定日時</th></tr>
+    ${rows}
+    <tr class="t"><td>合計（${closings.length}日）</td><td>¥${sum('sales_total').toLocaleString()}</td><td>¥${sum('cash_total').toLocaleString()}</td><td>¥${sum('paycas_total').toLocaleString()}</td><td>¥${sum('takeout_total').toLocaleString()}</td><td>¥${sum('tobacco_total').toLocaleString()}</td><td>${sum('group_count')}</td><td>${sum('people_count')}</td><td></td></tr></table>
+    ${diffs.length ? '<p style="color:#c00">※赤字の日は確定後に売上データが変更されています（変更履歴あり）</p>' : ''}
+    <h3>取消（赤伝）一覧</h3>
+    ${voidRows ? `<table><tr><th>日付</th><th>対象</th><th>金額</th><th>理由</th></tr>${voidRows}</table>` : '<p>この月の取消はありません</p>'}
+  </body></html>`;
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.print();
+}
+
+function toCsv(rows) {
+  if (!rows.length) return '\uFEFF（データなし）\r\n';
+  const cols = [...new Set(rows.flatMap(r => Object.keys(r)))];
+  const cell = v => {
+    if (v == null) return '';
+    const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  return '\uFEFF' + [cols.join(','), ...rows.map(r => cols.map(c => cell(r[c])).join(','))].join('\r\n') + '\r\n';
+}
+
+async function downloadMonthlyBackup() {
+  const btn = document.getElementById('btnBackup');
+  const { ym, year, month, startDate, endDate } = monthRange();
+  const startISO = `${startDate}T00:00:00+09:00`;
+  const nextYm = Number(month) === 12 ? `${Number(year) + 1}-01` : `${year}-${String(Number(month) + 1).padStart(2, '0')}`;
+  const endISO = `${nextYm}-01T00:00:00+09:00`;
+  btn.disabled = true; btn.textContent = '⏳ データを集めています...';
+  try {
+    const inMonth = q => q.gte('sale_date', startDate).lte('sale_date', endDate);
+    const [sales, items, tobacco, closings, paycas, audits] = await Promise.all([
+      fetchAll('sales', inMonth),
+      fetchAll('order_items', inMonth),
+      fetchAll('tobacco_sales', inMonth),
+      fetchAll('daily_closings', inMonth, 'sale_date'),
+      fetchAll('paycas_daily', inMonth, 'sale_date'),
+      fetchAll('audit_log', q => q.gte('changed_at', startISO).lt('changed_at', endISO)),
+    ]);
+    const zip = new JSZip();
+    const p = `cattleya_${ym}_`;
+    zip.file(p + '1_売上_sales.csv', toCsv(sales));
+    zip.file(p + '2_明細_order_items.csv', toCsv(items));
+    zip.file(p + '3_タバコ_tobacco_sales.csv', toCsv(tobacco));
+    zip.file(p + '4_確定日計_daily_closings.csv', toCsv(closings));
+    zip.file(p + '5_ペイキャス端末_paycas_daily.csv', toCsv(paycas));
+    zip.file(p + '6_変更履歴_audit_log.csv', toCsv(audits));
+    const salesSum = sales.reduce((a, s) => a + (s.amount || 0), 0);
+    const closedSum = closings.reduce((a, c) => a + (c.sales_total || 0), 0);
+    zip.file('はじめにお読みください.txt',
+`Lounge Cattleya（株式会社エー・ワイ・シー）売上データ　${year}年${parseInt(month)}月分
+作成日時：${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}
+
+1_売上：1会計1行。取消は元の行を残し、マイナスの行（void_of＝元の会計ID）を追加しています。
+2_明細：商品ごとの明細。sales_id＝会計ID、tax_rate＝税率（8＝持ち帰り、10＝店内・物販。2026/10/11以前はNULL）。
+3_タバコ：タバコ単体の販売。
+4_確定日計：毎日23:55に自動確定した日計。確定後は変更できません。
+5_ペイキャス端末：決済端末側のIC・QR金額。
+6_変更履歴：売上・明細・タバコの修正・削除の記録（変更前と変更後）。
+
+件数　売上 ${sales.length}行／明細 ${items.length}行／タバコ ${tobacco.length}行／確定 ${closings.length}日／変更履歴 ${audits.length}件
+売上合計（現在のデータ）¥${salesSum.toLocaleString()}　確定日計の合計 ¥${closedSum.toLocaleString()}
+CSVはUTF-8（BOM付き）です。Excelでそのまま開けます。
+`);
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `cattleya_backup_${ym}.zip`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    btn.textContent = `✅ ダウンロードしました（売上${sales.length}行・明細${items.length}行）`;
+  } catch (e) {
+    alert('バックアップに失敗しました：' + (e.message || e));
+    btn.textContent = `💾 ${parseInt(month)}月のバックアップ（ZIP）`;
+  }
+  btn.disabled = false;
 }
 
 // ---- 現金チェック記録（Cash.htmlから移設） ----
