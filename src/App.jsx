@@ -795,7 +795,7 @@ export default function App() {
     const drinkCount = cart.filter(item => !FOOD_SWEET_ITEMS.some(f => item.name.includes(f)) && !item.name.includes("モーニング") && !item.name.includes("おかわり") && item.price > 0).reduce((a, i) => a + i.qty, 0);
     const totalItems = foodCount + drinkCount;
     const autoSetCount = (totalItems > people) ? Math.min(foodCount, drinkCount) : 0;
-    const autoDiscount = autoSetCount * 150;
+    const autoDiscount = autoSetCount * 120;
     const displayTotal = total - autoDiscount;
 
     return (
