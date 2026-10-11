@@ -363,9 +363,10 @@ function monthRange() {
   return { ym, year, month, startDate: `${year}-${month}-01`, endDate: `${year}-${month}-${String(lastDay).padStart(2, '0')}` };
 }
 
-// 組数：プラスの会計を数え、取消（赤伝）の分を引く（日計確定と同じ数え方）
+// 組数：プラスの会計を数え、取消（赤伝）の分を引く。「調整」行は数えない（日計確定と同じ数え方）
 function groupCount(rows) {
-  return rows.filter(s => s.amount > 0 && !s.void_of).length - rows.filter(s => s.void_of && s.amount < 0).length;
+  const r = rows.filter(s => s.table_no !== '調整');
+  return r.filter(s => s.amount > 0 && !s.void_of).length - r.filter(s => s.void_of && s.amount < 0).length;
 }
 
 // 会計に紐づく明細：会計IDがあればそれで、古いデータはテーブル＋時刻で
@@ -714,8 +715,14 @@ async function loadTaxSummary() {
 
     <div style="background:#181008;border:1px solid #3d2c14;border-radius:10px;padding:14px 16px;margin-top:12px;">
       <div style="color:#8a7050;font-size:12px;margin-bottom:6px;">税率ごとの合計（申告用）</div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;"><span>10%（店内＋タバコ）</span><span>税込 ¥${tax10Gross.toLocaleString()}　税 ¥${tax10Tax.toLocaleString()}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;"><span>8%（持ち帰り）</span><span>税込 ¥${takeoutGross.toLocaleString()}　税 ¥${takeoutTax.toLocaleString()}</span></div>
+      <div style="padding:6px 0;border-bottom:1px solid #3d2c1444;">
+        <div style="color:#f0e6d0;font-size:13px;font-weight:700;">10%（店内＋タバコ）</div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:2px;"><span style="color:#8a7050">税込 ¥${tax10Gross.toLocaleString()}</span><span style="color:#c9952a;font-weight:700">税 ¥${tax10Tax.toLocaleString()}</span></div>
+      </div>
+      <div style="padding:6px 0;">
+        <div style="color:#f0e6d0;font-size:13px;font-weight:700;">8%（持ち帰り）</div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:2px;"><span style="color:#8a7050">税込 ¥${takeoutGross.toLocaleString()}</span><span style="color:#c9952a;font-weight:700">税 ¥${takeoutTax.toLocaleString()}</span></div>
+      </div>
     </div>
 
     <div style="color:#8a7050;font-size:10px;margin-top:12px;text-align:center;">各取引ごとに端数処理してから合計しています（レシート印字時と同じ計算方法）</div>
@@ -1066,22 +1073,31 @@ async function doAdjust() {
 
   if (diff === 0) return;
 
-  const targetPay = [...paycasSales].sort((a, b) => b.amount - a.amount)[0];
-  const cashSales = salesData.filter(s => s.pay_method === '現金');
-  const targetCash = [...cashSales].sort((a, b) => b.amount - a.amount)[0];
-
-  if (!targetPay || !targetCash) {
-    document.getElementById('adjustMsg').textContent = 'エラー：調整対象が見つかりません';
-    return;
-  }
+  // ★税務用：元の会計は書き換えず、「調整」の行を2行（ペイキャス＋／現金−）追加する
+  const isPast = selectedDate !== today;
+  const msg = (diff > 0
+      ? `端末がシステムより¥${diff.toLocaleString()}多いです。\nペイキャスを¥${diff.toLocaleString()}増やし、現金を¥${diff.toLocaleString()}減らす「調整」行を追加します。`
+      : `システムが端末より¥${Math.abs(diff).toLocaleString()}多いです。\nペイキャスを¥${Math.abs(diff).toLocaleString()}減らし、現金を¥${Math.abs(diff).toLocaleString()}増やす「調整」行を追加します。`)
+    + (isPast ? `\n\n⚠️ ${selectedDate} は過去の日付です。確定済みの日は「確定後に変わった日」として記録されます。` : '')
+    + '\n\nよろしいですか？';
+  if (!confirm(msg)) return;
 
   document.getElementById('btnAdjust').disabled = true;
   document.getElementById('adjustMsg').textContent = '処理中...';
 
-  await sb.from("sales").update({ amount: targetPay.amount + diff }).eq("id", targetPay.id);
-  await sb.from("sales").update({ amount: targetCash.amount - diff }).eq("id", targetCash.id);
+  const now = new Date().toLocaleTimeString('sv-SE', { timeZone: 'Asia/Tokyo' }).substring(0, 5);
+  const memo = `ペイキャス精算調整（端末¥${actual.toLocaleString()}／システム¥${systemTotal.toLocaleString()}）`;
+  const { error } = await sb.from('sales').insert([
+    { table_no: '調整', amount: diff, pay_method: 'ペイキャス', sale_date: selectedDate, sale_time: now, people_count: 0, memo },
+    { table_no: '調整', amount: -diff, pay_method: '現金', sale_date: selectedDate, sale_time: now, people_count: 0, memo },
+  ]);
+  if (error) {
+    document.getElementById('adjustMsg').textContent = 'エラー：' + error.message;
+    document.getElementById('btnAdjust').disabled = false;
+    return;
+  }
 
-  document.getElementById('adjustMsg').textContent = `✅ 調整完了！ペイキャス¥${actual.toLocaleString()}に修正しました`;
+  document.getElementById('adjustMsg').textContent = `✅ 調整完了！ペイキャス¥${actual.toLocaleString()}に合わせました（調整行を追加）`;
 
   await loadAll();
 }
