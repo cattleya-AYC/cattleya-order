@@ -1331,7 +1331,7 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
     const received = tobaccoReceived ? parseInt(tobaccoReceived) : null;
     const chg = received ? received - item.price : null;
     await     const tobaccoDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
-    await supabase.from("tobacco_sales").insert({ item_name: item.name, price: item.price, receipt_type: receiptType, sale_time: now, sale_date: tobaccoDate });
+    supabase.from("tobacco_sales").insert({ item_name: item.name, price: item.price, receipt_type: receiptType, sale_time: now, sale_date: tobaccoDate });
 
     await fetchTodayTobacco();
     await fetchMonthlyTobacco();
