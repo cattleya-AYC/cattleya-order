@@ -1046,15 +1046,8 @@ export default function Register() {
     if (lastCheckout && lastCheckout.table === t && lastCheckout.amount === amount && (nowMs - lastCheckout.timestamp) < 120000) {
       setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); setCheckingOut(false); return;
     }
-    for (const item of tableOrderItems) {
-      await supabase.from("order_items").insert({
-        table_no: String(t),
-        item_name: item.item_name,
-        price: item.price,
-        qty: item.qty,
-        sale_time: now,
-      });
-    }
+        // ※明細(order_items)の保存は、下の売上(sales)保存のあとに移動しました（会計IDを付けるため）
+
 
     // レシート印字用：値引き行（セット割引・クーポン）はすべて最下部にまとめる
     const baseItems = [...tableOrderItems].sort((a, b) => (a.price < 0 ? 1 : 0) - (b.price < 0 ? 1 : 0));
