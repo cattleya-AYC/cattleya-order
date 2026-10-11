@@ -804,10 +804,7 @@ async function printTaxSummary() {
     <p style="font-size:11px;color:#777;">※各取引ごとに端数処理してから合計しています（レシート印字時と同じ計算方法）</p>
   </body></html>`;
 
-  const w = window.open('', '_blank');
-  w.document.write(html);
-  w.document.close();
-  w.print();
+  openPrint(html, `カトレア_消費税_${ym}`);
 }
 
 async function loadCouponSummary() {
@@ -1030,10 +1027,7 @@ async function printPaycasMonthly() {
     </table>
   </body></html>`;
 
-  const w = window.open('', '_blank');
-  w.document.write(html);
-  w.document.close();
-  w.print();
+  openPrint(html, `カトレア_ペイキャス差額_${ym}`);
 }
 
 function calcDiff() {
@@ -1276,15 +1270,26 @@ function visitListHtml(title, sales, items, tobacco) {
   </body></html>`;
 }
 
-function openPrint(html) {
-  const w = window.open('', '_blank');
-  w.document.write(html);
-  w.document.close();
-  w.print();
+// 印刷・PDF用の画面：同じ画面に表示し、上に「印刷・PDF保存」「戻る」ボタンを出す
+// （ホーム画面のアプリから開いても戻れるように、新しいウインドウは使わない）
+function openPrint(html, fileName) {
+  const bar = `<div class="pbar" style="position:sticky;top:0;z-index:9999;display:flex;gap:8px;padding:10px;padding-top:max(10px, env(safe-area-inset-top));background:#222;">
+      <button onclick="location.reload()" style="flex:1;padding:12px;font-size:16px;font-weight:700;border:none;border-radius:8px;background:#555;color:#fff;">← 戻る</button>
+      <button onclick="window.print()" style="flex:2;padding:12px;font-size:16px;font-weight:700;border:none;border-radius:8px;background:#c9952a;color:#000;">🖨 印刷・PDF保存</button>
+    </div>`;
+  const css = '<style>@media print{.pbar{display:none !important}}</style><meta name="viewport" content="width=device-width, initial-scale=1.0">';
+  let doc = html.replace(/<title>[^<]*<\/title>/, '');
+  doc = doc.replace('</head>', (fileName ? `<title>${esc(fileName)}</title>` : '') + css + '</head>');
+  doc = doc.replace(/<body([^>]*)>/, (m) => m + bar);
+  document.open();
+  document.write(doc);
+  document.close();
+  if (fileName) document.title = fileName; // PDF保存したときのファイル名になる
+  setTimeout(() => { try { window.print(); } catch (e) {} }, 500);
 }
 
 function printVisit() {
-  openPrint(visitListHtml(`来店者一覧　${(selectedDate || '').replace(/-/g, '/')}`, salesData, orderItemsData, tobaccoData));
+  openPrint(visitListHtml(`来店者一覧　${(selectedDate || '').replace(/-/g, '/')}`, salesData, orderItemsData, tobaccoData), `カトレア_個別取引_${selectedDate}`);
 }
 
 async function fetchMonthForVisit() {
@@ -1300,7 +1305,7 @@ async function printVisitMonth() {
   btn.disabled = true; btn.textContent = '⏳ 作成中...（少し時間がかかります）';
   try {
     const { sales, items, tobacco } = await fetchMonthForVisit();
-    openPrint(visitListHtml(`来店者一覧　${year}年${parseInt(month)}月`, sales, items, tobacco));
+    openPrint(visitListHtml(`来店者一覧　${year}年${parseInt(month)}月`, sales, items, tobacco), `カトレア_個別取引_${year}-${month}`);
   } catch (e) { alert('作成に失敗しました：' + (e.message || e)); }
   btn.disabled = false; btn.textContent = `📄 ${parseInt(month)}月の来店者一覧 PDF印刷（1日1ページ）`;
 }
@@ -1553,10 +1558,7 @@ function printClosing() {
     <h3>取消（赤伝）一覧</h3>
     ${voidRows ? `<table><tr><th>日付</th><th>対象</th><th>金額</th><th>理由</th></tr>${voidRows}</table>` : '<p>この月の取消はありません</p>'}
   </body></html>`;
-  const w = window.open('', '_blank');
-  w.document.write(html);
-  w.document.close();
-  w.print();
+  openPrint(html, `カトレア_売上表_${closingCache.ym}`);
 }
 
 function toCsv(rows) {
@@ -1758,10 +1760,7 @@ function printCashCheck() {
     </table>
   </body></html>`;
 
-  const w = window.open('', '_blank');
-  w.document.write(html);
-  w.document.close();
-  w.print();
+  openPrint(html, `カトレア_現金チェック_${today}`);
 }
 
 loadAll();
