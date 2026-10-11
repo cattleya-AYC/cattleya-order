@@ -1225,55 +1225,84 @@ async function voidTobacco(id) {
   loadAll();
 }
 
-function printVisit() {
-  const sorted = [...salesData].sort((a, b) => (a.sale_time || '').localeCompare(b.sale_time || ''));
-  const dateDisp = (selectedDate || '').replace(/-/g, '/');
+// ========== 来店者一覧（1日分・1か月分 共通） ==========
+function visitListHtml(title, sales, items, tobacco) {
+  const byId = {}, byKey = {};
+  items.forEach(o => {
+    if (o.sales_id != null) (byId[o.sales_id] = byId[o.sales_id] || []).push(o);
+    else { const k = `${o.table_no}|${o.sale_date}|${o.sale_time}`; (byKey[k] = byKey[k] || []).push(o); }
+  });
+  const itemsOf = s => byId[s.id] || byKey[`${s.table_no}|${s.sale_date}|${s.sale_time}`] || [];
+  const voided = new Set(sales.filter(s => s.void_of).map(s => s.void_of));
+  const yen = n => (n < 0 ? '-' : '') + '¥' + Math.abs(n).toLocaleString();
+  const dates = [...new Set([...sales.map(s => s.sale_date), ...tobacco.map(t => t.sale_date)])].sort();
 
-  const rows = sorted.map(sale => {
-    const items = itemsForSale(sale);
-    const itemsHtml = items.length > 0
-      ? items.map(o => {
-          const subtotal = o.price * o.qty;
-          const isDiscount = o.price < 0;
-          return `<div>${o.item_name} ×${o.qty} ${isDiscount ? '-' : ''}¥${Math.abs(subtotal).toLocaleString()}</div>`;
-        }).join('')
-      : '<div style="color:#999">注文明細なし</div>';
-
-    return `<tr>
-      <td>テーブル${sale.table_no}</td>
-      <td>${sale.sale_time || '-'}</td>
-      <td>${sale.people_count || '-'}名</td>
-      <td>${sale.pay_method || '-'}</td>
-      <td style="text-align:right">${sale.amount < 0 ? '-' : ''}¥${Math.abs(sale.amount).toLocaleString()}</td>
-      <td>${itemsHtml}${sale.void_of ? '<div>※取消（元ID ' + sale.void_of + '）</div>' : ''}${voidBySaleId[sale.id] ? '<div>※取消済み</div>' : ''}${sale.memo ? '<div>メモ：' + esc(sale.memo) + '</div>' : ''}</td>
-    </tr>`;
+  let monthSales = 0, monthTob = 0, monthGroups = 0;
+  const days = dates.map(d => {
+    const ds = sales.filter(s => s.sale_date === d).sort((a, b) => (a.sale_time || '').localeCompare(b.sale_time || '') || a.id - b.id);
+    const dt = tobacco.filter(t => t.sale_date === d).sort((a, b) => (a.sale_time || '').localeCompare(b.sale_time || '') || a.id - b.id);
+    const sum = ds.reduce((a, s) => a + s.amount, 0), tsum = dt.reduce((a, t) => a + t.price, 0), g = groupCount(ds);
+    const cash = ds.filter(s => s.pay_method === '現金').reduce((a, s) => a + s.amount, 0);
+    const paycas = ds.filter(s => s.pay_method === 'ペイキャス').reduce((a, s) => a + s.amount, 0);
+    monthSales += sum; monthTob += tsum; monthGroups += g;
+    const rows = ds.map(s => {
+      const its = itemsOf(s).map(o => `${esc(o.item_name)} ×${o.qty} ${yen(o.price * o.qty)}`).join('<br>') || '<span style="color:#999">明細なし</span>';
+      const note = [s.void_of ? `※取消（元ID ${s.void_of}）` : '', voided.has(s.id) ? '※取消済み' : '', s.takeout ? '持ち帰り(8%)' : '', s.memo ? 'メモ：' + esc(s.memo) : ''].filter(Boolean).join('<br>');
+      return `<tr${s.void_of || s.table_no === '調整' ? ' class="sp"' : ''}><td>${s.sale_time || '-'}</td><td>${esc(s.table_no)}</td><td>${s.people_count || 0}</td><td>${esc(s.pay_method || '-')}</td><td class="r">${yen(s.amount)}</td><td>${its}${note ? '<div class="note">' + note + '</div>' : ''}</td><td class="id">${s.id}</td></tr>`;
+    }).join('');
+    const trows = dt.map(t => `<tr${t.void_of ? ' class="sp"' : ''}><td>${t.sale_time || '-'}</td><td colspan="3">${esc(t.item_name)}${t.void_of ? `　※取消（元ID ${t.void_of}）` : ''}${t.memo ? '<div class="note">' + esc(t.memo) + '</div>' : ''}</td><td class="r">${yen(t.price)}</td><td></td><td class="id">${t.id}</td></tr>`).join('');
+    return `<section>
+      <h3>${d.replace(/-/g, '/')}（${'日月火水木金土'[new Date(d + 'T00:00:00+09:00').getDay()]}）</h3>
+      <div class="dsum">売上 ${yen(sum)}（現金 ${yen(cash)}／ペイキャス ${yen(paycas)}）　${g}組　${tobacco.length || dt.length ? 'タバコ ' + yen(tsum) : ''}</div>
+      <table><thead><tr><th>時刻</th><th>テーブル</th><th>人数</th><th>支払</th><th>金額</th><th>注文明細</th><th>ID</th></tr></thead>
+      <tbody>${rows}${trows ? `<tr class="tob"><td colspan="7">タバコ単体販売</td></tr>${trows}` : ''}</tbody></table>
+    </section>`;
   }).join('');
 
-  const grandTotal = sorted.reduce((a, s) => a + s.amount, 0);
-
-  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
-    @page{size:A4 portrait;margin:15mm}
-    body{font-family:"Hiragino Mincho ProN",serif;font-size:11px}
-    h2{font-size:18px;text-align:center;margin-bottom:4px}
-    .sub{text-align:center;font-size:11px;color:#555;margin-bottom:16px}
-    table{width:100%;border-collapse:collapse}
-    th{background:#222;color:#fff;padding:6px 8px;font-size:10px;text-align:left}
-    td{padding:6px 8px;border-bottom:1px solid #eee;font-size:11px;vertical-align:top}
-    .tr td{background:#f0f0f0;font-weight:900;border-top:2px solid #999}
+  return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>${esc(title)}</title><style>
+    @page{size:A4 portrait;margin:12mm}
+    body{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-size:10px;color:#000}
+    h2{font-size:16px;text-align:center;margin:0 0 4px} .sub{text-align:center;font-size:10px;color:#555;margin-bottom:10px}
+    h3{font-size:13px;margin:14px 0 2px;border-bottom:2px solid #333} .dsum{font-size:11px;margin-bottom:4px}
+    table{width:100%;border-collapse:collapse} th{background:#333;color:#fff;padding:3px 4px;font-size:9px;text-align:left}
+    td{padding:3px 4px;border-bottom:1px solid #ddd;vertical-align:top} td.r{text-align:right;white-space:nowrap} td.id{color:#999;font-size:8px}
+    tr.sp td{background:#f6eaea} tr.tob td{background:#eee;font-weight:700} .note{color:#a33;font-size:9px;margin-top:2px}
+    section{page-break-inside:auto} section+section{page-break-before:always}
     @media print{ html{ -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
   </style></head><body>
-    <h2>Lounge Cattleya　来店者一覧</h2>
-    <div class="sub">対象日：${dateDisp}　出力日：${new Date().toLocaleString('ja-JP')}</div>
-    <table>
-      <thead><tr><th>テーブル</th><th>退店時刻</th><th>人数</th><th>支払方法</th><th>金額</th><th>注文明細</th></tr></thead>
-      <tbody>${rows}<tr class="tr"><td colspan="4">合計 ${groupCount(sorted)}組</td><td style="text-align:right">¥${grandTotal.toLocaleString()}</td><td></td></tr></tbody>
-    </table>
+    <h2>${esc(title)}</h2>
+    <div class="sub">Lounge Cattleya（株式会社エー・ワイ・シー）　${dates.length}日分　売上合計 ${yen(monthSales)}　${monthGroups}組　タバコ ${yen(monthTob)}　出力 ${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</div>
+    ${days || '<p>データがありません</p>'}
   </body></html>`;
+}
 
+function openPrint(html) {
   const w = window.open('', '_blank');
   w.document.write(html);
   w.document.close();
   w.print();
+}
+
+function printVisit() {
+  openPrint(visitListHtml(`来店者一覧　${(selectedDate || '').replace(/-/g, '/')}`, salesData, orderItemsData, tobaccoData));
+}
+
+async function fetchMonthForVisit() {
+  const { startDate, endDate } = monthRange();
+  const inMonth = q => q.gte('sale_date', startDate).lte('sale_date', endDate);
+  const [sales, items, tobacco] = await Promise.all([fetchAll('sales', inMonth), fetchAll('order_items', inMonth), fetchAll('tobacco_sales', inMonth)]);
+  return { sales, items, tobacco };
+}
+
+async function printVisitMonth() {
+  const btn = document.getElementById('btnVisitMonth');
+  const { year, month } = monthRange();
+  btn.disabled = true; btn.textContent = '⏳ 作成中...（少し時間がかかります）';
+  try {
+    const { sales, items, tobacco } = await fetchMonthForVisit();
+    openPrint(visitListHtml(`来店者一覧　${year}年${parseInt(month)}月`, sales, items, tobacco));
+  } catch (e) { alert('作成に失敗しました：' + (e.message || e)); }
+  btn.disabled = false; btn.textContent = `📄 ${parseInt(month)}月の来店者一覧 PDF印刷（1日1ページ）`;
 }
 
 function renderSummary() {
@@ -1464,6 +1493,7 @@ async function loadClosing() {
 
   html += `
   <button onclick="printClosing()" style="width:100%;margin-top:14px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">📄 確定売上 PDF印刷</button>
+  <button id="btnVisitMonth" onclick="printVisitMonth()" style="width:100%;margin-top:10px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">📄 ${parseInt(month)}月の来店者一覧 PDF印刷（1日1ページ）</button>
   <button id="btnBackup" onclick="downloadMonthlyBackup()" style="width:100%;margin-top:10px;padding:14px;background:#1a2a10;border:2px solid #4a8a3a;border-radius:10px;color:#8ae08a;font-size:16px;font-weight:900;cursor:pointer;">💾 ${parseInt(month)}月のバックアップ（ZIP）</button>
   <div style="color:#8a7050;font-size:11px;margin-top:6px;text-align:center;">ダウンロードしたZIPは、Googleドライブの「カトレア税務バックアップ」フォルダへ。GitHubには置かないでください。</div>`;
 
@@ -1565,6 +1595,7 @@ async function downloadMonthlyBackup() {
     zip.file(p + '4_確定日計_daily_closings.csv', toCsv(closings));
     zip.file(p + '5_ペイキャス端末_paycas_daily.csv', toCsv(paycas));
     zip.file(p + '6_変更履歴_audit_log.csv', toCsv(audits));
+    zip.file(p + '7_来店者一覧（1日ごと・個別の注文）.html', visitListHtml(`来店者一覧　${year}年${parseInt(month)}月`, sales, items, tobacco));
     const salesSum = sales.reduce((a, s) => a + (s.amount || 0), 0);
     const closedSum = closings.reduce((a, c) => a + (c.sales_total || 0), 0);
     zip.file('はじめにお読みください.txt',
@@ -1577,6 +1608,8 @@ async function downloadMonthlyBackup() {
 4_確定日計：毎日23:55に自動確定した日計。確定後は変更できません。
 5_ペイキャス端末：決済端末側のIC・QR金額。
 6_変更履歴：売上・明細・タバコの修正・削除の記録（変更前と変更後）。
+7_来店者一覧：1日ごとに、朝から閉店までの会計を1件ずつ（時刻・テーブル・人数・支払方法・金額・注文明細）とタバコ販売。
+　　ダブルクリックするとブラウザで開きます。印刷やPDF保存もそこからできます。
 
 件数　売上 ${sales.length}行／明細 ${items.length}行／タバコ ${tobacco.length}行／確定 ${closings.length}日／変更履歴 ${audits.length}件
 売上合計（現在のデータ）¥${salesSum.toLocaleString()}　確定日計の合計 ¥${closedSum.toLocaleString()}
