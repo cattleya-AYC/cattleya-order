@@ -1072,8 +1072,9 @@ export default function Register() {
       qty: item.qty,
       sale_time: now,
       sale_date: saleDate,
-      takeout: item.takeout === true,
-      tax_rate: item.takeout === true ? 8 : 10,
+            takeout: item.takeout === true || (item.price < 0 && tableOrderItems.filter(o => o.price > 0).every(o => o.takeout === true)),
+      tax_rate: (item.takeout === true || (item.price < 0 && tableOrderItems.filter(o => o.price > 0).every(o => o.takeout === true))) ? 8 : 10,
+
     }));
     const { error: itemErr } = await supabase.from("order_items").insert(itemRows);
     if (itemErr) alert("明細の保存に失敗しました（売上は保存済み）。まりに連絡してください。会計ID：" + saleRow.id);
