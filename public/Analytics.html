@@ -605,6 +605,7 @@ async function loadTaxSummary() {
   const endDate = `${year}-${month}-${String(lastDay).padStart(2,'0')}`;
 
   const salesMonth = await fetchAll('sales', q => q.gte('sale_date', startDate).lte('sale_date', endDate));
+  const tobaccoMonth = await fetchAll('tobacco_sales', q => q.gte('sale_date', startDate).lte('sale_date', endDate));
 
   const rows = salesMonth || [];
 
@@ -624,11 +625,21 @@ async function loadTaxSummary() {
     }
   });
 
-  const totalGross = dineInGross + takeoutGross;
-  const totalTax = dineInTax + takeoutTax;
+  // タバコ（10%・1件ずつ端数処理）
+  let tobGross = 0, tobTax = 0, tobCount = 0;
+  tobaccoMonth.forEach(t => {
+    tobGross += t.price;
+    tobTax += Math.round(t.price / 11);
+    tobCount += t.void_of ? -1 : 1;
+  });
+  const tobBase = tobGross - tobTax;
+
+  const totalGross = dineInGross + takeoutGross + tobGross;
+  const totalTax = dineInTax + takeoutTax + tobTax;
   const dineInBase = dineInGross - dineInTax;
   const takeoutBase = takeoutGross - takeoutTax;
-  const totalBase = dineInBase + takeoutBase;
+  const totalBase = dineInBase + takeoutBase + tobBase;
+  const tax10Gross = dineInGross + tobGross, tax10Base = dineInBase + tobBase, tax10Tax = dineInTax + tobTax;
 
   document.getElementById('content-tax').innerHTML = `
     <div style="color:#c9952a;font-size:15px;font-weight:700;margin-bottom:14px;letter-spacing:1px;">🧾 消費税集計 ${year}年${parseInt(month)}月</div>
@@ -682,6 +693,31 @@ async function loadTaxSummary() {
       </div>
     </div>
 
+    <div style="background:#181008;border:1px solid #3d2c14;border-radius:10px;padding:16px;margin-top:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="color:#f0e6d0;font-size:14px;font-weight:700;">🚬 タバコ（10%）</span>
+        <span style="color:#8a7050;font-size:12px;">${tobCount}件</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="color:#8a7050;font-size:12px;">税込売上</span>
+        <span style="color:#f0e6d0;font-size:13px;">¥${tobGross.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="color:#8a7050;font-size:12px;">税抜売上</span>
+        <span style="color:#f0e6d0;font-size:13px;">¥${tobBase.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid #3d2c14;padding-top:6px;margin-top:6px;">
+        <span style="color:#c9952a;font-size:13px;font-weight:700;">消費税（10%）</span>
+        <span style="color:#c9952a;font-size:16px;font-weight:900;font-family:serif;">¥${tobTax.toLocaleString()}</span>
+      </div>
+    </div>
+
+    <div style="background:#181008;border:1px solid #3d2c14;border-radius:10px;padding:14px 16px;margin-top:12px;">
+      <div style="color:#8a7050;font-size:12px;margin-bottom:6px;">税率ごとの合計（申告用）</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;"><span>10%（店内＋タバコ）</span><span>税込 ¥${tax10Gross.toLocaleString()}　税 ¥${tax10Tax.toLocaleString()}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;"><span>8%（持ち帰り）</span><span>税込 ¥${takeoutGross.toLocaleString()}　税 ¥${takeoutTax.toLocaleString()}</span></div>
+    </div>
+
     <div style="color:#8a7050;font-size:10px;margin-top:12px;text-align:center;">各取引ごとに端数処理してから合計しています（レシート印字時と同じ計算方法）</div>
 
     <button onclick="printTaxSummary()" style="width:100%;margin-top:14px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">
@@ -699,6 +735,7 @@ async function printTaxSummary() {
   const endDate = `${year}-${month}-${String(lastDay).padStart(2,'0')}`;
 
   const salesMonth = await fetchAll('sales', q => q.gte('sale_date', startDate).lte('sale_date', endDate));
+  const tobaccoMonth = await fetchAll('tobacco_sales', q => q.gte('sale_date', startDate).lte('sale_date', endDate));
 
   const rows = salesMonth || [];
   let dineInGross = 0, dineInTax = 0, dineInCount = 0;
@@ -717,11 +754,21 @@ async function printTaxSummary() {
     }
   });
 
-  const totalGross = dineInGross + takeoutGross;
-  const totalTax = dineInTax + takeoutTax;
+  // タバコ（10%・1件ずつ端数処理）
+  let tobGross = 0, tobTax = 0, tobCount = 0;
+  tobaccoMonth.forEach(t => {
+    tobGross += t.price;
+    tobTax += Math.round(t.price / 11);
+    tobCount += t.void_of ? -1 : 1;
+  });
+  const tobBase = tobGross - tobTax;
+
+  const totalGross = dineInGross + takeoutGross + tobGross;
+  const totalTax = dineInTax + takeoutTax + tobTax;
   const dineInBase = dineInGross - dineInTax;
   const takeoutBase = takeoutGross - takeoutTax;
-  const totalBase = dineInBase + takeoutBase;
+  const totalBase = dineInBase + takeoutBase + tobBase;
+  const tax10Gross = dineInGross + tobGross, tax10Base = dineInBase + tobBase, tax10Tax = dineInTax + tobTax;
 
   const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
     body{font-family:'Hiragino Mincho ProN',serif;padding:20px;color:#000;}
@@ -739,7 +786,13 @@ async function printTaxSummary() {
       <tr><th>区分</th><th>件数</th><th>税込売上</th><th>税抜売上</th><th>消費税額</th></tr>
       <tr><td>店内飲食（10%）</td><td>${dineInCount}件</td><td>¥${dineInGross.toLocaleString()}</td><td>¥${dineInBase.toLocaleString()}</td><td>¥${dineInTax.toLocaleString()}</td></tr>
       <tr><td>持ち帰り（8%）</td><td>${takeoutCount}件</td><td>¥${takeoutGross.toLocaleString()}</td><td>¥${takeoutBase.toLocaleString()}</td><td>¥${takeoutTax.toLocaleString()}</td></tr>
-      <tr class="total-row"><td>合計</td><td>${dineInCount + takeoutCount}件</td><td>¥${totalGross.toLocaleString()}</td><td>¥${totalBase.toLocaleString()}</td><td>¥${totalTax.toLocaleString()}</td></tr>
+      <tr><td>タバコ（10%）</td><td>${tobCount}件</td><td>¥${tobGross.toLocaleString()}</td><td>¥${tobBase.toLocaleString()}</td><td>¥${tobTax.toLocaleString()}</td></tr>
+      <tr class="total-row"><td>合計</td><td>${dineInCount + takeoutCount + tobCount}件</td><td>¥${totalGross.toLocaleString()}</td><td>¥${totalBase.toLocaleString()}</td><td>¥${totalTax.toLocaleString()}</td></tr>
+    </table>
+    <table>
+      <tr><th>税率</th><th>税込売上</th><th>税抜売上</th><th>消費税額</th></tr>
+      <tr><td>10%（店内飲食＋タバコ）</td><td>¥${tax10Gross.toLocaleString()}</td><td>¥${tax10Base.toLocaleString()}</td><td>¥${tax10Tax.toLocaleString()}</td></tr>
+      <tr><td>8%（持ち帰り）</td><td>¥${takeoutGross.toLocaleString()}</td><td>¥${takeoutBase.toLocaleString()}</td><td>¥${takeoutTax.toLocaleString()}</td></tr>
     </table>
     <p style="font-size:11px;color:#777;">※各取引ごとに端数処理してから合計しています（レシート印字時と同じ計算方法）</p>
   </body></html>`;
