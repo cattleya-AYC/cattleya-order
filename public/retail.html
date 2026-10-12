@@ -153,7 +153,8 @@ async function loadAll(){
 
       let sold = 0;
       if (from){
-        const rows = await sbGet(`order_items?select=qty,sale_date,sale_time&item_name=eq.${encodeURIComponent(it.name)}&sale_date=gte.${from.date}`);
+        // 物販はライジンブリスの売上として retail_sale_items に記録（取消はマイナス数量で戻る）
+        const rows = await sbGet(`retail_sale_items?select=qty,sale_date,sale_time&item_name=eq.${encodeURIComponent(it.name)}&sale_date=gte.${from.date}`);
         rows.forEach(r => {
           const t = `${r.sale_date} ${(r.sale_time || "00:00").slice(0,5)}`;
           if (t >= from.full) sold += (r.qty || 1);

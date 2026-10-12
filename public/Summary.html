@@ -239,6 +239,15 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let salesData = [];
+let retailData = []; // 物販（株式会社ライジンブリスの売上・カトレアとは別会計）。レジのお金は一緒なので照合にだけ使う
+
+function retailSums() {
+  const cash = retailData.filter(r => r.pay_method === '現金');
+  const rCash = cash.reduce((a, r) => a + r.amount, 0);
+  const rCashMorning = cash.filter(r => (r.sale_time || '') < '15:00').reduce((a, r) => a + r.amount, 0);
+  const rPaycas = retailData.filter(r => r.pay_method === 'ペイキャス').reduce((a, r) => a + r.amount, 0);
+  return { rCash, rCashMorning, rCashEvening: rCash - rCashMorning, rPaycas, rTotal: rCash + rPaycas };
+}
 
 function updateTime() {
   const now = new Date();
@@ -252,8 +261,12 @@ setInterval(updateTime, 10000);
 async function loadData() {
   document.getElementById('mainContent').innerHTML = '<div class="loading">読み込み中...</div>';
   const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
-  const { data } = await sb.from("sales").select("*").eq("sale_date", today).order("sale_time", { ascending: true });
+  const [{ data }, { data: rdata }] = await Promise.all([
+    sb.from("sales").select("*").eq("sale_date", today).order("sale_time", { ascending: true }),
+    sb.from("retail_sales").select("amount,pay_method,sale_time").eq("sale_date", today),
+  ]);
   salesData = data || [];
+  retailData = rdata || [];
   render();
 }
 
@@ -298,7 +311,8 @@ function render() {
   <button class="btn-reload" onclick="loadData()" style="margin-bottom:18px;">🔄 最新データに更新</button>`;
 
   // ② ③ ペイキャスIC/QR確認カード
-  const dbPaycas = paycasTotal;
+  const { rCash, rCashMorning, rCashEvening, rPaycas, rTotal } = retailSums();
+  const dbPaycas = paycasTotal + rPaycas; // 端末には物販のペイキャスも入るので、照合は物販込み
   const savedIc = window._paycasIc || 0;
   const savedQr = window._paycasQr || 0;
   const savedTotal = savedIc + savedQr;
@@ -327,9 +341,10 @@ function render() {
         <span style="color:#a0e0a0;font-size:26px;font-weight:900;font-family:serif;">¥${savedTotal > 0 ? savedTotal.toLocaleString() : '---'}</span>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
-        <span style="color:#8a7050;font-size:16px;">データ合計</span>
+        <span style="color:#8a7050;font-size:16px;">データ合計${rPaycas ? '（物販込み）' : ''}</span>
         <span style="color:#a0e0a0;font-size:26px;font-weight:900;font-family:serif;">¥${dbPaycas.toLocaleString()}</span>
       </div>
+      ${rPaycas ? `<div style="text-align:right;color:#e0a8e0;font-size:13px;margin-top:-4px;">うち物販（ライジンブリス）¥${rPaycas.toLocaleString()}</div>` : ''}
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #2a5a2a44;margin-top:6px;">
         <span style="color:#8a7050;font-size:16px;">差額</span>
         <span style="font-size:28px;font-weight:900;font-family:serif;color:${savedDiff === null ? '#8a7050' : !hasDiff ? '#4aaa5a' : '#c95a5a'};">
@@ -356,7 +371,8 @@ function render() {
         🖨 15時集計
       </button>
       <div style="text-align:center;color:#a0e0a0;font-size:26px;font-weight:900;font-family:serif;padding:6px 0;background:#0a1a0a;border-radius:8px;">
-        ¥${cashMorning.toLocaleString()}
+        ¥${(cashMorning + rCashMorning).toLocaleString()}
+        ${rCashMorning ? `<div style="font-size:12px;color:#e0a8e0;font-family:sans-serif;">うち物販 ¥${rCashMorning.toLocaleString()}</div>` : ''}
       </div>
     </div>
     <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
@@ -364,7 +380,8 @@ function render() {
         🖨 閉店時集計
       </button>
       <div style="text-align:center;color:#ff8888;font-size:26px;font-weight:900;font-family:serif;padding:6px 0;background:#1a0a0a;border-radius:8px;">
-        ¥${cashEvening.toLocaleString()}
+        ¥${(cashEvening + rCashEvening).toLocaleString()}
+        ${rCashEvening ? `<div style="font-size:12px;color:#e0a8e0;font-family:sans-serif;">うち物販 ¥${rCashEvening.toLocaleString()}</div>` : ''}
       </div>
     </div>
   </div>`;
@@ -391,6 +408,8 @@ function render() {
     <div class="row"><span class="rl">ペイキャス合計</span><span class="rv gold">¥${paycasTotal.toLocaleString()}</span></div>
     <div class="row"><span class="rl">来客組数</span><span class="rv">${totalCount}組</span></div>
     <div class="row"><span class="rl">来客人数</span><span class="rv">${totalPeople}名</span></div>
+    ${rTotal ? `<div class="row" style="border-top:1px dashed #6a3a6a;margin-top:6px;padding-top:8px;"><span class="rl" style="color:#e0a8e0">🌵 物販（ライジンブリス・別会計）</span><span class="rv" style="color:#e0a8e0">¥${rTotal.toLocaleString()}</span></div>
+    <div class="row" style="padding-left:12px"><span class="rl">　現金 ¥${rCash.toLocaleString()}／ペイキャス ¥${rPaycas.toLocaleString()}</span><span class="rv"></span></div>` : ''}
   </div>`;
 
   // 時間帯別
@@ -448,7 +467,10 @@ function printCashReceipt(label) {
   const dateStr = now.getFullYear() + '年' + (now.getMonth()+1) + '月' + now.getDate() + '日';
   const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
   const isClose = label === '閉店時集計';
-  const amount = isClose ? cashTotal - cashMorning : cashMorning;
+  const { rCash, rCashMorning } = retailSums();
+  const aycAmount = isClose ? cashTotal - cashMorning : cashMorning;
+  const rAmount = isClose ? rCash - rCashMorning : rCashMorning;
+  const amount = aycAmount + rAmount; // レジから出す現金は物販（ライジンブリス）分も含む
 
   const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
     body{font-family:'Hiragino Mincho ProN',serif;width:384px;margin:0;padding:8px 10px;color:#000;}
@@ -464,6 +486,8 @@ function printCashReceipt(label) {
     <hr class="hr"/>
     <div class="label">${label}</div>
     <div class="amount">¥${amount.toLocaleString()}</div>
+    ${rAmount ? `<div class="sub" style="color:#000;font-size:24px;">カトレア　¥${aycAmount.toLocaleString()}</div>
+    <div class="sub" style="color:#000;font-size:24px;">物販（ライジンブリス）　¥${rAmount.toLocaleString()}</div>` : ''}
     ${isClose ? `
       <div class="sub">15時　¥${cashMorning.toLocaleString()}</div>
       <div class="sub" style="font-size:16px;color:#888;">1日現金合計　¥${cashTotal.toLocaleString()}</div>
@@ -550,6 +574,7 @@ ${dateStr} ${timeStr} 現在
 ペイキャス　¥${paycasTotal.toLocaleString()}（${paycasSales.length}件）
 
 来客　${totalCount}組　${totalPeople}名
+${(() => { const r = retailSums(); return r.rTotal ? `\n物販（ライジンブリス・別会計）¥${r.rTotal.toLocaleString()}\n　現金 ¥${r.rCash.toLocaleString()}／ペイキャス ¥${r.rPaycas.toLocaleString()}` : ''; })()}
 ━━━━━━━━━━━━━━━━
 時間帯別売上
 ${hourLines}
@@ -615,6 +640,7 @@ function printSummary() {
       <tr><td>ペイキャス</td><td class="r">¥${paycasTotal.toLocaleString()}</td></tr>
       <tr><td>来客組数</td><td class="r">${totalCount}組</td></tr>
       <tr><td>来客人数</td><td class="r">${totalPeople}名</td></tr>
+      ${(() => { const r = retailSums(); return r.rTotal ? `<tr><td colspan="2"><hr class="hr"/></td></tr><tr><td>物販(ライジンブリス)</td><td class="r">¥${r.rTotal.toLocaleString()}</td></tr><tr class="sub-row"><td>現金</td><td class="r">¥${r.rCash.toLocaleString()}</td></tr><tr class="sub-row"><td>ペイキャス</td><td class="r">¥${r.rPaycas.toLocaleString()}</td></tr>` : ''; })()}
     </table>
     <hr class="hr"/>
     <div style="text-align:center;font-size:22px;font-weight:700;">ありがとうございました</div>

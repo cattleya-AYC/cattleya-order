@@ -251,6 +251,7 @@
   <div class="tab" onclick="switchTab('cashcheck')" id="tab-cashcheck">💴 現金チェック</div>
   <div class="tab" onclick="switchTab('coupon')" id="tab-coupon">🎟 クーポン</div>
   <div class="tab" onclick="switchTab('closing')" id="tab-closing">🔒 確定・履歴</div>
+  <div class="tab" onclick="switchTab('retail')" id="tab-retail">🌵 物販(RB)</div>
 </div>
 
 <div class="content" id="content-paycas">
@@ -282,6 +283,10 @@
 </div>
 
 <div class="content" id="content-closing" style="display:none">
+  <div class="loading">読み込み中...</div>
+</div>
+
+<div class="content" id="content-retail" style="display:none">
   <div class="loading">読み込み中...</div>
 </div>
 
@@ -318,6 +323,7 @@ let salesData = [];
 let orderItemsData = [];
 let couponBySaleId = {};
 let tobaccoData = [];
+let retailDayData = []; // 物販（株式会社ライジンブリスの売上）。カトレアの売上ではないが、ペイキャス端末とレジ現金には一緒に入る
 let voidBySaleId = {};     // 元の会計ID → 取消行
 let voidByTobaccoId = {};
 let auditBySaleId = {};    // 会計ID → 変更履歴
@@ -327,7 +333,7 @@ const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).spl
 document.getElementById('dateInput').value = today;
 document.getElementById('headerDate').textContent = today;
 
-const TABS = ['paycas', 'visit', 'summary', 'monthly', 'tax', 'cashcheck', 'coupon', 'closing'];
+const TABS = ['paycas', 'visit', 'summary', 'monthly', 'tax', 'cashcheck', 'coupon', 'closing', 'retail'];
 function switchTab(tab) {
   currentTab = tab;
   TABS.forEach(t => {
@@ -339,6 +345,7 @@ function switchTab(tab) {
   if (tab === 'cashcheck') loadCashCheck();
   if (tab === 'coupon') loadCouponSummary();
   if (tab === 'closing') loadClosing();
+  if (tab === 'retail') loadRetail();
 }
 
 // ========== 共通：1000件を超えても全部取ってくる ==========
@@ -403,11 +410,13 @@ async function loadAll() {
   document.getElementById('content-summary').innerHTML = '<div class="loading">読み込み中...</div>';
   document.getElementById('content-monthly').innerHTML = '<div class="loading">読み込み中...</div>';
 
-  const [{ data: sales }, { data: items }, { data: tobacco }] = await Promise.all([
+  const [{ data: sales }, { data: items }, { data: tobacco }, { data: retailDay }] = await Promise.all([
     sb.from("sales").select("*").eq("sale_date", selectedDate).order("sale_time", { ascending: true }),
     sb.from("order_items").select("*").eq("sale_date", selectedDate).order("sale_time", { ascending: true }),
     sb.from("tobacco_sales").select("*").eq("sale_date", selectedDate).order("id", { ascending: true }),
+    sb.from("retail_sales").select("amount,pay_method").eq("sale_date", selectedDate),
   ]);
+  retailDayData = retailDay || [];
 
   salesData = sales || [];
   orderItemsData = items || [];
@@ -443,6 +452,12 @@ async function loadAll() {
   if (currentTab === 'tax') loadTaxSummary();
   if (currentTab === 'coupon') loadCouponSummary();
   if (currentTab === 'closing') loadClosing();
+  if (currentTab === 'retail') loadRetail();
+}
+
+// その日の物販ペイキャス（端末の合計には物販も入るので、照合のときに足す）
+function retailPaycasOfDay() {
+  return retailDayData.filter(r => r.pay_method === 'ペイキャス').reduce((a, r) => a + r.amount, 0);
 }
 
 function renderPaycas() {
@@ -457,7 +472,8 @@ function renderPaycas() {
   <div class="paycas-adjust">
     <div class="adj-title">🔧 ペイキャス精算（閉店時）</div>
     <input type="number" id="actualPaycas" placeholder="端末の実際の金額" oninput="calcDiff()">
-    <div class="adj-info"><span class="al">システム上のペイキャス</span><span class="av">¥${paycasTotal.toLocaleString()}</span></div>
+    <div class="adj-info"><span class="al">システム上のペイキャス${retailPaycasOfDay() ? '（物販込み）' : ''}</span><span class="av">¥${(paycasTotal + retailPaycasOfDay()).toLocaleString()}</span></div>
+    ${retailPaycasOfDay() ? `<div class="adj-info"><span class="al">　うち物販（ライジンブリス）</span><span class="av">¥${retailPaycasOfDay().toLocaleString()}</span></div>` : ''}
     <div class="adj-info" id="diffRow" style="display:none">
       <span class="al">差額</span><span class="av" id="diffVal"></span>
     </div>
@@ -910,6 +926,8 @@ async function loadPaycasMonthly() {
     .select('*').gte('sale_date', startDate).lte('sale_date', endDate);
 
   const salesMonth = await fetchAll('sales', q => q.eq('pay_method', 'ペイキャス').gte('sale_date', startDate).lte('sale_date', endDate));
+  // 物販（ライジンブリス）のペイキャスも端末に入るので、DB側に足して照合する
+  const retailPaycasMonth = await fetchAll('retail_sales', q => q.eq('pay_method', 'ペイキャス').gte('sale_date', startDate).lte('sale_date', endDate));
 
   // 調整レコード判定用（table_no='調整'を含む全データ）
   const adjustDates = new Set((salesMonth || []).filter(s => s.table_no === '調整').map(s => s.sale_date));
@@ -919,6 +937,7 @@ async function loadPaycasMonthly() {
   (salesMonth || []).filter(s => s.table_no !== '調整').forEach(s => {
     salesByDate[s.sale_date] = (salesByDate[s.sale_date] || 0) + s.amount;
   });
+  retailPaycasMonth.forEach(r => { salesByDate[r.sale_date] = (salesByDate[r.sale_date] || 0) + r.amount; });
 
   const dailyMap = {};
   (paycasDaily || []).forEach(d => { dailyMap[d.sale_date] = d; });
@@ -962,10 +981,10 @@ async function loadPaycasMonthly() {
       📥 端末CSVから一括登録
     </button>
     <div id="csvImportMsg" style="display:none;"></div>
-    <div style="color:#8a7050;font-size:11px;margin-bottom:10px;">💡 各行をタップするとIC+QR金額を個別に入力・修正できます</div>
+    <div style="color:#8a7050;font-size:11px;margin-bottom:10px;">💡 各行をタップするとIC+QR金額を個別に入力・修正できます<br>※DB合計には物販（ライジンブリス）のペイキャスも含みます（端末に一緒に入るため）</div>
     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #3d2c14;margin-bottom:4px;">
       <span style="color:#8a7050;font-size:12px;min-width:50px;">日付</span>
-      <span style="color:#8a7050;font-size:12px;min-width:80px;text-align:right;">DB合計</span>
+      <span style="color:#8a7050;font-size:12px;min-width:80px;text-align:right;">DB合計※</span>
       <span style="color:#8a7050;font-size:12px;min-width:80px;text-align:right;">IC+QR</span>
       <span style="color:#8a7050;font-size:12px;min-width:80px;text-align:right;">差額</span>
     </div>
@@ -986,11 +1005,14 @@ async function printPaycasMonthly() {
   const { data: paycasDaily } = await sb.from('paycas_daily')
     .select('*').gte('sale_date', startDate).lte('sale_date', endDate);
   const salesMonth = await fetchAll('sales', q => q.eq('pay_method', 'ペイキャス').gte('sale_date', startDate).lte('sale_date', endDate));
+  // 物販（ライジンブリス）のペイキャスも端末に入るので、DB側に足して照合する
+  const retailPaycasMonth = await fetchAll('retail_sales', q => q.eq('pay_method', 'ペイキャス').gte('sale_date', startDate).lte('sale_date', endDate));
 
   const salesByDate = {};
   (salesMonth || []).forEach(s => {
     salesByDate[s.sale_date] = (salesByDate[s.sale_date] || 0) + s.amount;
   });
+  retailPaycasMonth.forEach(r => { salesByDate[r.sale_date] = (salesByDate[r.sale_date] || 0) + r.amount; });
   const dailyMap = {};
   (paycasDaily || []).forEach(d => { dailyMap[d.sale_date] = d; });
 
@@ -1033,7 +1055,7 @@ async function printPaycasMonthly() {
 function calcDiff() {
   const actual = parseInt(document.getElementById('actualPaycas').value) || 0;
   const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス');
-  const systemTotal = paycasSales.reduce((a, s) => a + s.amount, 0);
+  const systemTotal = paycasSales.reduce((a, s) => a + s.amount, 0) + retailPaycasOfDay(); // 端末には物販も入る
   const diff = actual - systemTotal;
 
   const diffRow = document.getElementById('diffRow');
@@ -1062,7 +1084,7 @@ function calcDiff() {
 async function doAdjust() {
   const actual = parseInt(document.getElementById('actualPaycas').value) || 0;
   const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス');
-  const systemTotal = paycasSales.reduce((a, s) => a + s.amount, 0);
+  const systemTotal = paycasSales.reduce((a, s) => a + s.amount, 0) + retailPaycasOfDay(); // 端末には物販も入る
   const diff = actual - systemTotal;
 
   if (diff === 0) return;
@@ -1581,13 +1603,15 @@ async function downloadMonthlyBackup() {
   btn.disabled = true; btn.textContent = '⏳ データを集めています...';
   try {
     const inMonth = q => q.gte('sale_date', startDate).lte('sale_date', endDate);
-    const [sales, items, tobacco, closings, paycas, audits] = await Promise.all([
+    const [sales, items, tobacco, closings, paycas, audits, rSales, rItems] = await Promise.all([
       fetchAll('sales', inMonth),
       fetchAll('order_items', inMonth),
       fetchAll('tobacco_sales', inMonth),
       fetchAll('daily_closings', inMonth, 'sale_date'),
       fetchAll('paycas_daily', inMonth, 'sale_date'),
       fetchAll('audit_log', q => q.gte('changed_at', startISO).lt('changed_at', endISO)),
+      fetchAll('retail_sales', inMonth),
+      fetchAll('retail_sale_items', inMonth),
     ]);
     const zip = new JSZip();
     const p = `cattleya_${ym}_`;
@@ -1598,6 +1622,8 @@ async function downloadMonthlyBackup() {
     zip.file(p + '5_ペイキャス端末_paycas_daily.csv', toCsv(paycas));
     zip.file(p + '6_変更履歴_audit_log.csv', toCsv(audits));
     zip.file(p + '7_来店者一覧（1日ごと・個別の注文）.html', visitListHtml(`来店者一覧　${year}年${parseInt(month)}月`, sales, items, tobacco));
+    zip.file(p + '8_参考_物販_ライジンブリス売上_retail_sales.csv', toCsv(rSales));
+    zip.file(p + '9_参考_物販明細_ライジンブリス_retail_sale_items.csv', toCsv(rItems));
     const salesSum = sales.reduce((a, s) => a + (s.amount || 0), 0);
     const closedSum = closings.reduce((a, c) => a + (c.sales_total || 0), 0);
     zip.file('はじめにお読みください.txt',
@@ -1610,6 +1636,8 @@ async function downloadMonthlyBackup() {
 4_確定日計：毎日23:55に自動確定した日計。確定後は変更できません。
 5_ペイキャス端末：決済端末側のIC・QR金額。
 6_変更履歴：売上・明細・タバコの修正・削除の記録（変更前と変更後）。
+8・9_参考 物販：店内で販売した物販は株式会社ライジンブリスの売上で、エー・ワイ・シーの売上（1〜7）には含めていません。
+　　レジの現金・ペイキャス端末には一緒に入るため、照合用に保存しています。
 7_来店者一覧：1日ごとに、朝から閉店までの会計を1件ずつ（時刻・テーブル・人数・支払方法・金額・注文明細）とタバコ販売。
 　　ダブルクリックするとブラウザで開きます。印刷やPDF保存もそこからできます。
 
@@ -1629,6 +1657,128 @@ CSVはUTF-8（BOM付き）です。Excelでそのまま開けます。
     btn.textContent = `💾 ${parseInt(month)}月のバックアップ（ZIP）`;
   }
   btn.disabled = false;
+}
+
+// ========== 🌵 物販（株式会社ライジンブリスの売上） ==========
+let retailCache = null;
+
+async function loadRetail() {
+  const el = document.getElementById('content-retail');
+  el.innerHTML = '<div class="loading">読み込み中...</div>';
+  const { ym, year, month, startDate, endDate } = monthRange();
+  let sales, items;
+  try {
+    [sales, items] = await Promise.all([
+      fetchAll('retail_sales', q => q.gte('sale_date', startDate).lte('sale_date', endDate)),
+      fetchAll('retail_sale_items', q => q.gte('sale_date', startDate).lte('sale_date', endDate)),
+    ]);
+  } catch (e) {
+    el.innerHTML = `<div class="empty">読み込みに失敗しました：${esc(e.message || e)}</div>`;
+    return;
+  }
+  retailCache = { ym, year, month, sales, items };
+  const voided = new Set(sales.filter(r => r.void_of).map(r => r.void_of));
+  const itemsOf = id => items.filter(i => i.retail_sale_id === id);
+  const sum = (arr) => arr.reduce((a, r) => a + r.amount, 0);
+  const cash = sum(sales.filter(r => r.pay_method === '現金'));
+  const paycas = sum(sales.filter(r => r.pay_method === 'ペイキャス'));
+  const count = sales.filter(r => !r.void_of).length - sales.filter(r => r.void_of).length;
+
+  // 商品別
+  const byItem = {};
+  items.forEach(i => { const b = byItem[i.item_name] = byItem[i.item_name] || { qty: 0, amount: 0 }; b.qty += i.qty; b.amount += i.price * i.qty; });
+
+  let html = `<div class="sec-title" style="margin-top:0">🌵 物販（株式会社ライジンブリス）${year}年${parseInt(month)}月</div>
+  <div style="color:#e0a8e0;font-size:12px;margin:-4px 0 12px;">カトレア（エー・ワイ・シー）の売上には含めていません。レジの現金とペイキャス端末には一緒に入っています。</div>
+  <div class="summary-card" style="border-color:#6a3a6a">
+    <div class="label">物販売上（${count}件）</div>
+    <div class="amount" style="color:#e0a8e0">¥${(cash + paycas).toLocaleString()}</div>
+    <div style="margin-top:12px">
+      <div class="summary-row"><span class="slabel">現金（レジに入った分）</span><span class="sval">¥${cash.toLocaleString()}</span></div>
+      <div class="summary-row"><span class="slabel">ペイキャス（端末に入った分）</span><span class="sval">¥${paycas.toLocaleString()}</span></div>
+    </div>
+  </div>`;
+
+  const names = Object.keys(byItem);
+  if (names.length) {
+    html += `<div class="summary-card"><div class="label" style="margin-bottom:8px">商品別</div>` +
+      names.sort().map(n => `<div class="summary-row"><span class="slabel">${esc(n)}　${byItem[n].qty}個</span><span class="sval">¥${byItem[n].amount.toLocaleString()}</span></div>`).join('') + `</div>`;
+  }
+
+  html += `<button onclick="printRetail()" style="width:100%;margin:4px 0 14px;padding:14px;background:#2a1a2a;border:2px solid #c95aca;border-radius:10px;color:#e0a8e0;font-size:16px;font-weight:900;cursor:pointer;">📄 ${parseInt(month)}月の物販売上 PDF印刷</button>`;
+
+  if (!sales.length) {
+    html += '<div class="empty">この月の物販の販売はまだありません</div>';
+  } else {
+    [...sales].sort((a, b) => (b.sale_date + (b.sale_time || '')).localeCompare(a.sale_date + (a.sale_time || '')) || b.id - a.id).forEach(r => {
+      const isRev = !!r.void_of, isVoided = voided.has(r.id);
+      const its = itemsOf(r.id).map(i => `${esc(i.item_name)} ×${i.qty}`).join('　');
+      html += `<div class="pay-item" style="${isRev ? 'border-color:#8a3a3a;' : ''}${isVoided ? 'opacity:0.6;' : ''}">
+        <div style="flex:1">
+          <div class="time">${r.sale_date.substring(5).replace('-', '/')} ${r.sale_time || ''}　RB${String(r.id).padStart(6, '0')}</div>
+          <div class="table" style="font-size:13px">${its || '—'}</div>
+          ${isRev ? `<span class="void-badge">↩ 取消（元 RB${String(r.void_of).padStart(6, '0')}）</span>` : isVoided ? '<span class="void-badge">取消済み</span>' : ''}
+          ${r.memo ? `<div style="color:#e0c080;font-size:11px;margin-top:4px">📝 ${esc(r.memo)}</div>` : ''}
+        </div>
+        <div style="text-align:right">
+          <div class="pamount" style="${r.amount < 0 ? 'color:#e08a8a' : 'color:#e0a8e0'}">${r.amount < 0 ? '-' : ''}¥${Math.abs(r.amount).toLocaleString()}</div>
+          <div style="color:#8a7050;font-size:12px">${esc(r.pay_method)}</div>
+          ${!isRev && !isVoided ? `<button class="btn-void" style="margin-top:6px" onclick="voidRetail(${r.id})">取消</button>` : ''}
+        </div>
+      </div>`;
+    });
+  }
+  el.innerHTML = html;
+}
+
+async function voidRetail(id) {
+  const r = retailCache && retailCache.sales.find(x => x.id === id);
+  if (!r) return;
+  const reason = prompt(`物販 RB${String(id).padStart(6, '0')}　¥${r.amount.toLocaleString()}（${r.pay_method}）を取り消します。\n\n理由を入力してください`);
+  if (reason === null) return;
+  if (!reason.trim()) { alert('理由が空なので取り消していません'); return; }
+  if (!confirm('本当に取り消しますか？\n\n元の記録は残り、マイナスの行が今日の日付で追加されます。在庫の販売数も戻ります。')) return;
+  const { data, error } = await sb.rpc('void_retail_sale', { p_id: id, p_reason: reason.trim() });
+  if (error) { alert('取消できませんでした：' + error.message); return; }
+  alert('✅ 取り消しました（取消行 RB' + String(data).padStart(6, '0') + '）');
+  loadRetail();
+}
+
+function printRetail() {
+  if (!retailCache) return;
+  const { ym, year, month, sales, items } = retailCache;
+  const yen = n => (n < 0 ? '-' : '') + '¥' + Math.abs(n).toLocaleString();
+  const sum = arr => arr.reduce((a, r) => a + r.amount, 0);
+  const cash = sum(sales.filter(r => r.pay_method === '現金'));
+  const paycas = sum(sales.filter(r => r.pay_method === 'ペイキャス'));
+  const dates = [...new Set(sales.map(r => r.sale_date))].sort();
+  const dayRows = dates.map(d => {
+    const ds = sales.filter(r => r.sale_date === d);
+    const c = sum(ds.filter(r => r.pay_method === '現金')), pc = sum(ds.filter(r => r.pay_method === 'ペイキャス'));
+    return `<tr><td>${d.replace(/-/g, '/')}</td><td>${yen(c + pc)}</td><td>${yen(c)}</td><td>${yen(pc)}</td></tr>`;
+  }).join('');
+  const detailRows = [...sales].sort((a, b) => (a.sale_date + (a.sale_time || '')).localeCompare(b.sale_date + (b.sale_time || '')) || a.id - b.id).map(r => {
+    const its = items.filter(i => i.retail_sale_id === r.id).map(i => `${esc(i.item_name)} ×${i.qty}`).join('、');
+    return `<tr${r.void_of ? ' style="color:#a33"' : ''}><td>${r.sale_date.replace(/-/g, '/')} ${r.sale_time || ''}</td><td>RB${String(r.id).padStart(6, '0')}</td><td style="text-align:left">${its}${r.memo ? '<br>' + esc(r.memo) : ''}</td><td>${esc(r.pay_method)}</td><td>${yen(r.amount)}</td></tr>`;
+  }).join('');
+  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
+    @page{size:A4 portrait;margin:12mm}
+    body{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;color:#000;font-size:11px}
+    h2{text-align:center;margin-bottom:4px} p.sub{text-align:center;color:#555;margin:0 0 12px}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px} th,td{border:1px solid #999;padding:4px 6px;text-align:right}
+    th{background:#eee;text-align:center} td:first-child{text-align:left}
+    .t td{font-weight:900;background:#f3f3f3}
+  </style></head><body>
+    <h2>物販売上一覧　${year}年${parseInt(month)}月</h2>
+    <p class="sub">販売者：株式会社ライジンブリス　販売場所：ラウンジ カトレア店内　出力日時：${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
+    <p>※株式会社エー・ワイ・シー（ラウンジ カトレア）の売上には含めていません。代金はカトレアのレジ・ペイキャス端末で預かっています。</p>
+    <h3>日ごとの合計</h3>
+    <table><tr><th>日付</th><th>売上</th><th>現金</th><th>ペイキャス</th></tr>${dayRows || '<tr><td colspan="4">販売なし</td></tr>'}
+    <tr class="t"><td>合計</td><td>${yen(cash + paycas)}</td><td>${yen(cash)}</td><td>${yen(paycas)}</td></tr></table>
+    <h3>販売の明細</h3>
+    <table><tr><th>日時</th><th>番号</th><th>商品</th><th>支払</th><th>金額</th></tr>${detailRows || '<tr><td colspan="5">販売なし</td></tr>'}</table>
+  </body></html>`;
+  openPrint(html, `ライジンブリス_物販売上_${ym}`);
 }
 
 // ---- 現金チェック記録（Cash.htmlから移設） ----

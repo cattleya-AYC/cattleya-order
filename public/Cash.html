@@ -492,9 +492,13 @@ function updateShouldCash() {
 
 async function loadShouldCash() {
   const today = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
-  const { data } = await sb.from("sales").select("amount,pay_method,sale_time").eq("sale_date", today);
+  const [{ data }, { data: retail }] = await Promise.all([
+    sb.from("sales").select("amount,pay_method,sale_time").eq("sale_date", today),
+    // 物販（ライジンブリスの売上）の現金も同じレジに入るので、あるべき金額に含める
+    sb.from("retail_sales").select("amount,pay_method,sale_time").eq("sale_date", today),
+  ]);
   if (data) {
-    window._salesData = data;
+    window._salesData = data.concat(retail || []);
     const now = new Date();
     if (now.getHours() >= 15) {
       document.getElementById('bankBtnArea').style.display = '';
