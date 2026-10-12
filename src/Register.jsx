@@ -1973,9 +1973,13 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
               </div>
             )}
 
-            <div style={{ color: "#8a7050", fontSize: 17, marginBottom: 8, fontWeight: 700 }}>支払い方法</div>
+                       <div style={{ color: "#8a7050", fontSize: 17, marginBottom: 8, fontWeight: 700 }}>支払い方法</div>
+            {selected === "物販" && (
+              <div style={{ color: "#e0a8e0", fontSize: 15, fontWeight: 700, marginBottom: 8 }}>🌵 物販は現金のみ（ライジンブリスのレシートが出ます）</div>
+            )}
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-              {["現金", "ペイキャス"].map((p) => (
+              {(selected === "物販" ? ["現金"] : ["現金", "ペイキャス"]).map((p) => (
+
                 <button key={p} onClick={() => { setPayMethod(p); setReceivedAmount(""); }}
                   style={{ flex: 1, padding: 16, background: payMethod === p ? "#c9952a" : "transparent", border: `2px solid ${payMethod === p ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: payMethod === p ? "#0d0905" : "#c9952a", fontWeight: 900, fontSize: 19, cursor: "pointer" }}>
                   {p}
