@@ -1860,12 +1860,10 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
             })()}
 
             {/* 確認者 */}
-                        <div style={{ color: "#8a7050", fontSize: 17, marginBottom: 8, fontWeight: 700 }}>支払い方法</div>
-            {selected === "物販" && (
-              <div style={{ color: "#e0a8e0", fontSize: 15, fontWeight: 700, marginBottom: 8 }}>🌵 物販は現金のみ（ライジンブリスのレシートが出ます）</div>
-            )}
-            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-              {(selected === "物販" ? ["現金"] : ["現金", "ペイキャス"]).map((p) => (
+                                    <div style={{ color: "#8a7050", fontSize: 17, marginBottom: 8, fontWeight: 700 }}>確認者</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8, marginBottom: 10 }}>
+              {STAFF.map((s) => (
+
 
                 <button key={s} onClick={() => { setCashCheckStaff(s); setShowOtherInput(false); setCashCheckOther(""); }}
                   style={{ padding: 16, background: cashCheckStaff === s && !showOtherInput ? "#c9952a" : "transparent", border: `2px solid ${cashCheckStaff === s && !showOtherInput ? "#c9952a" : "#3d2c14"}`, borderRadius: 8, color: cashCheckStaff === s && !showOtherInput ? "#0d0905" : "#c9952a", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>
