@@ -136,8 +136,68 @@ function buildInvoiceHTML(info) {
 }
 const RECEIPT_ADDR = "https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/invoice%20under.PNG";
 
+// =========================================================
+// 物販（株式会社ライジンブリスの販売）用レシート・領収書
+// インボイス未登録のため登録番号・消費税額は印字しない／住所・電話番号も出さない
+// =========================================================
+const RAIJIN_LOGO = "https://raw.githubusercontent.com/cattleya-AYC/cattleya-order/main/raijinbliss_logo.png";
+
+function buildRaijinReceiptHTML(info) {
+  const isInvoice = info.receipt === "領収書";
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日\u3000${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  const items = info.items || [];
+  const itemRows = items.map(o => {
+    const sub = o.price * o.qty;
+    return `<tr><td style="text-align:left;width:70%">${o.item_name}&nbsp;&nbsp;&#215;${o.qty}</td><td style="text-align:right;width:30%">${sub < 0 ? "&#8722;" : ""}${Math.abs(sub).toLocaleString()}</td></tr>`;
+  }).join("");
+  const payRow = (info.pay === "現金" && info.received)
+    ? `<tr><td style="text-align:left">現金お預かり</td><td style="text-align:right">${info.received.toLocaleString()}</td></tr>
+       <tr><td style="text-align:left">お\u3000釣\u3000り</td><td style="text-align:right">${(info.change||0).toLocaleString()}</td></tr>`
+    : `<tr><td style="text-align:left">${info.pay === "現金" ? "現金" : "ペイキャス"}</td><td style="text-align:right">\u2014</td></tr>`;
+  return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
+  html,body{ margin:0; padding:0; }
+  body{ font-family:'Hiragino Mincho ProN','Yu Mincho',serif; width:384px; margin:0; padding:0; box-sizing:border-box; color:#000; text-align:center; font-size:22px; }
+  .no{ text-align:right; font-size:19px; margin-bottom:4px; }
+  .ititle{ font-size:38px; font-weight:900; letter-spacing:12px; margin:4px 0 8px; }
+  .logo{ width:86%; height:auto; display:block; margin:8px auto 6px; }
+  .co{ font-size:24px; font-weight:900; margin:2px 0 2px; }
+  .place{ font-size:16px; font-weight:700; margin:2px 0 10px; }
+  .dt{ font-size:26px; font-weight:bold; margin:8px 0; }
+  .atena{ display:flex; justify-content:space-between; align-items:flex-end; margin:10px 10px 8px; border-bottom:2px solid #000; font-size:34px; }
+  .dline{ border:none; border-top:2px dotted #000; margin:8px 0 12px; }
+  .sline{ border:none; border-top:4px solid #000; margin:12px 0; }
+  table{ width:100%; border-collapse:collapse; }
+  .items td{ font-size:26px; font-weight:700; padding:5px 0; }
+  .total td{ font-size:38px; font-weight:900; padding:4px 0; }
+  .tin{ font-size:20px; font-weight:700; text-align:right; margin:2px 0 8px; }
+  .pay td{ font-size:24px; font-weight:700; padding:5px 0; }
+  .tadashi{ font-size:22px; font-weight:700; margin:8px 0 2px; line-height:1.7; }
+  .note{ font-size:17px; font-weight:700; margin:14px 4px 0; line-height:1.6; text-align:left; }
+  .foot{ font-size:22px; font-weight:bold; margin-top:14px; }
+</style></head><body>
+  <div class="no">No.RB${info.receiptNo || "000000"}</div>
+  ${isInvoice ? '<div class="ititle">領\u3000収\u3000書</div><div class="atena"><span></span><span>様</span></div>' : ''}
+  <img class="logo" src="${RAIJIN_LOGO}"/>
+  <div class="co">株式会社ライジンブリス</div>
+  <div class="place">販売場所：ラウンジ カトレア店内</div>
+  <div class="dt">${dateStr}</div>
+  <hr class="dline"/>
+  <table class="items">${itemRows}</table>
+  <hr class="sline"/>
+  <table class="total"><tr><td style="text-align:left">合\u3000計</td><td style="text-align:right">&#165;${info.amount.toLocaleString()}</td></tr></table>
+  <div class="tin">（税込）</div>
+  ${isInvoice ? '<div class="tadashi">但し　物販代として<br>上記正に領収いたしました</div>' : `<table class="pay">${payRow}</table>`}
+  <div class="note">※こちらの商品は株式会社ライジンブリスの販売です。ラウンジ カトレア（株式会社エー・ワイ・シー）のお会計とは別になります。</div>
+  <div class="foot">ありがとうございました</div>
+  <br/><br/>
+</body></html>`;
+}
+
 function buildReceiptHTML(info) {
+  if (info.raijin) return buildRaijinReceiptHTML(info);
   if (info.receipt === "領収書") return buildInvoiceHTML(info);
+
   const isInvoice = info.receipt === "領収書";
   const now = new Date();
   const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日\u3000${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
