@@ -1106,7 +1106,39 @@ export default function Register() {
     if (lastCheckout && lastCheckout.table === t && lastCheckout.amount === amount && (nowMs - lastCheckout.timestamp) < 120000) {
       setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); setCheckingOut(false); return;
     }
-        // ※明細(order_items)の保存は、下の売上(sales)保存のあとに移動しました（会計IDを付けるため）
+                // ※明細(order_items)の保存は、下の売上(sales)保存のあとに移動しました（会計IDを付けるため）
+
+    // ★物販は株式会社ライジンブリスの売上：カトレア（AYC）の sales / order_items には入れない
+    if (String(t) === "物販") {
+      const rDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
+      const rAmount = tableOrderItems.reduce((s, o) => s + o.price * o.qty, 0);
+      const { data: rRow, error: rErr } = await supabase.from("retail_sales").insert({ sale_date: rDate, sale_time: now, amount: rAmount, pay_method: payMethod, receipt_type: receiptType }).select("id").single();
+      if (rErr || !rRow) {
+        alert("物販の会計の保存に失敗しました。注文は残っています。「画面更新」を押して、もう一度会計してください。");
+        setCheckingOut(false);
+        return;
+      }
+      const { error: riErr } = await supabase.from("retail_sale_items").insert(
+        tableOrderItems.filter(o => o.qty > 0).map(o => ({ retail_sale_id: rRow.id, item_name: o.item_name, price: o.price, qty: o.qty, sale_date: rDate, sale_time: now }))
+      );
+      if (riErr) alert("物販の明細の保存に失敗しました（会計は保存済み）。まりに連絡してください。物販ID：" + rRow.id);
+      await supabase.from("orders").delete().eq("table_no", "物販");
+      const rInfo = { table: "物販", amount: rAmount, pay: payMethod, receipt: receiptType, change: chg, received: receivedAmount ? parseInt(receivedAmount) : null, items: tableOrderItems.map(o => ({ item_name: o.item_name, price: o.price, qty: o.qty })), raijin: true, receiptNo: String(rRow.id).padStart(6, "0") };
+      const rRecord = { table: "物販", amount: rAmount, time: now, pay: payMethod, receipt: receiptType, timestamp: Date.now() };
+      setHistory((prev) => [rRecord, ...prev]);
+      setLastCheckout(rRecord);
+      setCheckoutInfo(rInfo);
+      setSelected(null); setConfirming(false); setPayMethod(null); setReceiptType(null); setReceivedAmount(""); setCheckoutDone(true); setCheckingOut(false); setPeopleZero(false);
+      setCouponApplied(false); setCouponDiscount(0); setCouponType(null); setCouponNo("");
+      speakAmount(rAmount);
+      const rUrl = "starpassprnt://v1/print/nopreview?back=" + encodeURIComponent(location.origin + location.pathname) + "&html=" + encodeURIComponent(buildReceiptHTML(rInfo));
+      setTimeout(() => {
+        localStorage.setItem("checkoutRestore", JSON.stringify(rInfo));
+        window.location.href = rUrl;
+      }, 1200);
+      return;
+    }
+
 
 
     // レシート印字用：値引き行（セット割引・クーポン）はすべて最下部にまとめる
