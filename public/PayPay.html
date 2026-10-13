@@ -487,14 +487,12 @@ function printReport(r, mode) {
   </div>`;
   document.getElementById('printArea').innerHTML =
     mode === 'csv' ? csvAttachHtml(r) : reportHtml + (withCsv ? csvAttachHtml(r) : '');
-  // Safariの「PDFとして保存」はページ名がファイル名になる
-  const oldTitle = document.title;
+  // Safariの「PDFとして保存」はページ名がファイル名になる。
+  // iPhoneは印刷画面を開いている間もページが動き続けるので、名前は元に戻さない
+  // （戻すと、保存する時点で「ペイペイ決済失敗報告」になってしまう）
   const [fy, fm, fd] = r.fail_date.split('-').map(Number);
   document.title = mode === 'csv' ? `ペイキャス取引一覧_${fy}年${fm}月${fd}日` : `ペイキャス決済失敗_${fy}年${fm}月${fd}日発生`;
-  setTimeout(() => {
-    window.print();
-    setTimeout(() => { document.title = oldTitle; }, 1000);
-  }, 300);
+  setTimeout(() => { window.print(); }, 300);
 }
 
 initTables();
