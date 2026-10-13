@@ -1390,6 +1390,77 @@ async function printPayrollMonth() {
   }
 }
 
+async function printAttendanceMonth() {
+  const btn = document.getElementById('btnAttendMonth');
+  const { year, month } = monthRange();
+  const label = `🕘 ${parseInt(month)}月の出勤簿 PDF印刷（1人1ページ）`;
+  if (!window.getPayrollMonth) { alert('タイムカードの読み込み準備がまだです。少し待ってからもう一度押してください。'); return; }
+  btn.disabled = true; btn.textContent = '⏳ タイムカードとシフトを集めています...';
+  try {
+    const { attendance } = await window.getPayrollMonth(Number(year), parseInt(month));
+    if (!attendance.length) { alert('この月の出勤データが見つかりませんでした'); btn.disabled = false; btn.textContent = label; return; }
+    const WDJ = ['日', '月', '火', '水', '木', '金', '土'];
+    const hm = d => d ? String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') : '';
+    const dur = m => Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0');
+    const rule = `<p class="rule">※ 打刻は修正後の時刻（修正した日は元の打刻を併記）。シフトはシフト作成アプリの登録内容。遅刻＝出勤の打刻がシフト開始より遅い分。<br>
+    ※ 計算の時刻は現在の給与計算のルール：出勤は30分単位で切り上げ（開始時刻より前は開始時刻。ふだん9:00、2026/10/13〜月曜の店長・火〜金のチーフは8:30）、退勤は20時までは30分・20時以降は15分単位で切り捨て。</p>`;
+    const sheets = attendance.map(st => {
+      const body = st.days.map(x => {
+        const dt = new Date(x.dk + 'T00:00:00');
+        const off = dt.getDay() === 0 || dt.getDay() === 6;
+        const notes = [];
+        let shiftTxt;
+        if (!x.shift) { shiftTxt = '—'; if (x.fi || x.lo) notes.push('シフトなし'); }
+        else if (x.shift.off) { shiftTxt = '休み'; if (x.fi || x.lo) notes.push('休みの日に出勤'); }
+        else shiftTxt = `${x.shift.start}〜${x.shift.end}`;
+        if (!x.fi && !x.lo) notes.push('打刻なし');
+        else if (x.fi && !x.lo) notes.push('退勤の打刻なし');
+        else if (!x.fi && x.lo) notes.push('出勤の打刻なし');
+        if (x.late > 0) notes.push(`<b>遅刻${x.late}分</b>`);
+        if (x.inManual || x.outManual) notes.push('手入力');
+        const inCell = hm(x.fi) + (x.inOriginal ? `<br><span class="o">修正（元${hm(x.inOriginal)}）</span>` : '');
+        const outCell = hm(x.lo) + (x.outOriginal ? `<br><span class="o">修正（元${hm(x.outOriginal)}）</span>` : '');
+        const worked = x.gross > 0;
+        return `<tr${x.late > 0 ? ' class="late"' : ''}><td class="l${off ? ' we' : ''}">${dt.getMonth() + 1}/${dt.getDate()}(${WDJ[dt.getDay()]})</td>
+          <td>${shiftTxt}</td><td>${inCell || '—'}</td><td>${outCell || '—'}</td>
+          <td>${worked ? hm(x.calcIn) : '—'}</td><td>${worked ? hm(x.calcOut) : '—'}</td>
+          <td>${worked ? (x.brk ? x.brk + '分' : 'なし') : '—'}</td><td class="r">${worked ? dur(x.mins) : '—'}</td>
+          <td class="l n">${notes.join('・')}</td></tr>`;
+      }).join('');
+      return `<section class="sheet">
+        <h2>出勤簿　${year}年${parseInt(month)}月　<span>${esc(st.name)}</span></h2>
+        <p class="sub">ラウンジ カトレア（株式会社エー・ワイ・シー）　出力日時：${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
+        <table><thead><tr><th>日付</th><th>シフト</th><th>出勤 打刻</th><th>退勤 打刻</th><th>計算 出勤</th><th>計算 退勤</th><th>休憩</th><th>労働時間</th><th>備考</th></tr></thead>
+        <tbody>${body}</tbody>
+        <tfoot><tr><td class="l" colspan="7">出勤 ${st.workDays}日　／　遅刻 ${st.lateCount}回${st.lateCount ? `（計${st.lateMin}分）` : ''}</td><td class="r">${dur(st.totalMin)}</td><td></td></tr></tfoot></table>
+        ${rule}
+      </section>`;
+    }).join('');
+    const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
+      @page{size:A4 portrait;margin:10mm}
+      body{font-family:'Hiragino Mincho ProN',serif;color:#000;font-size:10px}
+      .sheet{page-break-after:always;break-after:page}
+      .sheet:last-child{page-break-after:auto;break-after:auto}
+      h2{font-size:14px;text-align:center;margin:0 0 2px} h2 span{font-size:16px}
+      p.sub{text-align:center;color:#555;font-size:9px;margin:0 0 6px}
+      table{width:100%;border-collapse:collapse}
+      th,td{border:1px solid #999;padding:2px 4px;text-align:center;line-height:1.35}
+      th{background:#eee;font-size:9px}
+      td.l{text-align:left} td.r{text-align:right} td.n{font-size:9px}
+      td.we{color:#555}
+      tr.late td{background:#f3f3f3}
+      .o{font-size:8px;color:#b00}
+      tfoot td{font-weight:900;background:#f3f3f3}
+      .rule{font-size:8.5px;line-height:1.5;margin-top:6px;color:#333}
+      @media print{ html{ -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    </style></head><body>${sheets}</body></html>`;
+    openPrint(html, `カトレア_${year}年${String(parseInt(month)).padStart(2, '0')}月_出勤簿`);
+  } catch (e) {
+    alert('作成に失敗しました：' + (e.message || e));
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+
 async function printBankMonth() {
   const btn = document.getElementById('btnBankMonth');
   const { year, month, startDate, endDate } = monthRange();
@@ -1595,6 +1666,7 @@ async function loadClosing() {
   <button id="btnTaxMonth" onclick="printTaxMonth()" style="width:100%;margin-top:10px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">🧾 ${parseInt(month)}月の消費税 PDF印刷</button>
   <button id="btnBankMonth" onclick="printBankMonth()" style="width:100%;margin-top:10px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">🏦 ${parseInt(month)}月の銀行入金額 PDF印刷</button>
   <button id="btnPayrollMonth" onclick="printPayrollMonth()" style="width:100%;margin-top:10px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">👔 ${parseInt(month)}月の人件費 PDF印刷</button>
+  <button id="btnAttendMonth" onclick="printAttendanceMonth()" style="width:100%;margin-top:10px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">🕘 ${parseInt(month)}月の出勤簿 PDF印刷（1人1ページ）</button>
   <button id="btnBackup" onclick="downloadMonthlyBackup()" style="width:100%;margin-top:10px;padding:14px;background:#1a2a10;border:2px solid #4a8a3a;border-radius:10px;color:#8ae08a;font-size:16px;font-weight:900;cursor:pointer;">💾 ${parseInt(month)}月のバックアップ（ZIP）</button>
   <div style="color:#8a7050;font-size:11px;margin-top:6px;text-align:center;">ダウンロードしたZIPは、Googleドライブの「カトレア税務バックアップ」フォルダへ。GitHubには置かないでください。</div>`;
 
@@ -2049,8 +2121,9 @@ loadAll();
 </script>
 <script type="module">
 // 給与（人件費）の計算は月次アプリと共通（payroll-calc.js）
-import { getPayrollRows } from './payroll-calc.js';
+import { getPayrollRows, getPayrollMonth } from './payroll-calc.js';
 window.getPayrollRows = getPayrollRows;
+window.getPayrollMonth = getPayrollMonth;
 </script>
 </body>
 </html>
