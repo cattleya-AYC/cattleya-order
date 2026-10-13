@@ -1675,7 +1675,10 @@ async function downloadMonthlyBackup() {
     zip.file(p + '8_参考_物販_ライジンブリス売上_retail_sales.csv', toCsv(rSales));
     zip.file(p + '9_参考_物販明細_ライジンブリス_retail_sale_items.csv', toCsv(rItems));
     zip.file(p + '10_銀行入金額.html', bankListHtml(year, month, sales));
-    zip.file(p + '11_ペイペイ決済失敗報告_paypay_failures.csv', toCsv(ppFails));
+    zip.file(p + '11_ペイペイ決済失敗報告_paypay_failures.csv', toCsv(ppFails.map(({ paycas_csv, ...rest }) => rest)));
+    ppFails.filter(f => f.paycas_csv).forEach(f => {
+      zip.file(p + `12_ペイキャス取引CSV_決済失敗${f.fail_date}_${f.id}.csv`, '\ufeff' + f.paycas_csv.replace(/^\ufeff/, ''));
+    });
     const salesSum = sales.reduce((a, s) => a + (s.amount || 0), 0);
     const closedSum = closings.reduce((a, c) => a + (c.sales_total || 0), 0);
     zip.file('はじめにお読みください.txt',
@@ -1695,6 +1698,7 @@ async function downloadMonthlyBackup() {
 10_銀行入金額：日ごとの現金売上と銀行入金額（〜15時・15時〜）。千円未満の硬貨分は別に保管し、まとめて別口で入金しています。
 　　7と同じくブラウザで開いて印刷・PDF保存できます。
 11_ペイペイ決済失敗報告：決済失敗で未収金計上した会計の報告（発生日時・取引番号・金額・経緯など）。決済失敗を証明する資料は山内家で保存しています。
+12_ペイキャス取引CSV：決済失敗があった日の、ペイキャス管理サイト「取引検索」のCSV（決済失敗の行を含む）。
 
 件数　売上 ${sales.length}行／明細 ${items.length}行／タバコ ${tobacco.length}行／確定 ${closings.length}日／変更履歴 ${audits.length}件／ペイペイ決済失敗 ${ppFails.length}件
 売上合計（現在のデータ）¥${salesSum.toLocaleString()}　確定日計の合計 ¥${closedSum.toLocaleString()}

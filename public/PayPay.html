@@ -22,7 +22,9 @@
     color: #f0e6d0; font-size: 17px; padding: 10px; font-family: inherit;
   }
   textarea { min-height: 110px; resize: vertical; }
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; }
+  .row2 > div { min-width: 0; }
+  input[type=date], input[type=time] { -webkit-appearance: none; appearance: none; min-width: 0; display: block; }
   .calc { background: #0a120a; border: 1px solid #2a5a2a; border-radius: 10px; padding: 12px; margin-top: 12px; }
   .calc .line { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 6px 0; }
   .calc .line span:first-child { font-size: 14px; color: #a0c0a0; }
@@ -42,27 +44,41 @@
   .a-edit { background: transparent; border: 1px solid #5a4020; color: #b8a080; }
   .empty { color: #8a7050; font-size: 14px; }
   #printArea { display: none; }
+  .csvbox { background: #0d1520; border: 1px dashed #4a8aca; border-radius: 10px; padding: 12px; margin-bottom: 6px; }
+  .csvbox label { color: #8ac8ff; margin-top: 0; }
+  .csvbox input[type=file] { font-size: 14px; padding: 8px; }
+  .failbtn { display: block; width: 100%; text-align: left; margin-top: 6px; padding: 10px; background: #2a0808; border: 1px solid #c95a5a; border-radius: 8px; color: #ffb0b0; font-size: 14px; cursor: pointer; }
+  .a-share { background: #1a2a4a; border: 1px solid #4a8aca; color: #8ac8ff; }
 
   @media print {
-    @page { size: A4 portrait; margin: 14mm; }
+    @page { size: A4 portrait; margin: 10mm; }
     body { background: #fff; color: #000; padding: 0; }
     #app { display: none !important; }
     #printArea { display: block !important; }
   }
-  .doc { font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif; color: #000; font-size: 12pt; }
-  .doc h1 { text-align: center; font-size: 20pt; letter-spacing: 0.3em; margin: 0 0 4mm; }
-  .doc .meta { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 6mm; font-size: 10.5pt; line-height: 1.6; }
-  .doc table { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
-  .doc th, .doc td { border: 1px solid #000; padding: 2.5mm 3mm; vertical-align: top; }
+  .doc { font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif; color: #000; font-size: 10.5pt; }
+  .doc h1 { text-align: center; font-size: 17pt; letter-spacing: 0.3em; margin: 0 0 3mm; }
+  .doc .meta { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4mm; font-size: 9.5pt; line-height: 1.5; }
+  .doc table { width: 100%; border-collapse: collapse; margin-bottom: 3mm; page-break-inside: avoid; }
+  .doc th, .doc td { border: 1px solid #000; padding: 1.6mm 2.5mm; vertical-align: top; line-height: 1.5; }
   .doc th { width: 34%; background: #eee; text-align: left; font-weight: 700; }
   .doc td.num { text-align: right; font-weight: 700; }
-  .doc .sec { font-weight: 700; margin: 4mm 0 2mm; }
-  .doc .keii { min-height: 30mm; white-space: pre-wrap; }
-  .doc .note { font-size: 9.5pt; line-height: 1.6; border-top: 1px solid #000; padding-top: 3mm; margin-top: 6mm; }
-  .doc .stamp { display: flex; justify-content: flex-end; gap: 0; margin-top: 6mm; }
-  .doc .stamp div { width: 24mm; height: 24mm; border: 1px solid #000; text-align: center; font-size: 9pt; padding-top: 1mm; }
+  .doc .sec { font-weight: 700; margin: 3mm 0 1.5mm; }
+  .doc .keii { white-space: pre-wrap; }
+  .doc .note { font-size: 8.5pt; line-height: 1.5; border-top: 1px solid #000; padding-top: 2mm; margin-top: 4mm; }
+  .doc .stamp { display: flex; justify-content: flex-end; gap: 0; margin-top: 3mm; }
+  .doc .stamp div { width: 20mm; height: 20mm; border: 1px solid #000; text-align: center; font-size: 8.5pt; padding-top: 1mm; }
   .doc .stamp div + div { border-left: none; }
-  @media print { .doc th { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  .att { page-break-before: always; break-before: page; font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif; color: #000; }
+  .att h2 { font-size: 13pt; text-align: center; margin: 0 0 1mm; }
+  .att .sub { text-align: center; font-size: 8.5pt; margin-bottom: 3mm; }
+  .att table { width: 100%; border-collapse: collapse; font-size: 8pt; }
+  .att th, .att td { border: 1px solid #000; padding: 0.8mm 1.5mm; }
+  .att th { background: #eee; }
+  .att td.r { text-align: right; }
+  .att tr.fail td { background: #ddd; font-weight: 700; }
+  .att .sum { margin-top: 2mm; font-size: 9pt; text-align: right; }
+  @media print { .doc th, .att th, .att tr.fail td { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 </head>
 <body>
@@ -74,6 +90,12 @@
 
   <div class="card">
     <h2 id="formTitle">新しく報告する</h2>
+    <div class="csvbox">
+      <label>ペイキャスCSV（管理サイトの取引検索からダウンロード）</label>
+      <input type="file" id="f_csv" accept=".csv,text/csv,text/plain" onchange="onCsvFile(this)">
+      <div class="hint" id="csvInfo">先にCSVを選ぶと、失敗した取引の日時・取引番号・金額・決済手段と②が自動で入ります</div>
+      <div id="failPick"></div>
+    </div>
     <div class="row2">
       <div><label>発生した日</label><input type="date" id="f_date" onchange="loadPaycas()"></div>
       <div><label>時刻（時・分）</label><input type="time" id="f_time"></div>
@@ -139,6 +161,130 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let editingId = null;
 let reports = [];
+let csvText = null, csvName = null, csvFails = [];
+
+// ---------- ペイキャスCSV ----------
+function parseCsvLines(text) {
+  const out = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(cur); cur = '';
+      if (row.some(v => v !== '')) out.push(row);
+      row = [];
+    } else cur += c;
+  }
+  row.push(cur); if (row.some(v => v !== '')) out.push(row);
+  return out;
+}
+function csvRows(text) {
+  const lines = parseCsvLines(String(text || '').replace(/^\ufeff/, ''));
+  if (lines.length < 1) return [];
+  const head = lines[0].map(h => h.trim());
+  return lines.slice(1).map(l => Object.fromEntries(head.map((h, i) => [h, (l[i] || '').trim()])));
+}
+const yenNum = v => parseInt(String(v || '').replace(/[^\d-]/g, ''), 10) || 0;
+const rowDate = r => (r['決済日時'] || '').slice(0, 10).replace(/\//g, '-');
+const isOk = r => (r['決済状態'] || '').startsWith('決済成功');
+const isFail = r => (r['決済状態'] || '').includes('失敗');
+function okSumFor(rows, d) { return rows.filter(r => isOk(r) && (!d || rowDate(r) === d)).reduce((a, r) => a + yenNum(r['決済金額']), 0); }
+
+async function readFileText(file) {
+  const buf = await file.arrayBuffer();
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch (e) { return new TextDecoder('shift_jis').decode(buf); }
+}
+async function onCsvFile(inp) {
+  const f = inp.files && inp.files[0];
+  if (!f) return;
+  applyCsv(await readFileText(f), f.name, true);
+}
+function applyCsv(text, name, fill) {
+  const rows = csvRows(text);
+  const info = document.getElementById('csvInfo');
+  if (!rows.length || !('決済状態' in rows[0]) || !('決済金額' in rows[0])) {
+    alert('ペイキャスの取引検索CSVではないようです。もう一度選んでください。');
+    document.getElementById('f_csv').value = '';
+    return;
+  }
+  csvText = text.replace(/^\ufeff/, ''); csvName = name;
+  const ok = rows.filter(isOk);
+  csvFails = rows.filter(isFail);
+  const dates = [...new Set(rows.map(rowDate))].sort();
+  info.textContent = `📎 ${dates.join('・')}　決済成功 ${ok.length}件 ${yen(okSumFor(rows))}／決済失敗 ${csvFails.length}件`;
+  const pick = document.getElementById('failPick');
+  pick.innerHTML = '';
+  if (!fill) return;
+  if (csvFails.length === 1) pickFail(0);
+  else if (csvFails.length > 1) {
+    pick.innerHTML = '<div class="hint">失敗が複数あります。今回報告するものを選んでください</div>' +
+      csvFails.map((r, i) => `<button class="failbtn" onclick="pickFail(${i})">${esc(r['決済日時'])}　${esc(r['決済手段'])}　${esc(r['決済金額'])}</button>`).join('');
+  } else {
+    info.textContent += '（失敗の行はありません）';
+    const d = document.getElementById('f_date').value;
+    document.getElementById('f_paypay').value = okSumFor(rows, d);
+    calcDiff();
+  }
+}
+function pickFail(i) {
+  const r = csvFails[i];
+  const d = rowDate(r);
+  document.getElementById('f_date').value = d;
+  document.getElementById('f_time').value = (r['決済日時'] || '').slice(11, 16);
+  document.getElementById('f_txn').value = r['トランザクションID'] || '';
+  document.getElementById('f_amount').value = yenNum(r['決済金額']);
+  setType(r['決済手段'] || '');
+  document.getElementById('f_paypay').value = okSumFor(csvRows(csvText), d);
+  document.getElementById('failPick').innerHTML = '';
+  loadPaycas();
+  calcDiff();
+}
+function setType(v) {
+  const sel = document.getElementById('f_type');
+  if (!v) { sel.selectedIndex = 0; return; }
+  if (![...sel.options].some(o => o.value === v)) sel.add(new Option(v, v), 0);
+  sel.value = v;
+}
+function csvFileFor(r) {
+  const [y, m, d] = r.fail_date.split('-').map(Number);
+  const name = `ペイキャス取引_${y}年${m}月${d}日.csv`;
+  return new File(['\ufeff' + r.paycas_csv], name, { type: 'text/csv' });
+}
+async function shareCsv(id) {
+  const r = reports.find(x => x.id === id);
+  if (!r || !r.paycas_csv) return;
+  const file = csvFileFor(r);
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: file.name }); } catch (e) {}
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(file); a.download = file.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+function csvAttachHtml(r) {
+  const rows = csvRows(r.paycas_csv);
+  const d = r.fail_date;
+  const [y, m, dd] = d.split('-').map(Number);
+  const body = rows.map(x => {
+    const hit = isFail(x) || (r.paypay_txn_no && x['トランザクションID'] === r.paypay_txn_no);
+    return `<tr class="${hit ? 'fail' : ''}"><td>${esc(x['決済日時'])}</td><td>${esc(x['決済手段'])}</td><td>${esc(x['トランザクションID'])}</td><td class="r">${yen(yenNum(x['決済金額']))}</td><td>${hit ? '★ ' : ''}${esc(x['決済状態'])}</td></tr>`;
+  }).join('');
+  const ok = rows.filter(x => isOk(x) && rowDate(x) === d);
+  return `<div class="att">
+    <h2>添付：ペイキャス取引一覧（${y}年${m}月${dd}日）</h2>
+    <div class="sub">ペイキャス管理サイト「取引検索」のCSVより　${esc(r.paycas_csv_name || '')}</div>
+    <table><thead><tr><th>決済日時</th><th>決済手段</th><th>トランザクションID</th><th>金額</th><th>決済状態</th></tr></thead><tbody>${body}</tbody></table>
+    <div class="sum">決済成功 ${ok.length}件　合計 ${yen(okSumFor(rows, d))}　（★＝決済失敗）</div>
+  </div>`;
+}
 
 const todayJST = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
 const yen = n => (n === null || n === undefined || n === '' || isNaN(n)) ? '---' : '¥' + Number(n).toLocaleString();
@@ -193,6 +339,8 @@ function readForm() {
     paycas_total: numOrNull('f_paycas'),
     paypay_total: numOrNull('f_paypay'),
     memo: document.getElementById('f_memo').value.trim() || null,
+    paycas_csv: csvText,
+    paycas_csv_name: csvName,
   };
 }
 
@@ -223,6 +371,10 @@ function resetForm() {
   document.getElementById('formTitle').textContent = '新しく報告する';
   document.getElementById('saveBtn').textContent = '✅ 登録して印刷';
   document.getElementById('cancelBtn').style.display = 'none';
+  csvText = null; csvName = null; csvFails = [];
+  document.getElementById('f_csv').value = '';
+  document.getElementById('failPick').innerHTML = '';
+  document.getElementById('csvInfo').textContent = '先にCSVを選ぶと、失敗した取引の日時・取引番号・金額・決済手段と②が自動で入ります';
   loadPaycas();
 }
 
@@ -233,7 +385,7 @@ function editReport(id) {
   document.getElementById('f_date').value = r.fail_date;
   document.getElementById('f_time').value = r.fail_time || '';
   document.getElementById('f_txn').value = r.paypay_txn_no || '';
-  document.getElementById('f_type').value = r.pay_type || 'PayPay（QR）';
+  setType(r.pay_type || '');
   document.getElementById('f_table').value = r.table_no || '1';
   document.getElementById('f_amount').value = r.amount ?? '';
   document.getElementById('f_cashier').value = r.cashier || '';
@@ -241,6 +393,9 @@ function editReport(id) {
   document.getElementById('f_paycas').value = r.paycas_total ?? '';
   document.getElementById('f_paypay').value = r.paypay_total ?? '';
   document.getElementById('f_memo').value = r.memo || '';
+  document.getElementById('f_csv').value = '';
+  if (r.paycas_csv) applyCsv(r.paycas_csv, r.paycas_csv_name || '', false);
+  else { csvText = null; csvName = null; csvFails = []; document.getElementById('csvInfo').textContent = 'CSVはまだ添付されていません。ここで選ぶと添付できます'; document.getElementById('failPick').innerHTML = ''; }
   document.getElementById('formTitle').textContent = `報告No.${r.id} を直す`;
   document.getElementById('saveBtn').textContent = '✅ 直して印刷';
   document.getElementById('cancelBtn').style.display = 'block';
@@ -265,9 +420,10 @@ async function loadList() {
   box.innerHTML = reports.map(r => `
     <div class="item">
       <div class="t">${esc(fmtDate(r.fail_date))} ${esc(r.fail_time || '')}　${yen(r.amount)}</div>
-      <div class="s">No.${r.id}　テーブル ${esc(r.table_no || '-')}　${esc(r.pay_type || '')}　担当 ${esc(r.cashier || '-')}</div>
+      <div class="s">テーブル ${esc(r.table_no || '-')}　${esc(r.pay_type || '')}　担当 ${esc(r.cashier || '-')}　${r.paycas_csv ? '📎CSVあり' : 'CSVなし'}</div>
       <div class="acts">
         <button class="a-print" onclick="printById(${r.id})">🖨 印刷</button>
+        ${r.paycas_csv ? `<button class="a-share" onclick="shareCsv(${r.id})">📤 CSV</button>` : ''}
         <button class="a-edit" onclick="editReport(${r.id})">直す</button>
       </div>
     </div>`).join('');
@@ -295,7 +451,7 @@ function printReport(r) {
   <div class="doc">
     <h1>ペイペイ決済失敗報告書</h1>
     <div class="meta">
-      <div>報告No.${r.id}<br>作成日：${made}</div>
+      <div>作成日：${made}</div>
       <div style="text-align:right;">ラウンジ カトレア<br>株式会社エー・ワイ・シー<br>東京都港区新橋2丁目16-1-3階<br>03-3504-2200</div>
     </div>
     <div class="sec">1．発生内容</div>
@@ -317,13 +473,14 @@ function printReport(r) {
     </table>
     <div class="stamp"><div>確認</div><div>担当</div></div>
     <div class="note">
-      ※ ペイペイ決済（決済失敗を含む）一覧など、決済失敗を証明する資料は山内家にて保存しています。<br>
+      ※ ペイペイ決済（決済失敗を含む）一覧など、決済失敗を証明する資料は山内家にて保存しています。${r.paycas_csv ? '（ペイキャス取引一覧を次のページに添付）' : ''}<br>
       ※ ①はカトレア（株式会社エー・ワイ・シー）のレジ記録によるペイキャス決済額です。
     </div>
-  </div>`;
+  </div>${r.paycas_csv ? csvAttachHtml(r) : ''}`;
   // Safariの「PDFとして保存」はページ名がファイル名になる
   const oldTitle = document.title;
-  document.title = `カトレア_ペイペイ決済失敗報告書_${r.fail_date}_No${r.id}`;
+  const [fy, fm, fd] = r.fail_date.split('-').map(Number);
+  document.title = `ペイキャス決済失敗_${fy}年${fm}月${fd}日発生`;
   setTimeout(() => {
     window.print();
     setTimeout(() => { document.title = oldTitle; }, 1000);
