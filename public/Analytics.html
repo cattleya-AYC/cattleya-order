@@ -1333,6 +1333,76 @@ async function printVisitMonth() {
   btn.disabled = false; btn.textContent = `📄 ${parseInt(month)}月の来店者一覧 PDF印刷（1日1ページ）`;
 }
 
+async function printTaxMonth() {
+  const btn = document.getElementById('btnTaxMonth');
+  btn.disabled = true; btn.textContent = '⏳ 作成中...';
+  try { await printTaxSummary(); }
+  catch (e) {
+    alert('作成に失敗しました：' + (e.message || e));
+    const { month } = monthRange();
+    btn.disabled = false; btn.textContent = `🧾 ${parseInt(month)}月の消費税 PDF印刷`;
+  }
+}
+
+async function printPayrollMonth() {
+  const btn = document.getElementById('btnPayrollMonth');
+  const { year, month } = monthRange();
+  const resetBtn = () => { btn.disabled = false; btn.textContent = `👔 ${parseInt(month)}月の人件費 PDF印刷`; };
+  if (!window.getPayrollRows) { alert('給与データの読み込み準備がまだです。少し待ってからもう一度押してください。'); return; }
+  btn.disabled = true; btn.textContent = '⏳ 給与データを集めています...';
+  try {
+    const rows = await window.getPayrollRows(Number(year), parseInt(month));
+    if (!rows.length) { alert('この月の給与データが見つかりませんでした'); resetBtn(); return; }
+    const y = n => '¥' + Math.round(n).toLocaleString('ja-JP');
+    const dur = m => Math.floor(m / 60) + '時間' + String(m % 60).padStart(2, '0') + '分';
+    const t = k => rows.reduce((a, r) => a + Math.round(r[k]), 0);
+    const body = rows.map(r => `<tr><td>${esc(r.name)}</td><td>${r.workDays}日</td><td>${dur(r.totalMin)}</td><td>${y(r.rate)}</td>
+      <td>${y(r.wageAmount)}</td><td>${y(r.transp)}<br><span class="s">${r.transType === 'daily' ? '¥' + Number(r.transport).toLocaleString() + '×' + r.workDays + '日' : '定期代'}</span></td>
+      <td>${y(r.allowances)}</td><td>${y(r.grossTotal)}</td><td>${y(r.incomeTax)}</td><td>${y(r.grandTotal)}</td></tr>`).join('');
+    const totalMin = rows.reduce((a, r) => a + r.totalMin, 0);
+    const days = rows.reduce((a, r) => a + r.workDays, 0);
+    const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>
+      @page{size:A4 landscape;margin:12mm}
+      body{font-family:'Hiragino Mincho ProN',serif;color:#000;font-size:11px}
+      h2{text-align:center;margin-bottom:4px} p.sub{text-align:center;color:#555;margin-bottom:12px}
+      table{width:100%;border-collapse:collapse;margin-bottom:10px} th,td{border:1px solid #999;padding:5px 6px;text-align:right}
+      th{background:#eee;text-align:center} td:first-child{text-align:left}
+      .t td{font-weight:900;background:#f3f3f3} .s{font-size:9px;color:#555}
+      .box{display:flex;gap:10px;margin-top:6px} .box > div{flex:1;border:2px solid #000;border-radius:6px;padding:6px;text-align:center}
+      .box .l{font-size:10px;color:#444} .box .v{font-size:16px;font-weight:900}
+      .note{font-size:9.5px;line-height:1.6;margin-top:8px}
+      @media print{ html{ -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    </style></head><body>
+      <h2>Lounge Cattleya　人件費一覧　${year}年${parseInt(month)}月</h2>
+      <p class="sub">株式会社エー・ワイ・シー　出力日時：${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
+      <table><tr><th>スタッフ</th><th>出勤</th><th>勤務時間</th><th>時給</th><th>基本給</th><th>交通費</th><th>手当</th><th>総支給額</th><th>所得税</th><th>差引支給額</th></tr>
+      ${body}
+      <tr class="t"><td>合計（${rows.length}名）</td><td>${days}日</td><td>${dur(totalMin)}</td><td>-</td><td>${y(t('wageAmount'))}</td><td>${y(t('transp'))}</td><td>${y(t('allowances'))}</td><td>${y(t('grossTotal'))}</td><td>${y(t('incomeTax'))}</td><td>${y(t('grandTotal'))}</td></tr></table>
+      <div class="box"><div><div class="l">人件費合計（総支給額）</div><div class="v">${y(t('grossTotal'))}</div></div>
+        <div><div class="l">うち交通費</div><div class="v">${y(t('transp'))}</div></div>
+        <div><div class="l">所得税（預り金）</div><div class="v">${y(t('incomeTax'))}</div></div></div>
+      <p class="note">※ タイムカードの打刻（修正後）から計算。出勤は30分単位で切り上げ（9:00前は9:00）、退勤は20時までは30分・20時以降は15分単位で切り捨て、休憩を差し引いています。<br>※ 個人別の給与明細と同じ計算です。支給額0円のスタッフは載せていません。</p>
+    </body></html>`;
+    openPrint(html, `カトレア_${year}年${String(parseInt(month)).padStart(2, '0')}月_人件費`);
+  } catch (e) {
+    alert('作成に失敗しました：' + (e.message || e));
+    resetBtn();
+  }
+}
+
+async function printBankMonth() {
+  const btn = document.getElementById('btnBankMonth');
+  const { year, month, startDate, endDate } = monthRange();
+  btn.disabled = true; btn.textContent = '⏳ 作成中...';
+  try {
+    const sales = await fetchAll('sales', q => q.gte('sale_date', startDate).lte('sale_date', endDate));
+    openPrint(bankListHtml(year, month, sales), `カトレア_${year}年${String(parseInt(month)).padStart(2, '0')}月_銀行入金額`);
+  } catch (e) {
+    alert('作成に失敗しました：' + (e.message || e));
+    btn.disabled = false; btn.textContent = `🏦 ${parseInt(month)}月の銀行入金額 PDF印刷`;
+  }
+}
+
 function renderSummary() {
   const cashSales = salesData.filter(s => s.pay_method === '現金');
   const paycasSales = salesData.filter(s => s.pay_method === 'ペイキャス');
@@ -1522,6 +1592,9 @@ async function loadClosing() {
   html += `
   <button onclick="printClosing()" style="width:100%;margin-top:14px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">📄 確定売上 PDF印刷</button>
   <button id="btnVisitMonth" onclick="printVisitMonth()" style="width:100%;margin-top:10px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">📄 ${parseInt(month)}月の来店者一覧 PDF印刷（1日1ページ）</button>
+  <button id="btnTaxMonth" onclick="printTaxMonth()" style="width:100%;margin-top:10px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">🧾 ${parseInt(month)}月の消費税 PDF印刷</button>
+  <button id="btnBankMonth" onclick="printBankMonth()" style="width:100%;margin-top:10px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">🏦 ${parseInt(month)}月の銀行入金額 PDF印刷</button>
+  <button id="btnPayrollMonth" onclick="printPayrollMonth()" style="width:100%;margin-top:10px;padding:14px;background:#1a2a4a;border:2px solid #4a8aca;border-radius:10px;color:#8ac8ff;font-size:16px;font-weight:900;cursor:pointer;">👔 ${parseInt(month)}月の人件費 PDF印刷</button>
   <button id="btnBackup" onclick="downloadMonthlyBackup()" style="width:100%;margin-top:10px;padding:14px;background:#1a2a10;border:2px solid #4a8a3a;border-radius:10px;color:#8ae08a;font-size:16px;font-weight:900;cursor:pointer;">💾 ${parseInt(month)}月のバックアップ（ZIP）</button>
   <div style="color:#8a7050;font-size:11px;margin-top:6px;text-align:center;">ダウンロードしたZIPは、Googleドライブの「カトレア税務バックアップ」フォルダへ。GitHubには置かないでください。</div>`;
 
@@ -1973,6 +2046,11 @@ function printCashCheck() {
 }
 
 loadAll();
+</script>
+<script type="module">
+// 給与（人件費）の計算は月次アプリと共通（payroll-calc.js）
+import { getPayrollRows } from './payroll-calc.js';
+window.getPayrollRows = getPayrollRows;
 </script>
 </body>
 </html>
