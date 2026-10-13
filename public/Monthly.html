@@ -453,13 +453,13 @@ function render(year, month) {
     html += '<div class="day-row">';
     html += '<div class="day-title"><span class="day-date">' + day + '日</span><span class="day-total">¥' + d.total.toLocaleString() + '</span></div>';
     html += '<div class="day-detail2">';
-    html += '<div class="detail-row"><span class="dl">〜15時現金</span><span class="dv">¥' + d.cashMorning.toLocaleString() + '</span><span class="darrow">→</span><span class="dfloor">入金 ¥' + morningFloor.toLocaleString() + '</span><span class="dcut">(-¥' + morningCut.toLocaleString() + ')</span></div>';
-    html += '<div class="detail-row"><span class="dl">15時〜現金</span><span class="dv">¥' + d.cashEvening.toLocaleString() + '</span><span class="darrow">→</span><span class="dfloor">入金 ¥' + eveningFloor.toLocaleString() + '</span><span class="dcut">(-¥' + eveningCut.toLocaleString() + ')</span></div>';
+    html += '<div class="detail-row"><span class="dl">〜15時現金</span><span class="dv">¥' + d.cashMorning.toLocaleString() + '</span><span class="darrow">→</span><span class="dfloor">入金 ¥' + morningFloor.toLocaleString() + '</span><span class="dcut">(硬貨 ¥' + morningCut.toLocaleString() + ')</span></div>';
+    html += '<div class="detail-row"><span class="dl">15時〜現金</span><span class="dv">¥' + d.cashEvening.toLocaleString() + '</span><span class="darrow">→</span><span class="dfloor">入金 ¥' + eveningFloor.toLocaleString() + '</span><span class="dcut">(硬貨 ¥' + eveningCut.toLocaleString() + ')</span></div>';
     html += '<div class="detail-row"><span class="dl">ペイキャス</span><span class="dv">¥' + d.pay.toLocaleString() + '</span></div>';
     html += '<div class="detail-row"><span class="dl">来客</span><span class="dv">' + d.count + '組　' + d.people + '名</span></div>';
     html += '</div></div>';
   });
-  html += '<div class="cut-total-box"><div class="cut-total-label">月間切り捨て合計</div><div class="cut-total-value">¥' + totalCut.toLocaleString() + '</div></div>';
+  html += '<div class="cut-total-box"><div class="cut-total-label">月間 硬貨分（別口入金）合計</div><div class="cut-total-value">¥' + totalCut.toLocaleString() + '</div></div>';
   html += '</div>';
 
   document.getElementById('mainContent').innerHTML = html;
@@ -514,7 +514,7 @@ function printBank() {
       '<td style="text-align:right;color:#1a7a5a;font-weight:700">¥' + mFloor.toLocaleString() + '</td>' +
       '<td style="text-align:right">¥' + d.cashEvening.toLocaleString() + '</td>' +
       '<td style="text-align:right;color:#1a7a5a;font-weight:700">¥' + eFloor.toLocaleString() + '</td>' +
-      '<td style="text-align:right;color:#c00">-¥' + cut.toLocaleString() + '</td>' +
+      '<td style="text-align:right">¥' + cut.toLocaleString() + '</td>' +
       '</tr>';
   }).join('');
 
@@ -548,7 +548,7 @@ function printBank() {
       <th style="text-align:right">入金額</th>
       <th style="text-align:right">15時〜現金</th>
       <th style="text-align:right">入金額</th>
-      <th style="text-align:right">切捨</th>
+      <th style="text-align:right">硬貨分<br>（別口入金）</th>
     </tr></thead>
     <tbody>${rows}
       <tr class="total-row">
@@ -557,14 +557,15 @@ function printBank() {
         <td style="text-align:right;color:#1a7a5a">¥${totalMorning.toLocaleString()}</td>
         <td style="text-align:right">-</td>
         <td style="text-align:right;color:#1a7a5a">¥${totalEvening.toLocaleString()}</td>
-        <td style="text-align:right;color:#c00">-¥${totalCut.toLocaleString()}</td>
+        <td style="text-align:right">¥${totalCut.toLocaleString()}</td>
       </tr>
     </tbody>
   </table>
   <div class="cut-box">
-    <div class="cut-label">月間切り捨て合計</div>
+    <div class="cut-label">月間 硬貨分（別口入金）合計</div>
     <div class="cut-value">¥${totalCut.toLocaleString()}</div>
   </div>
+  <div style="font-size:9px;line-height:1.6;margin-top:6px;">※ 現金売上のうち千円未満の硬貨分は、紙幣とは別に保管し、まとめて別口で銀行に入金しています（売上から除いたものではありません）。</div>
 </body></html>`);
   w.document.close();
   setTimeout(() => w.print(), 400);

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ペイペイ決済失敗報告</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 14px; background: #0d0905; color: #f0e6d0;
+    font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .top h1 { font-size: 20px; margin: 0; color: #c9952a; }
+  .btn-back { padding: 10px 16px; background: #c9952a; border: none; border-radius: 8px; color: #0d0905; font-size: 15px; font-weight: 900; cursor: pointer; text-decoration: none; }
+  .card { background: #1a1008; border: 1px solid #3d2c14; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+  .card h2 { font-size: 16px; color: #c9952a; margin: 0 0 10px; }
+  label { display: block; font-size: 13px; color: #b8a080; margin: 10px 0 4px; }
+  input, select, textarea {
+    width: 100%; background: #0d0905; border: 1px solid #5a4020; border-radius: 8px;
+    color: #f0e6d0; font-size: 17px; padding: 10px; font-family: inherit;
+  }
+  textarea { min-height: 110px; resize: vertical; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .calc { background: #0a120a; border: 1px solid #2a5a2a; border-radius: 10px; padding: 12px; margin-top: 12px; }
+  .calc .line { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 6px 0; }
+  .calc .line span:first-child { font-size: 14px; color: #a0c0a0; }
+  .calc input { width: 55%; text-align: right; font-weight: 700; }
+  .calc .result { font-size: 22px; font-weight: 900; color: #ff8888; }
+  .hint { font-size: 12px; color: #8a7050; margin-top: 4px; line-height: 1.5; }
+  .fixed { padding: 10px; background: #2a1a0d; border: 1px solid #8a4a1a; border-radius: 8px; font-weight: 700; color: #f0c080; }
+  .btn-main { width: 100%; padding: 16px; margin-top: 14px; background: #1a3a1a; border: 2px solid #4aaa5a; border-radius: 12px; color: #6ada7a; font-size: 18px; font-weight: 900; cursor: pointer; }
+  .btn-sub { width: 100%; padding: 12px; margin-top: 8px; background: transparent; border: 1px solid #5a4020; border-radius: 10px; color: #b8a080; font-size: 15px; cursor: pointer; }
+  .item { border-top: 1px solid #3d2c14; padding: 10px 0; }
+  .item:first-child { border-top: none; }
+  .item .t { font-size: 15px; font-weight: 700; }
+  .item .s { font-size: 13px; color: #b8a080; margin-top: 2px; }
+  .item .acts { display: flex; gap: 8px; margin-top: 8px; }
+  .item .acts button { flex: 1; padding: 10px; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .a-print { background: #c9952a; border: none; color: #0d0905; }
+  .a-edit { background: transparent; border: 1px solid #5a4020; color: #b8a080; }
+  .empty { color: #8a7050; font-size: 14px; }
+  #printArea { display: none; }
+
+  @media print {
+    @page { size: A4 portrait; margin: 14mm; }
+    body { background: #fff; color: #000; padding: 0; }
+    #app { display: none !important; }
+    #printArea { display: block !important; }
+  }
+  .doc { font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif; color: #000; font-size: 12pt; }
+  .doc h1 { text-align: center; font-size: 20pt; letter-spacing: 0.3em; margin: 0 0 4mm; }
+  .doc .meta { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 6mm; font-size: 10.5pt; line-height: 1.6; }
+  .doc table { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
+  .doc th, .doc td { border: 1px solid #000; padding: 2.5mm 3mm; vertical-align: top; }
+  .doc th { width: 34%; background: #eee; text-align: left; font-weight: 700; }
+  .doc td.num { text-align: right; font-weight: 700; }
+  .doc .sec { font-weight: 700; margin: 4mm 0 2mm; }
+  .doc .keii { min-height: 30mm; white-space: pre-wrap; }
+  .doc .note { font-size: 9.5pt; line-height: 1.6; border-top: 1px solid #000; padding-top: 3mm; margin-top: 6mm; }
+  .doc .stamp { display: flex; justify-content: flex-end; gap: 0; margin-top: 6mm; }
+  .doc .stamp div { width: 24mm; height: 24mm; border: 1px solid #000; text-align: center; font-size: 9pt; padding-top: 1mm; }
+  .doc .stamp div + div { border-left: none; }
+  @media print { .doc th { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top">
+    <h1>ペイペイ決済失敗報告</h1>
+    <button class="btn-back" onclick="if(history.length>1){history.back();}else{window.close();}">← 戻る</button>
+  </div>
+
+  <div class="card">
+    <h2 id="formTitle">新しく報告する</h2>
+    <div class="row2">
+      <div><label>発生した日</label><input type="date" id="f_date" onchange="loadPaycas()"></div>
+      <div><label>時刻（時・分）</label><input type="time" id="f_time"></div>
+    </div>
+    <label>ペイペイ上の取引番号</label>
+    <input type="text" id="f_txn" inputmode="numeric" placeholder="ペイペイの取引番号">
+    <div class="row2">
+      <div>
+        <label>決済手段</label>
+        <select id="f_type">
+          <option>PayPay（QR）</option>
+          <option>クレジットカード</option>
+          <option>交通系IC</option>
+          <option>その他QR</option>
+          <option>その他</option>
+        </select>
+      </div>
+      <div>
+        <label>テーブル</label>
+        <select id="f_table"></select>
+      </div>
+    </div>
+    <div class="row2">
+      <div><label>金額（円）</label><input type="number" id="f_amount" inputmode="numeric" placeholder="0"></div>
+      <div><label>担当キャッシャー</label><input type="text" id="f_cashier" placeholder="名前"></div>
+    </div>
+    <label>発生の経緯</label>
+    <textarea id="f_keii" placeholder="例：お客様がペイペイで支払い、端末に金額を入力したが、決済が完了しないまま会計を終えてしまった。後日ペイペイの一覧で失敗に気づいた。"></textarea>
+    <label>会計処理</label>
+    <div class="fixed">未収金計上</div>
+
+    <div class="calc">
+      <div class="line"><span>① その日のペイキャス合計額</span><input type="number" id="f_paycas" inputmode="numeric" oninput="calcDiff()"></div>
+      <div class="hint" id="paycasHint">日付を選ぶとレジの記録から自動で入ります（手で直せます）</div>
+      <div class="line"><span>② その日のペイペイ決済合計額</span><input type="number" id="f_paypay" inputmode="numeric" placeholder="ペイペイの一覧から" oninput="calcDiff()"></div>
+      <div class="line"><span>③ 差引（①－②）</span><span class="result" id="diffView">---</span></div>
+    </div>
+
+    <label>メモ（印刷されません）</label>
+    <input type="text" id="f_memo">
+
+    <button class="btn-main" id="saveBtn" onclick="saveReport()">✅ 登録して印刷</button>
+    <button class="btn-sub" id="cancelBtn" style="display:none" onclick="resetForm()">編集をやめる</button>
+  </div>
+
+  <div class="card">
+    <h2>これまでの報告</h2>
+    <div class="row2" style="margin-bottom:6px;">
+      <input type="month" id="listMonth" onchange="loadList()">
+      <button class="btn-sub" style="margin:0" onclick="loadList()">🔄 更新</button>
+    </div>
+    <div id="list"><div class="empty">読み込み中...</div></div>
+    <div class="hint" style="margin-top:10px;">※ 報告は削除できません（税務用）。内容の修正は「直す」から。修正の記録は自動で残ります。<br>※ ペイペイ決済（失敗を含む）一覧など、決済失敗を証明する資料は山内家で保存してください。</div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+const SUPABASE_URL = "https://zxdgiszrsmumjjxmvszb.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4ZGdpc3pyc211bWpqeG12c3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODM2MTksImV4cCI6MjA5NTI1OTYxOX0.vNndS7JEzIUsa007EPO2zRoYhUr-z01LM32BKIhMSz4";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let editingId = null;
+let reports = [];
+
+const todayJST = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
+const yen = n => (n === null || n === undefined || n === '' || isNaN(n)) ? '---' : '¥' + Number(n).toLocaleString();
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const numOrNull = id => { const v = document.getElementById(id).value; return v === '' ? null : parseInt(v, 10); };
+
+function initTables() {
+  const sel = document.getElementById('f_table');
+  const opts = [];
+  for (let i = 1; i <= 15; i++) opts.push(String(i));
+  for (let c = 65; c <= 79; c++) opts.push(String.fromCharCode(c));
+  opts.push('持ち帰り', '物販', 'たばこ', 'その他');
+  sel.innerHTML = opts.map(o => `<option>${o}</option>`).join('');
+}
+
+async function loadPaycas() {
+  const d = document.getElementById('f_date').value;
+  const hint = document.getElementById('paycasHint');
+  if (!d) return;
+  hint.textContent = '読み込み中...';
+  const [{ data, error }, { data: rdata }] = await Promise.all([
+    sb.from('sales').select('amount,table_no').eq('sale_date', d).eq('pay_method', 'ペイキャス'),
+    sb.from('retail_sales').select('amount').eq('sale_date', d).eq('pay_method', 'ペイキャス'),
+  ]);
+  if (error) { hint.textContent = '読み込めませんでした。手で入力してください'; return; }
+  const total = (data || []).reduce((a, s) => a + s.amount, 0);
+  const adj = (data || []).filter(s => s.table_no === '調整').reduce((a, s) => a + s.amount, 0);
+  const rTotal = (rdata || []).reduce((a, s) => a + s.amount, 0);
+  if (!editingId) document.getElementById('f_paycas').value = total;
+  let t = `レジの記録：カトレア ペイキャス ${yen(total)}`;
+  if (adj) t += `（うち調整 ${adj > 0 ? '+' : ''}${yen(adj)}）`;
+  if (rTotal) t += ` ／ 参考：物販(ライジンブリス) ペイキャス ${yen(rTotal)}は含みません`;
+  hint.textContent = t;
+  calcDiff();
+}
+
+function calcDiff() {
+  const a = numOrNull('f_paycas'), b = numOrNull('f_paypay');
+  document.getElementById('diffView').textContent = (a === null || b === null) ? '---' : yen(a - b);
+}
+
+function readForm() {
+  return {
+    fail_date: document.getElementById('f_date').value,
+    fail_time: document.getElementById('f_time').value || null,
+    paypay_txn_no: document.getElementById('f_txn').value.trim() || null,
+    pay_type: document.getElementById('f_type').value,
+    table_no: document.getElementById('f_table').value,
+    amount: numOrNull('f_amount') ?? 0,
+    cashier: document.getElementById('f_cashier').value.trim() || null,
+    circumstances: document.getElementById('f_keii').value.trim() || null,
+    paycas_total: numOrNull('f_paycas'),
+    paypay_total: numOrNull('f_paypay'),
+    memo: document.getElementById('f_memo').value.trim() || null,
+  };
+}
+
+async function saveReport() {
+  const r = readForm();
+  if (!r.fail_date) { alert('発生した日を入れてください'); return; }
+  if (!r.amount) { alert('金額を入れてください'); return; }
+  if (!r.circumstances) { alert('発生の経緯を書いてください'); return; }
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = '登録中...';
+  const q = editingId
+    ? sb.from('paypay_failures').update(r).eq('id', editingId).select().single()
+    : sb.from('paypay_failures').insert(r).select().single();
+  const { data, error } = await q;
+  btn.disabled = false; btn.textContent = editingId ? '✅ 直して印刷' : '✅ 登録して印刷';
+  if (error) { alert('登録できませんでした：' + error.message); return; }
+  resetForm();
+  await loadList();
+  printReport(data);
+}
+
+function resetForm() {
+  editingId = null;
+  ['f_time','f_txn','f_amount','f_cashier','f_keii','f_paypay','f_memo'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f_type').selectedIndex = 0;
+  document.getElementById('f_table').selectedIndex = 0;
+  document.getElementById('f_date').value = todayJST();
+  document.getElementById('formTitle').textContent = '新しく報告する';
+  document.getElementById('saveBtn').textContent = '✅ 登録して印刷';
+  document.getElementById('cancelBtn').style.display = 'none';
+  loadPaycas();
+}
+
+function editReport(id) {
+  const r = reports.find(x => x.id === id);
+  if (!r) return;
+  editingId = id;
+  document.getElementById('f_date').value = r.fail_date;
+  document.getElementById('f_time').value = r.fail_time || '';
+  document.getElementById('f_txn').value = r.paypay_txn_no || '';
+  document.getElementById('f_type').value = r.pay_type || 'PayPay（QR）';
+  document.getElementById('f_table').value = r.table_no || '1';
+  document.getElementById('f_amount').value = r.amount ?? '';
+  document.getElementById('f_cashier').value = r.cashier || '';
+  document.getElementById('f_keii').value = r.circumstances || '';
+  document.getElementById('f_paycas').value = r.paycas_total ?? '';
+  document.getElementById('f_paypay').value = r.paypay_total ?? '';
+  document.getElementById('f_memo').value = r.memo || '';
+  document.getElementById('formTitle').textContent = `報告No.${r.id} を直す`;
+  document.getElementById('saveBtn').textContent = '✅ 直して印刷';
+  document.getElementById('cancelBtn').style.display = 'block';
+  loadPaycas();
+  calcDiff();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function loadList() {
+  const m = document.getElementById('listMonth').value;
+  const box = document.getElementById('list');
+  if (!m) return;
+  const [y, mo] = m.split('-').map(Number);
+  const start = `${m}-01`;
+  const end = new Date(Date.UTC(y, mo, 1)).toISOString().slice(0, 10);
+  const { data, error } = await sb.from('paypay_failures').select('*')
+    .gte('fail_date', start).lt('fail_date', end)
+    .order('fail_date', { ascending: false }).order('id', { ascending: false });
+  if (error) { box.innerHTML = '<div class="empty">読み込めませんでした</div>'; return; }
+  reports = data || [];
+  if (!reports.length) { box.innerHTML = '<div class="empty">この月の報告はありません</div>'; return; }
+  box.innerHTML = reports.map(r => `
+    <div class="item">
+      <div class="t">${esc(fmtDate(r.fail_date))} ${esc(r.fail_time || '')}　${yen(r.amount)}</div>
+      <div class="s">No.${r.id}　テーブル ${esc(r.table_no || '-')}　${esc(r.pay_type || '')}　担当 ${esc(r.cashier || '-')}</div>
+      <div class="acts">
+        <button class="a-print" onclick="printById(${r.id})">🖨 印刷</button>
+        <button class="a-edit" onclick="editReport(${r.id})">直す</button>
+      </div>
+    </div>`).join('');
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  const [y, m, dd] = d.split('-').map(Number);
+  const w = '日月火水木金土'[new Date(y, m - 1, dd).getDay()];
+  return `${y}年${m}月${dd}日（${w}）`;
+}
+
+function printById(id) {
+  const r = reports.find(x => x.id === id);
+  if (r) printReport(r);
+}
+
+function printReport(r) {
+  const diff = (r.paycas_total !== null && r.paypay_total !== null) ? r.paycas_total - r.paypay_total : null;
+  const [hh, mm] = (r.fail_time || '').split(':');
+  const timeTxt = r.fail_time ? `${parseInt(hh, 10)}時${mm}分` : '';
+  const now = new Date();
+  const made = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+  document.getElementById('printArea').innerHTML = `
+  <div class="doc">
+    <h1>ペイペイ決済失敗報告書</h1>
+    <div class="meta">
+      <div>報告No.${r.id}<br>作成日：${made}</div>
+      <div style="text-align:right;">ラウンジ カトレア<br>株式会社エー・ワイ・シー<br>東京都港区新橋2丁目16-1-3階<br>03-3504-2200</div>
+    </div>
+    <div class="sec">1．発生内容</div>
+    <table>
+      <tr><th>発生した日・時・分</th><td>${esc(fmtDate(r.fail_date))}　${esc(timeTxt)}</td></tr>
+      <tr><th>ペイペイ上の取引番号</th><td>${esc(r.paypay_txn_no || '')}</td></tr>
+      <tr><th>決済手段</th><td>${esc(r.pay_type || '')}</td></tr>
+      <tr><th>テーブル番号</th><td>${esc(r.table_no || '')}</td></tr>
+      <tr><th>金額</th><td class="num">${yen(r.amount)}</td></tr>
+      <tr><th>担当のキャッシャー</th><td>${esc(r.cashier || '')}</td></tr>
+      <tr><th>発生の経緯</th><td class="keii">${esc(r.circumstances || '')}</td></tr>
+      <tr><th>会計処理</th><td>未収金計上</td></tr>
+    </table>
+    <div class="sec">2．当日の決済額</div>
+    <table>
+      <tr><th>① その日のペイキャス合計額</th><td class="num">${yen(r.paycas_total)}</td></tr>
+      <tr><th>② その日のペイペイ決済合計額</th><td class="num">${yen(r.paypay_total)}</td></tr>
+      <tr><th>③ 差引（①－②）</th><td class="num">${yen(diff)}</td></tr>
+    </table>
+    <div class="stamp"><div>確認</div><div>担当</div></div>
+    <div class="note">
+      ※ ペイペイ決済（決済失敗を含む）一覧など、決済失敗を証明する資料は山内家にて保存しています。<br>
+      ※ ①はカトレア（株式会社エー・ワイ・シー）のレジ記録によるペイキャス決済額です。
+    </div>
+  </div>`;
+  setTimeout(() => window.print(), 300);
+}
+
+initTables();
+document.getElementById('f_date').value = todayJST();
+document.getElementById('listMonth').value = todayJST().slice(0, 7);
+loadPaycas();
+loadList();
+</script>
+</body>
+</html>
