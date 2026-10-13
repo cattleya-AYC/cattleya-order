@@ -177,6 +177,20 @@ function shiftFor(shifts, staffId, dk){
 const toMin = hhmm => { const [h,m] = hhmm.split(":").map(Number); return h*60+m; };
 const minOfDay = d => d.getHours()*60 + d.getMinutes();
 
+// 2026/10/1〜 シフトがある日：シフト開始より前に来たらシフト開始から、遅刻したら打刻の時刻（1分単位）から
+// シフトがない日・休みの日：今まで通り（30分単位で切り上げ、開始時刻より前は開始時刻）
+// ※ 給与（経営者）・給与明細（全員分）の calcIn と同じルール
+export const SHIFT_RULE_FROM = "2026-10-01";
+function payrollCalcIn(fi, shift, staffId, dk){
+  if (dk >= SHIFT_RULE_FROM && shift && !shift.off && shift.start) {
+    const s = toMin(shift.start), p = minOfDay(fi);
+    const use = p <= s ? s : p;
+    const x = new Date(fi); x.setHours(Math.floor(use/60), use%60, 0, 0);
+    return x;
+  }
+  return payrollRoundIn(fi, payrollStartFloor(staffId, dk));
+}
+
 // 1か月分を計算：給与の行（rows）と、出勤簿の日ごとのデータ（attendance）
 // year: 数値(例2026) / month: 1〜12
 export async function getPayrollMonth(year, month){
@@ -199,7 +213,7 @@ export async function getPayrollMonth(year, month){
     for (let d = 1; d <= lastDay; d++) {
       const dk = _dk(year, month, d);
       const sh = shiftFor(shifts, s.id, dk);
-      if (sh && !sh.off) dks.add(dk);
+      if (sh && !sh.off && !isHoliday(dk)) dks.add(dk); // 祝日のシフトだけの日（打刻なし）は載せない
     }
     let totalMin = 0, workDays = 0, allowDays = 0, lateCount = 0, lateMin = 0;
     const dayList = [];
@@ -213,7 +227,7 @@ export async function getPayrollMonth(year, month){
       let brk = 0, mins = 0, gross = 0, calcIn = null, calcOut = null;
       if (fi && lo) {
         brk = payrollEffectiveBreak(settings, s.id, dk, set.brk);
-        calcIn = payrollRoundIn(fi, payrollStartFloor(s.id, dk));
+        calcIn = payrollCalcIn(fi, shift, s.id, dk);
         calcOut = payrollRoundOut(lo);
         gross = Math.max(0, Math.round((calcOut - calcIn)/60000));
         mins = Math.max(0, gross-brk);
@@ -229,7 +243,8 @@ export async function getPayrollMonth(year, month){
         dk, shift, fi, lo, calcIn, calcOut, brk, mins, gross, late,
         inOriginal:  inRec  && inRec.originalTime  ? new Date(inRec.originalTime)  : null,
         outOriginal: outRec && outRec.originalTime ? new Date(outRec.originalTime) : null,
-        inManual: !!(inRec && inRec.manual), outManual: !!(outRec && outRec.manual)
+        inManual: !!(inRec && inRec.manual), outManual: !!(outRec && outRec.manual),
+        voided: !!(fi && lo && minOfDay(fi) === minOfDay(lo)) // 出勤と退勤が同じ時刻＝誤打刻を0時間にしたもの
       });
     });
     const totalHours = totalMin/60;

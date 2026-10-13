@@ -1403,7 +1403,7 @@ async function printAttendanceMonth() {
     const hm = d => d ? String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') : '';
     const dur = m => Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0');
     const rule = `<p class="rule">※ 打刻は修正後の時刻（修正した日は元の打刻を併記）。シフトはシフト作成アプリの登録内容。遅刻＝出勤の打刻がシフト開始より遅い分。<br>
-    ※ 計算の時刻は現在の給与計算のルール：出勤は30分単位で切り上げ（開始時刻より前は開始時刻。ふだん9:00、2026/10/13〜月曜の店長・火〜金のチーフは8:30）、退勤は20時までは30分・20時以降は15分単位で切り捨て。</p>`;
+    ※ 計算の時刻（給与計算のルール）：出勤は、シフトがある日（2026/10/1〜）はシフト開始より前ならシフト開始から・遅刻は打刻の時刻（1分単位）から。シフトがない日は30分単位で切り上げ（ふだん9:00、2026/10/13〜月曜の店長・火〜金のチーフは8:30より前はその時刻から）。退勤は20時までは30分・20時以降は15分単位で切り捨て。祝日でシフトだけ入っていて打刻がない日は載せていません。</p>`;
     const sheets = attendance.map(st => {
       const body = st.days.map(x => {
         const dt = new Date(x.dk + 'T00:00:00');
@@ -1413,7 +1413,8 @@ async function printAttendanceMonth() {
         if (!x.shift) { shiftTxt = '—'; if (x.fi || x.lo) notes.push('シフトなし'); }
         else if (x.shift.off) { shiftTxt = '休み'; if (x.fi || x.lo) notes.push('休みの日に出勤'); }
         else shiftTxt = `${x.shift.start}〜${x.shift.end}`;
-        if (!x.fi && !x.lo) notes.push('打刻なし');
+        if (x.voided) notes.push('誤打刻（0時間）');
+        else if (!x.fi && !x.lo) notes.push('打刻なし');
         else if (x.fi && !x.lo) notes.push('退勤の打刻なし');
         else if (!x.fi && x.lo) notes.push('出勤の打刻なし');
         if (x.late > 0) notes.push(`<b>遅刻${x.late}分</b>`);
