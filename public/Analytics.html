@@ -821,7 +821,7 @@ async function printTaxSummary() {
     <p style="font-size:11px;color:#777;">※各取引ごとに端数処理してから合計しています（レシート印字時と同じ計算方法）</p>
   </body></html>`;
 
-  openPrint(html, `カトレア_消費税_${ym}`);
+  openPrint(html, `${ym}_カトレア_消費税`);
 }
 
 async function loadCouponSummary() {
@@ -1050,7 +1050,7 @@ async function printPaycasMonthly() {
     </table>
   </body></html>`;
 
-  openPrint(html, `カトレア_ペイキャス差額_${ym}`);
+  openPrint(html, `${ym}_カトレア_ペイキャス差額`);
 }
 
 function calcDiff() {
@@ -1312,7 +1312,7 @@ function openPrint(html, fileName) {
 }
 
 function printVisit() {
-  openPrint(visitListHtml(`来店者一覧　${(selectedDate || '').replace(/-/g, '/')}`, salesData, orderItemsData, tobaccoData), `カトレア_個別取引_${selectedDate}`);
+  openPrint(visitListHtml(`来店者一覧　${(selectedDate || '').replace(/-/g, '/')}`, salesData, orderItemsData, tobaccoData), `${selectedDate}_カトレア_来店者一覧`);
 }
 
 async function fetchMonthForVisit() {
@@ -1328,7 +1328,7 @@ async function printVisitMonth() {
   btn.disabled = true; btn.textContent = '⏳ 作成中...（少し時間がかかります）';
   try {
     const { sales, items, tobacco } = await fetchMonthForVisit();
-    openPrint(visitListHtml(`来店者一覧　${year}年${parseInt(month)}月`, sales, items, tobacco), `カトレア_個別取引_${year}-${month}`);
+    openPrint(visitListHtml(`来店者一覧　${year}年${parseInt(month)}月`, sales, items, tobacco), `${year}-${month}_カトレア_来店者一覧`);
   } catch (e) { alert('作成に失敗しました：' + (e.message || e)); }
   btn.disabled = false; btn.textContent = `📄 ${parseInt(month)}月の来店者一覧 PDF印刷（1日1ページ）`;
 }
@@ -1383,7 +1383,7 @@ async function printPayrollMonth() {
         <div><div class="l">所得税（預り金）</div><div class="v">${y(t('incomeTax'))}</div></div></div>
       <p class="note">※ タイムカードの打刻（修正後）から計算。出勤は30分単位で切り上げ（9:00前は9:00）、退勤は20時までは30分・20時以降は15分単位で切り捨て、休憩を差し引いています。<br>※ 個人別の給与明細と同じ計算です。支給額0円のスタッフは載せていません。</p>
     </body></html>`;
-    openPrint(html, `カトレア_${year}年${String(parseInt(month)).padStart(2, '0')}月_人件費`);
+    openPrint(html, `${year}-${String(parseInt(month)).padStart(2, '0')}_カトレア_人件費`);
   } catch (e) {
     alert('作成に失敗しました：' + (e.message || e));
     resetBtn();
@@ -1455,7 +1455,7 @@ async function printAttendanceMonth() {
       .rule{font-size:8.5px;line-height:1.5;margin-top:6px;color:#333}
       @media print{ html{ -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     </style></head><body>${sheets}</body></html>`;
-    openPrint(html, `カトレア_${year}年${String(parseInt(month)).padStart(2, '0')}月_出勤簿`);
+    openPrint(html, `${year}-${String(parseInt(month)).padStart(2, '0')}_カトレア_出勤簿`);
   } catch (e) {
     alert('作成に失敗しました：' + (e.message || e));
     btn.disabled = false; btn.textContent = label;
@@ -1468,7 +1468,7 @@ async function printBankMonth() {
   btn.disabled = true; btn.textContent = '⏳ 作成中...';
   try {
     const sales = await fetchAll('sales', q => q.gte('sale_date', startDate).lte('sale_date', endDate));
-    openPrint(bankListHtml(year, month, sales), `カトレア_${year}年${String(parseInt(month)).padStart(2, '0')}月_銀行入金額`);
+    openPrint(bankListHtml(year, month, sales), `${year}-${String(parseInt(month)).padStart(2, '0')}_カトレア_銀行入金額`);
   } catch (e) {
     alert('作成に失敗しました：' + (e.message || e));
     btn.disabled = false; btn.textContent = `🏦 ${parseInt(month)}月の銀行入金額 PDF印刷`;
@@ -1727,7 +1727,7 @@ function printClosing() {
     <h3>取消（赤伝）一覧</h3>
     ${voidRows ? `<table><tr><th>日付</th><th>対象</th><th>金額</th><th>理由</th></tr>${voidRows}</table>` : '<p>この月の取消はありません</p>'}
   </body></html>`;
-  openPrint(html, `カトレア_売上表_${closingCache.ym}`);
+  openPrint(html, `${closingCache.ym}_カトレア_確定売上`);
 }
 
 function toCsv(rows) {
@@ -1762,7 +1762,7 @@ function bankListHtml(year, month, sales) {
     tM += mF; tE += eF; tC += coin;
     return `<tr><td>${parseInt(date.split('-')[2])}日</td><td>${y(d.cashMorning)}</td><td class="dep">${y(mF)}</td><td>${y(d.cashEvening)}</td><td class="dep">${y(eF)}</td><td>${y(coin)}</td></tr>`;
   }).join('');
-  const title = `カトレア_${year}年${String(m).padStart(2, '0')}月_銀行入金額`;
+  const title = `${year}-${String(m).padStart(2, '0')}_カトレア_銀行入金額`;
   return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>${title}</title>
 <style>
   @page { size: A4 portrait; margin: 10mm; }
@@ -1853,7 +1853,7 @@ CSVはUTF-8（BOM付き）です。Excelでそのまま開けます。
     const blob = await zip.generateAsync({ type: 'blob' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `cattleya_backup_${ym}.zip`;
+    a.download = `${ym}_カトレア_バックアップ.zip`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 60000);
     btn.textContent = `✅ ダウンロードしました（売上${sales.length}行・明細${items.length}行）`;
@@ -1983,7 +1983,7 @@ function printRetail() {
     <h3>販売の明細</h3>
     <table><tr><th>日時</th><th>番号</th><th>商品</th><th>支払</th><th>金額</th></tr>${detailRows || '<tr><td colspan="5">販売なし</td></tr>'}</table>
   </body></html>`;
-  openPrint(html, `ライジンブリス_物販売上_${ym}`);
+  openPrint(html, `${ym}_ライジンブリス_物販売上`);
 }
 
 // ---- 現金チェック記録（Cash.htmlから移設） ----
@@ -2115,7 +2115,7 @@ function printCashCheck() {
     </table>
   </body></html>`;
 
-  openPrint(html, `カトレア_現金チェック_${today}`);
+  openPrint(html, `${today}_カトレア_現金チェック`);
 }
 
 loadAll();

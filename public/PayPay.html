@@ -259,8 +259,7 @@ function setType(v) {
   sel.value = v;
 }
 function csvFileFor(r) {
-  const [y, m, d] = r.fail_date.split('-').map(Number);
-  const name = `ペイキャス取引_${y}年${m}月${d}日.csv`;
+  const name = `${r.fail_date}_ペイキャス取引一覧.csv`;
   return new File(['\ufeff' + r.paycas_csv], name, { type: 'text/csv' });
 }
 async function shareCsv(id) {
@@ -490,8 +489,8 @@ function printReport(r, mode) {
   // Safariの「PDFとして保存」はページ名がファイル名になる。
   // iPhoneは印刷画面を開いている間もページが動き続けるので、名前は元に戻さない
   // （戻すと、保存する時点で「ペイペイ決済失敗報告」になってしまう）
-  const [fy, fm, fd] = r.fail_date.split('-').map(Number);
-  document.title = mode === 'csv' ? `ペイキャス取引一覧_${fy}年${fm}月${fd}日` : `ペイキャス決済失敗_${fy}年${fm}月${fd}日発生`;
+  // 日付を先頭に（2026-07-23_…）。Googleドライブで名前順に並べると日付順になる
+  document.title = mode === 'csv' ? `${r.fail_date}_ペイキャス取引一覧` : `${r.fail_date}_ペイキャス決済失敗`;
   setTimeout(() => { window.print(); }, 300);
 }
 

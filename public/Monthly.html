@@ -387,7 +387,7 @@ function printBank() {
   const w = window.open('', '_blank');
   if(!w){ alert('ポップアップがブロックされました。設定を確認してください。'); return; }
   w.document.write(`<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
-<title>カトレア_${year}年${String(month).padStart(2,'0')}月_銀行入金額</title>
+<title>${year}-${String(month).padStart(2,'0')}_カトレア_銀行入金額</title>
 <style>
   @page { size: A4 portrait; margin: 10mm; }
   body { font-family: 'Hiragino Mincho ProN', serif; font-size: 10px; color: #000; }
@@ -492,7 +492,7 @@ function printA4() {
 
   const w = window.open('', '_blank');
   if(!w){ alert('ポップアップがブロックされました。設定を確認してください。'); return; }
-  w.document.write('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>カトレア_' + year + '年' + String(month).padStart(2,'0') + '月_月次集計</title><style>@page{size:A4 portrait;margin:12mm}body{font-family:"Hiragino Mincho ProN",serif;font-size:' + bodyFs + '}h2{font-size:16px;text-align:center;margin-bottom:2px}.sub{text-align:center;font-size:10px;color:#555;margin-bottom:8px}.summary{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}.si{flex:1;min-width:70px;background:#f9f9f9;border:1px solid #ddd;border-radius:6px;padding:' + summaryPad + ';text-align:center}.sl{font-size:8px;color:#666;margin-bottom:1px}.sv{font-size:12px;font-weight:900}table{width:100%;border-collapse:collapse}th{background:#222;color:#fff;padding:4px 6px;font-size:9px;text-align:right}th:first-child{text-align:left}td{padding:' + tdPad + ';border-bottom:1px solid #eee;font-size:' + tdFs + '}td:first-child{text-align:left}.tr td{background:#f0f0f0;font-weight:900;border-top:2px solid #999}' + closeBarStyle() + '@media print{ html{ -webkit-print-color-adjust: exact; print-color-adjust: exact; filter: grayscale(100%); } }</style></head><body>');
+  w.document.write('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>' + year + '-' + String(month).padStart(2,'0') + '_カトレア_月次集計</title><style>@page{size:A4 portrait;margin:12mm}body{font-family:"Hiragino Mincho ProN",serif;font-size:' + bodyFs + '}h2{font-size:16px;text-align:center;margin-bottom:2px}.sub{text-align:center;font-size:10px;color:#555;margin-bottom:8px}.summary{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}.si{flex:1;min-width:70px;background:#f9f9f9;border:1px solid #ddd;border-radius:6px;padding:' + summaryPad + ';text-align:center}.sl{font-size:8px;color:#666;margin-bottom:1px}.sv{font-size:12px;font-weight:900}table{width:100%;border-collapse:collapse}th{background:#222;color:#fff;padding:4px 6px;font-size:9px;text-align:right}th:first-child{text-align:left}td{padding:' + tdPad + ';border-bottom:1px solid #eee;font-size:' + tdFs + '}td:first-child{text-align:left}.tr td{background:#f0f0f0;font-weight:900;border-top:2px solid #999}' + closeBarStyle() + '@media print{ html{ -webkit-print-color-adjust: exact; print-color-adjust: exact; filter: grayscale(100%); } }</style></head><body>');
   w.document.write(closeBarHtml());
   w.document.write('<h2>Lounge Cattleya　' + year + '年' + month + '月　月次集計</h2>');
   w.document.write('<div class="sub">出力日：' + new Date().toLocaleString('ja-JP') + '</div>');
