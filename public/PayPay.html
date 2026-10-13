@@ -60,16 +60,20 @@
   .doc h1 { text-align: center; font-size: 17pt; letter-spacing: 0.3em; margin: 0 0 3mm; }
   .doc .meta { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4mm; font-size: 9.5pt; line-height: 1.5; }
   .doc table { width: 100%; border-collapse: collapse; margin-bottom: 3mm; page-break-inside: avoid; }
-  .doc th, .doc td { border: 1px solid #000; padding: 1.6mm 2.5mm; vertical-align: top; line-height: 1.5; }
+  .doc th, .doc td { border: 1px solid #000; padding: 1.3mm 2.5mm; vertical-align: top; line-height: 1.45; }
   .doc th { width: 34%; background: #eee; text-align: left; font-weight: 700; }
   .doc td.num { text-align: right; font-weight: 700; }
   .doc .sec { font-weight: 700; margin: 3mm 0 1.5mm; }
   .doc .keii { white-space: pre-wrap; }
   .doc .note { font-size: 8.5pt; line-height: 1.5; border-top: 1px solid #000; padding-top: 2mm; margin-top: 4mm; }
   .doc .stamp { display: flex; justify-content: flex-end; gap: 0; margin-top: 3mm; }
-  .doc .stamp div { width: 20mm; height: 20mm; border: 1px solid #000; text-align: center; font-size: 8.5pt; padding-top: 1mm; }
+  .doc .stamp div { width: 18mm; height: 18mm; border: 1px solid #000; text-align: center; font-size: 8.5pt; padding-top: 1mm; }
   .doc .stamp div + div { border-left: none; }
-  .att { page-break-before: always; break-before: page; font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif; color: #000; }
+  .doc .stamp svg { display: block; margin: 0.5mm auto 0; width: 12mm; height: 12mm; }
+  @media print { .doc .stamp svg { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  .page1 { display: block; }
+  .page1.brk { page-break-after: always; break-after: page; }
+  .att { display: block; font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif; color: #000; }
   .att h2 { font-size: 13pt; text-align: center; margin: 0 0 1mm; }
   .att .sub { text-align: center; font-size: 8.5pt; margin-bottom: 3mm; }
   .att table { width: 100%; border-collapse: collapse; font-size: 8pt; }
@@ -423,7 +427,7 @@ async function loadList() {
       <div class="s">テーブル ${esc(r.table_no || '-')}　${esc(r.pay_type || '')}　担当 ${esc(r.cashier || '-')}　${r.paycas_csv ? '📎CSVあり' : 'CSVなし'}</div>
       <div class="acts">
         <button class="a-print" onclick="printById(${r.id})">🖨 印刷</button>
-        ${r.paycas_csv ? `<button class="a-share" onclick="shareCsv(${r.id})">📤 CSV</button>` : ''}
+        ${r.paycas_csv ? `<button class="a-share" onclick="printById(${r.id}, 'csv')">🖨 一覧だけ</button><button class="a-share" onclick="shareCsv(${r.id})">📤 CSV</button>` : ''}
         <button class="a-edit" onclick="editReport(${r.id})">直す</button>
       </div>
     </div>`).join('');
@@ -436,19 +440,20 @@ function fmtDate(d) {
   return `${y}年${m}月${dd}日（${w}）`;
 }
 
-function printById(id) {
+function printById(id, mode) {
   const r = reports.find(x => x.id === id);
-  if (r) printReport(r);
+  if (r) printReport(r, mode);
 }
 
-function printReport(r) {
+function printReport(r, mode) {
+  const withCsv = !!r.paycas_csv && mode !== 'report';
   const diff = (r.paycas_total !== null && r.paypay_total !== null) ? r.paycas_total - r.paypay_total : null;
   const [hh, mm] = (r.fail_time || '').split(':');
   const timeTxt = r.fail_time ? `${parseInt(hh, 10)}時${mm}分` : '';
   const now = new Date();
   const made = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
-  document.getElementById('printArea').innerHTML = `
-  <div class="doc">
+  const reportHtml = `
+  <div class="doc page1${withCsv ? ' brk' : ''}">
     <h1>ペイペイ決済失敗報告書</h1>
     <div class="meta">
       <div>作成日：${made}</div>
@@ -471,16 +476,18 @@ function printReport(r) {
       <tr><th>② その日のペイペイ決済合計額</th><td class="num">${yen(r.paypay_total)}</td></tr>
       <tr><th>③ 差引（①－②）</th><td class="num">${yen(diff)}</td></tr>
     </table>
-    <div class="stamp"><div>確認</div><div>担当</div></div>
+    <div class="stamp"><div>確認</div><div>担当<svg viewBox="0 0 100 100" aria-label="西中印"><circle cx="50" cy="50" r="45" fill="none" stroke="#d0201a" stroke-width="5"/><text x="50" y="45" text-anchor="middle" font-size="34" font-weight="700" fill="#d0201a" font-family="'Hiragino Mincho ProN','Yu Mincho',serif">西</text><text x="50" y="80" text-anchor="middle" font-size="34" font-weight="700" fill="#d0201a" font-family="'Hiragino Mincho ProN','Yu Mincho',serif">中</text></svg></div></div>
     <div class="note">
-      ※ ペイペイ決済（決済失敗を含む）一覧など、決済失敗を証明する資料は山内家にて保存しています。${r.paycas_csv ? '（ペイキャス取引一覧を次のページに添付）' : ''}<br>
+      ※ ペイペイ決済（決済失敗を含む）一覧など、決済失敗を証明する資料は山内家にて保存しています。${withCsv ? '（ペイキャス取引一覧を次のページに添付）' : ''}<br>
       ※ ①はカトレア（株式会社エー・ワイ・シー）のレジ記録によるペイキャス決済額です。
     </div>
-  </div>${r.paycas_csv ? csvAttachHtml(r) : ''}`;
+  </div>`;
+  document.getElementById('printArea').innerHTML =
+    mode === 'csv' ? csvAttachHtml(r) : reportHtml + (withCsv ? csvAttachHtml(r) : '');
   // Safariの「PDFとして保存」はページ名がファイル名になる
   const oldTitle = document.title;
   const [fy, fm, fd] = r.fail_date.split('-').map(Number);
-  document.title = `ペイキャス決済失敗_${fy}年${fm}月${fd}日発生`;
+  document.title = mode === 'csv' ? `ペイキャス取引一覧_${fy}年${fm}月${fd}日` : `ペイキャス決済失敗_${fy}年${fm}月${fd}日発生`;
   setTimeout(() => {
     window.print();
     setTimeout(() => { document.title = oldTitle; }, 1000);
