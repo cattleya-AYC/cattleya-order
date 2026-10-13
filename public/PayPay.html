@@ -321,7 +321,13 @@ function printReport(r) {
       ※ ①はカトレア（株式会社エー・ワイ・シー）のレジ記録によるペイキャス決済額です。
     </div>
   </div>`;
-  setTimeout(() => window.print(), 300);
+  // Safariの「PDFとして保存」はページ名がファイル名になる
+  const oldTitle = document.title;
+  document.title = `カトレア_ペイペイ決済失敗報告書_${r.fail_date}_No${r.id}`;
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => { document.title = oldTitle; }, 1000);
+  }, 300);
 }
 
 initTables();

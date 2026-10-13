@@ -252,6 +252,7 @@
   <div class="tab" onclick="switchTab('coupon')" id="tab-coupon">🎟 クーポン</div>
   <div class="tab" onclick="switchTab('closing')" id="tab-closing">🔒 確定・履歴</div>
   <div class="tab" onclick="switchTab('retail')" id="tab-retail">🌵 物販(RB)</div>
+  <div class="tab" onclick="location.href='PayPay.html'" style="color:#ff8888;">⚠️ 決済失敗</div>
 </div>
 
 <div class="content" id="content-paycas">
@@ -1594,6 +1595,54 @@ function toCsv(rows) {
   return '\uFEFF' + [cols.join(','), ...rows.map(r => cols.map(c => cell(r[c])).join(','))].join('\r\n') + '\r\n';
 }
 
+// 銀行入金額一覧（Monthly.htmlの「銀行入金額」と同じ計算。ZIP用の印刷できるHTML）
+function bankListHtml(year, month, sales) {
+  const m = parseInt(month);
+  const byDate = {};
+  sales.forEach(s => {
+    const d = s.sale_date;
+    if (!byDate[d]) byDate[d] = { cashMorning: 0, cashEvening: 0 };
+    if (s.pay_method === '現金') {
+      if ((s.sale_time || '') < '15:00') byDate[d].cashMorning += s.amount;
+      else byDate[d].cashEvening += s.amount;
+    }
+  });
+  const y = n => '¥' + n.toLocaleString();
+  let tM = 0, tE = 0, tC = 0;
+  const rows = Object.entries(byDate).sort().map(([date, d]) => {
+    const mF = Math.floor(d.cashMorning / 1000) * 1000;
+    const eF = Math.floor(d.cashEvening / 1000) * 1000;
+    const coin = (d.cashMorning - mF) + (d.cashEvening - eF);
+    tM += mF; tE += eF; tC += coin;
+    return `<tr><td>${parseInt(date.split('-')[2])}日</td><td>${y(d.cashMorning)}</td><td class="dep">${y(mF)}</td><td>${y(d.cashEvening)}</td><td class="dep">${y(eF)}</td><td>${y(coin)}</td></tr>`;
+  }).join('');
+  const title = `カトレア_${year}年${String(m).padStart(2, '0')}月_銀行入金額`;
+  return `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>${title}</title>
+<style>
+  @page { size: A4 portrait; margin: 10mm; }
+  body { font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif; font-size: 10px; color: #000; }
+  h2 { font-size: 14px; text-align: center; margin-bottom: 2px; }
+  .sub { text-align: center; font-size: 9px; color: #555; margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+  th { background: #222; color: #fff; padding: 4px 6px; font-size: 9px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  td { padding: 3px 6px; border-bottom: 1px solid #ddd; font-size: 10px; text-align: right; }
+  td.dep { font-weight: 700; }
+  .total td { background: #f0f0f0; font-weight: 900; border-top: 2px solid #999; }
+  .box { border: 2px solid #000; border-radius: 6px; padding: 6px; text-align: center; margin-top: 4px; }
+  .box .l { font-size: 10px; color: #444; } .box .v { font-size: 16px; font-weight: 900; }
+  .note { font-size: 9px; line-height: 1.6; margin-top: 6px; }
+  @media print { html { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style></head><body>
+<h2>Lounge Cattleya　${year}年${m}月　銀行入金額</h2>
+<div class="sub">株式会社エー・ワイ・シー　出力日：${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</div>
+<table><thead><tr><th>日付</th><th>〜15時現金</th><th>入金額</th><th>15時〜現金</th><th>入金額</th><th>硬貨分<br>（別口入金）</th></tr></thead>
+<tbody>${rows}<tr class="total"><td>合計</td><td>-</td><td>${y(tM)}</td><td>-</td><td>${y(tE)}</td><td>${y(tC)}</td></tr></tbody></table>
+<div class="box"><div class="l">月間 硬貨分（別口入金）合計</div><div class="v">${y(tC)}</div></div>
+<div class="note">※ 現金売上のうち千円未満の硬貨分は、紙幣とは別に保管し、まとめて別口で銀行に入金しています（売上から除いたものではありません）。</div>
+</body></html>`;
+}
+
 async function downloadMonthlyBackup() {
   const btn = document.getElementById('btnBackup');
   const { ym, year, month, startDate, endDate } = monthRange();
@@ -1603,7 +1652,7 @@ async function downloadMonthlyBackup() {
   btn.disabled = true; btn.textContent = '⏳ データを集めています...';
   try {
     const inMonth = q => q.gte('sale_date', startDate).lte('sale_date', endDate);
-    const [sales, items, tobacco, closings, paycas, audits, rSales, rItems] = await Promise.all([
+    const [sales, items, tobacco, closings, paycas, audits, rSales, rItems, ppFails] = await Promise.all([
       fetchAll('sales', inMonth),
       fetchAll('order_items', inMonth),
       fetchAll('tobacco_sales', inMonth),
@@ -1612,6 +1661,7 @@ async function downloadMonthlyBackup() {
       fetchAll('audit_log', q => q.gte('changed_at', startISO).lt('changed_at', endISO)),
       fetchAll('retail_sales', inMonth),
       fetchAll('retail_sale_items', inMonth),
+      fetchAll('paypay_failures', q => q.gte('fail_date', startDate).lte('fail_date', endDate)),
     ]);
     const zip = new JSZip();
     const p = `cattleya_${ym}_`;
@@ -1624,6 +1674,8 @@ async function downloadMonthlyBackup() {
     zip.file(p + '7_来店者一覧（1日ごと・個別の注文）.html', visitListHtml(`来店者一覧　${year}年${parseInt(month)}月`, sales, items, tobacco));
     zip.file(p + '8_参考_物販_ライジンブリス売上_retail_sales.csv', toCsv(rSales));
     zip.file(p + '9_参考_物販明細_ライジンブリス_retail_sale_items.csv', toCsv(rItems));
+    zip.file(p + '10_銀行入金額.html', bankListHtml(year, month, sales));
+    zip.file(p + '11_ペイペイ決済失敗報告_paypay_failures.csv', toCsv(ppFails));
     const salesSum = sales.reduce((a, s) => a + (s.amount || 0), 0);
     const closedSum = closings.reduce((a, c) => a + (c.sales_total || 0), 0);
     zip.file('はじめにお読みください.txt',
@@ -1640,8 +1692,11 @@ async function downloadMonthlyBackup() {
 　　レジの現金・ペイキャス端末には一緒に入るため、照合用に保存しています。
 7_来店者一覧：1日ごとに、朝から閉店までの会計を1件ずつ（時刻・テーブル・人数・支払方法・金額・注文明細）とタバコ販売。
 　　ダブルクリックするとブラウザで開きます。印刷やPDF保存もそこからできます。
+10_銀行入金額：日ごとの現金売上と銀行入金額（〜15時・15時〜）。千円未満の硬貨分は別に保管し、まとめて別口で入金しています。
+　　7と同じくブラウザで開いて印刷・PDF保存できます。
+11_ペイペイ決済失敗報告：決済失敗で未収金計上した会計の報告（発生日時・取引番号・金額・経緯など）。決済失敗を証明する資料は山内家で保存しています。
 
-件数　売上 ${sales.length}行／明細 ${items.length}行／タバコ ${tobacco.length}行／確定 ${closings.length}日／変更履歴 ${audits.length}件
+件数　売上 ${sales.length}行／明細 ${items.length}行／タバコ ${tobacco.length}行／確定 ${closings.length}日／変更履歴 ${audits.length}件／ペイペイ決済失敗 ${ppFails.length}件
 売上合計（現在のデータ）¥${salesSum.toLocaleString()}　確定日計の合計 ¥${closedSum.toLocaleString()}
 CSVはUTF-8（BOM付き）です。Excelでそのまま開けます。
 `);
