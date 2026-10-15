@@ -161,7 +161,10 @@ export default function Kitchen() {
 
   // ===== 夜間通知（印刷のお知らせ・厨房メッセージ） =====
   const [printNotice, setPrintNotice] = useState(null);
-  const [kitchenMsg, setKitchenMsg] = useState("");
+    const [kitchenMsg, setKitchenMsg] = useState("");
+  const [kitchenKey, setKitchenKey] = useState("");
+  const chimedKitchenRef = useRef(lsGet("kitchen_msg_chimed"));
+
   const spokenPrintRef = useRef(lsGet("kitchen_print_spoken"));
 
   const fetchNightNotices = async () => {
