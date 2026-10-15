@@ -250,8 +250,11 @@ export default function App() {
       .then(({ data }) => applyAnnouncement(data));
 
     const announceChannel = supabase.channel("announcements_channel")
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "announcements" }, (payload) => {
+            .on("postgres_changes", { event: "UPDATE", schema: "public", table: "announcements" }, (payload) => {
+        if (payload.new?.id !== 1) return;
         applyAnnouncement(payload.new);
+      })
+
       })
       .subscribe();
     return () => supabase.removeChannel(announceChannel);
