@@ -233,7 +233,18 @@ export default function Kitchen() {
     return () => timers.forEach(clearTimeout);
   }, [printKey, soundOn]);
 
+    // 厨房メッセージ：新しいメッセージごとにチャイム1回
+  useEffect(() => {
+    if (!kitchenKey || !soundOn) return;
+    if (chimedKitchenRef.current === kitchenKey) return;
+    chimedKitchenRef.current = kitchenKey;
+    lsSet("kitchen_msg_chimed", kitchenKey);
+    lastSpokeRef.current = Date.now();
+    playChime();
+  }, [kitchenKey, soundOn]);
+
   const dismissPrintNotice = () => {
+
     if (printNotice) lsSet("kitchen_print_done", printNotice.key);
     setPrintNotice(null);
   };
