@@ -75,9 +75,9 @@ function inClosedWindow() {
 function closedWindowStartISO() {
   const jst = new Date(Date.now() + 9 * 3600 * 1000);
   let d = jst.getUTCDate();
-  if (jst.getUTCHours() < 10) d -= 1;
-  // JST 20:00 = UTC 11:00
-  return new Date(Date.UTC(jst.getUTCFullYear(), jst.getUTCMonth(), d, 11, 0, 0)).toISOString();
+    if (jst.getUTCHours() < 11) d -= 1;
+  // JST 17:00 = UTC 08:00
+  return new Date(Date.UTC(jst.getUTCFullYear(), jst.getUTCMonth(), d, 8, 0, 0)).toISOString();
 }
 
 function lsGet(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
