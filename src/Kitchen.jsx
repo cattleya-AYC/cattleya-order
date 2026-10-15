@@ -67,7 +67,8 @@ function playChime() {
 // 閉店時間帯（20時〜翌10時）かどうか
 function inClosedWindow() {
   const h = new Date(Date.now() + 9 * 3600 * 1000).getUTCHours();
-  return h >= 20 || h < 10;
+    return h >= 17 || h < 11;
+
 }
 
 // 今の閉店時間帯が始まった時刻（直近の20時）
