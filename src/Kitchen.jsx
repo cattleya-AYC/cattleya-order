@@ -186,11 +186,15 @@ export default function Kitchen() {
 
       const { data: a } = await supabase
         .from("announcements")
-        .select("text,expires_at")
+               .select("text,expires_at,updated_at")
+
         .eq("id", 2)
         .limit(1);
       const row = a?.[0];
-      setKitchenMsg(row && row.text && row.expires_at && new Date(row.expires_at) > new Date() ? row.text : "");
+            const active = row && row.text && row.expires_at && new Date(row.expires_at) > new Date();
+      setKitchenMsg(active ? row.text : "");
+      setKitchenKey(active ? String(row.updated_at || row.text) : "");
+
     } catch (e) {}
   };
 
