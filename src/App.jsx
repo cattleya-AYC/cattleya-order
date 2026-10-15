@@ -249,14 +249,13 @@ export default function App() {
     supabase.from("announcements").select("*").eq("id", 1).single()
       .then(({ data }) => applyAnnouncement(data));
 
-    const announceChannel = supabase.channel("announcements_channel")
-            .on("postgres_changes", { event: "UPDATE", schema: "public", table: "announcements" }, (payload) => {
+        const announceChannel = supabase.channel("announcements_channel")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "announcements" }, (payload) => {
         if (payload.new?.id !== 1) return;
         applyAnnouncement(payload.new);
       })
-
-      })
       .subscribe();
+
     return () => supabase.removeChannel(announceChannel);
   }, []);
 
