@@ -80,6 +80,12 @@ function closedWindowStartISO() {
   return new Date(Date.UTC(jst.getUTCFullYear(), jst.getUTCMonth(), d, 8, 0, 0)).toISOString();
 }
 
+// 厨房メッセージの表示時間帯（13時〜翌12時）
+function inKitchenMsgWindow() {
+  const h = new Date(Date.now() + 9 * 3600 * 1000).getUTCHours();
+  return h >= 13 || h < 12;
+}
+
 function lsGet(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
@@ -168,22 +174,28 @@ export default function Kitchen() {
   const spokenPrintRef = useRef(lsGet("kitchen_print_spoken"));
 
   const fetchNightNotices = async () => {
-    if (!inClosedWindow()) { setPrintNotice(null); setKitchenMsg(""); return; }
     try {
-      const since = closedWindowStartISO();
-      const { data } = await supabase
-        .from("print_notifications")
-        .select("*")
-        .gte("sent_at", since)
-        .order("sent_at", { ascending: false })
-        .limit(10);
-      const hit = (data || []).find(r => {
-        try { return (JSON.parse(r.message).title || "").includes("印刷"); } catch (e) { return false; }
-      });
-      const key = hit ? String(hit.id ?? hit.sent_at) : "";
-      if (hit && key !== lsGet("kitchen_print_done")) setPrintNotice({ key });
-      else setPrintNotice(null);
+      // 印刷のお知らせ（17時〜翌11時・今まで通り）
+      if (inClosedWindow()) {
+        const since = closedWindowStartISO();
+        const { data } = await supabase
+          .from("print_notifications")
+          .select("*")
+          .gte("sent_at", since)
+          .order("sent_at", { ascending: false })
+          .limit(10);
+        const hit = (data || []).find(r => {
+          try { return (JSON.parse(r.message).title || "").includes("印刷"); } catch (e) { return false; }
+        });
+        const key = hit ? String(hit.id ?? hit.sent_at) : "";
+        if (hit && key !== lsGet("kitchen_print_done")) setPrintNotice({ key });
+        else setPrintNotice(null);
+      } else {
+        setPrintNotice(null);
+      }
 
+      // 厨房メッセージ（13時〜翌12時）
+      if (!inKitchenMsgWindow()) { setKitchenMsg(""); setKitchenKey(""); return; }
       const { data: a } = await supabase
         .from("announcements")
                .select("text,expires_at,updated_at")
