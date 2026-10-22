@@ -153,7 +153,7 @@
 
   <div class="divider"></div>
 
-  <div class="section-title">🍳 厨房にメッセージ<br/>（17時〜翌11時だけ流れる・11時で自動で消える）</div>
+  <div class="section-title">🍳 厨房にメッセージ<br/>（13時〜翌12時だけ流れる・12時で自動で消える）</div>
   <textarea id="kitchenText" class="text-input" maxlength="50" placeholder="例：明日はケーキ解凍を多めにお願いします"></textarea>
   <div id="kitchenCount" class="char-count">0 / 50</div>
   <div class="btn-row">
@@ -249,13 +249,13 @@
       else showResult(out, "✅ お知らせを消しました", true, 2000);
     }
 
-    // ===== 厨房メッセージ（次の朝11時まで・表示は17時〜11時だけ） =====
-    function next11amJST() {
+    // ===== 厨房メッセージ（次の12時まで・表示は13時〜翌12時だけ） =====
+    function next12pmJST() {
       const jst = new Date(Date.now() + 9 * 3600 * 1000);
       let d = jst.getUTCDate();
-      if (jst.getUTCHours() >= 11) d += 1;
-      // JST 11:00 = UTC 02:00
-      return new Date(Date.UTC(jst.getUTCFullYear(), jst.getUTCMonth(), d, 2, 0, 0)).toISOString();
+      if (jst.getUTCHours() >= 12) d += 1;
+      // JST 12:00 = UTC 03:00
+      return new Date(Date.UTC(jst.getUTCFullYear(), jst.getUTCMonth(), d, 3, 0, 0)).toISOString();
     }
 
     async function sendKitchenMessage() {
@@ -266,14 +266,14 @@
       showResult(out, "送信中…", null);
 
       const { error } = await sb.from("announcements").upsert(
-        { id: KITCHEN_ANNOUNCE_ID, text, expires_at: next11amJST(), updated_at: new Date().toISOString() },
+        { id: KITCHEN_ANNOUNCE_ID, text, expires_at: next12pmJST(), updated_at: new Date().toISOString() },
         { onConflict: "id" }
       );
 
       if (error) {
         showResult(out, "❌ エラーが発生しました", false);
       } else {
-        showResult(out, "✅ 厨房に送りました（翌朝11時まで）", true, 3000);
+        showResult(out, "✅ 厨房に送りました（翌12時まで）", true, 3000);
         input.value = "";
         document.getElementById("kitchenCount").textContent = "0 / 50";
         document.getElementById("kitchenCount").classList.remove("over");
