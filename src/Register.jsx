@@ -1379,6 +1379,16 @@ export default function Register() {
     "紅茶のシフォン", "栗のモンブラン", "バニラアイスクリーム", "コーヒーゼリー"
   ];
   const isFood = (name) => FOOD_SWEET_ITEMS.some(f => name.includes(f));
+  // テーブルボタンに出す「請求の目安」：会計画面を開いたときと同じ計算でセット割引を引いた金額（クーポンは含まない）
+  const tableEstimate = (tableNo) => {
+    const items = tableOrders(tableNo).filter(o => !o.item_name.startsWith("【人数"));
+    const subtotal = items.reduce((s, o) => s + o.price * o.qty, 0);
+    if (items.some(o => o.item_name === "セット値引き")) return subtotal;
+    const foodCount = items.filter(o => isFood(o.item_name)).reduce((a, o) => a + (o.qty || 1), 0);
+    const drinkCount = items.filter(o => !isFood(o.item_name) && !o.item_name.includes("モーニング") && !o.item_name.includes("おかわり") && !o.item_name.includes("オールド") && !o.item_name.includes("バドワイザー") && o.price > 0).reduce((a, o) => a + (o.qty || 1), 0);
+    const sets = Math.min(Math.max(0, foodCount + drinkCount - tablePeople(tableNo)), Math.min(foodCount, drinkCount));
+    return subtotal - sets * 120;
+  };
 
 
   // 会計モーダルを開いたとき、人数 or 0 を初期値にセット
@@ -2145,7 +2155,7 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
                   animation: pulse-border 2s ease-in-out infinite;
                 }
               `}</style>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(92px, 1fr))", gap: 10 }}>
                 {TABLES.map((t) => {
                   const occ = tableOrders(t).length > 0;
                   const people = tablePeople(t);
@@ -2157,6 +2167,11 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
                       {occ && people > 0 && (
                         <div style={{ fontSize: 11, color: "#8a7050", marginTop: 2 }}>{people}名</div>
                       )}
+                                            {occ && (
+                        <div style={{ fontSize: 15, color: "#f0e6d0", marginTop: 2, fontWeight: 700 }}>¥{tableEstimate(t).toLocaleString()}</div>
+                      )}
+
+                  
                     </div>
                   );
                 })}
