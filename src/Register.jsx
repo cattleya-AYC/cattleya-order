@@ -1185,10 +1185,11 @@ export default function Register() {
       await supabase.from("coupons")
         .update({ used_at: new Date().toISOString(), is_used: true, amount_before: amount + couponDiscount, discount_amount: couponDiscount })
         .eq("coupon_no", fullNoUsed).eq("is_used", false);
-    } else if (couponType === "C") {
+        } else if (couponType === "C" || couponType === "B") {
       await supabase.from("coupons").insert({
         coupon_no: `${fullNoUsed}-${Date.now()}`,
-        coupon_type: "C",
+        coupon_type: couponType,
+
         used_at: new Date().toISOString(),
         is_used: true,
         amount_before: amount + couponDiscount,
@@ -1305,9 +1306,7 @@ export default function Register() {
     // Bクーポン専用：〜7月31日まで（日本時間基準）
   const isCouponPeriodB = () => {
     const jstDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
-    const y = jstDate.split("-")[0];
-    const end = `${y}-07-31`;
-    return jstDate <= end;
+       return jstDate <= "2027-03-31";
   };
   const isCouponPeriodC = () => {
     const jstDate = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).split(" ")[0];
@@ -1338,13 +1337,14 @@ export default function Register() {
     setCouponError("");
     if (!couponType) { setCouponError("AまたはBを選んでください"); return; }
     const no = couponNo.trim();
-    if (!no || !/^\d{5}$/.test(no)) { setCouponError("5桁の数字を入力してください"); return; }
+    if (!no || !/^\d{5,6}$/.test(no)) { setCouponError("番号を入力してください")
+; return; }
     const fullNo = `${couponType}${no}`;
 
       if (couponType === "B") {
-      if (!isCouponPeriodB()) { setCouponError("Bクーポンの利用期間は7月31日までです"); return; }
-      const { data } = await supabase.from("coupons").select("*").eq("coupon_no", fullNo).eq("is_used", true);
-      if (data && data.length > 0) { setCouponError("このクーポンはすでに使用済みです"); return; }
+            if (no !== "122520") { setCouponError("Bクーポンの番号は 122520 です"); return; }
+      if (!isCouponPeriodB()) { setCouponError("Bクーポンの利用期間は2027年3月31日までです"); return; }
+
     } else if (couponType === "C") {
       if (!isCouponPeriodC()) { setCouponError("Cクーポンの利用期間は12月31日までです"); return; }
     } else {
@@ -1714,21 +1714,24 @@ const initCount = Math.min(diffCount, minCount); // 両方の小さい方（安�
             <div style={{ color: "#8a8ab0", fontSize: 13, marginBottom: 12 }}>クーポンの種類を選んでください</div>
             <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
                            {["A", "B", "C"].map(t => (
-                <button key={t} onClick={() => { setCouponType(t); if (t === "C") setCouponNo("20268"); }}
-                  style={{ flex: 1, padding: "14px 0", background: couponType === t ? "#5a5ac9" : "transparent", border: `2px solid ${couponType === t ? "#9a9af0" : "#3a3a6a"}`, borderRadius: 10, color: couponType === t ? "#fff" : "#8a8ab0", fontWeight: 900, fontSize: t === "C" ? 15 : 20, cursor: "pointer" }}>
-                  {t === "C" ? "C-20268" : `${t}クーポン`}
+                <button key={t} onClick={() => { setCouponType(t); if (t === "C") setCouponNo("20268"); else if (t === "B") setCouponNo("122520"); else setCouponNo(""); }}
+
+                  style={{ flex: 1, padding: "14px 0", background: couponType === t ? "#5a5ac9" : "transparent", border: `2px solid ${couponType === t ? "#9a9af0" : "#3a3a6a"}`, borderRadius: 10, color: couponType === t ? "#fff" : "#8a8ab0", fontWeight: 900, fontSize: t === "A" ? 20 : 15, cursor: "pointer" }}>
+                  {t === "C" ? "C-20268" : t === "B" ? "B-122520" : `${t}クーポン`}
+
                 </button>
               ))}
 
             </div>
             <div style={{ color: "#8a8ab0", fontSize: 13, marginBottom: 8 }}>5桁の番号を入力</div>
-            <input type="number" value={couponNo} onChange={e => { if (e.target.value.length <= 5) setCouponNo(e.target.value); }}
+            <input type="number" value={couponNo} onChange={e => { if (e.target.value.length <= 6) setCouponNo
+(e.target.value); }}
               placeholder="例：10001"
               style={{ width: "100%", padding: "14px", background: "#0d0d1a", border: "1px solid #5a5ac9", borderRadius: 8, color: "#f0f0ff", fontSize: 22, fontWeight: 700, boxSizing: "border-box", marginBottom: 8, textAlign: "center" }} />
             {couponError && <div style={{ color: "#c95a5a", fontSize: 13, marginBottom: 8 }}>{couponError}</div>}
                         <div style={{ color: "#6a6a9a", fontSize: 12, marginBottom: 14 }}>
               {couponType === "B"
-                ? "5%割引（1の位切り捨て）・1,000円以上のみ・7/31まで"
+                ? "5%割引（1の位切り捨て）・1,000円以上のみ・2027/3/31まで"
                 : couponType === "A"
                 ? "5%割引（1の位切り捨て）・1,000円以上のみ・発行日から2週間有効"
                 : "5%割引（1の位切り捨て）・1,000円以上のみ"}
