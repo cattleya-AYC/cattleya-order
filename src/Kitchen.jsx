@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { useRemoteReload, takeRemoteReloaded } from "./remoteReload";
 
 const supabase = createClient(
   "https://zxdgiszrsmumjjxmvszb.supabase.co",
@@ -164,6 +165,11 @@ export default function Kitchen() {
   const prevIds = useRef(new Set());
   const lastSpokeRef = useRef(Date.now()); // 最後に音が鳴った時刻
   const [coffeeJellyRemain, setCoffeeJellyRemain] = useState(null);
+
+  // 遠隔更新（印刷アプリのボタン）：調理中の注文がないときに読み直す
+  useRemoteReload(supabase, () => orders.length === 0, "kitchen");
+  // 読み直した直後は音声がOFFになるので、全画面で「タップ」を出す
+  const [justReloaded, setJustReloaded] = useState(() => takeRemoteReloaded("kitchen"));
 
   // ===== 夜間通知（印刷のお知らせ・厨房メッセージ） =====
   const [printNotice, setPrintNotice] = useState(null);
@@ -413,6 +419,28 @@ export default function Kitchen() {
   return (
     <div style={{ minHeight: "100vh", background: "#0d0f12", color: "#fff", fontFamily: "'Hiragino Kaku Gothic ProN', sans-serif", padding: 12, paddingBottom: showJellyBanner ? 90 : 12 }}>
 
+      {/* 遠隔更新で読み直した直後：音声をオンにするため全画面タップ */}
+      {justReloaded && !soundOn && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000ee", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 24 }}>
+          <div style={{ color: "#4aaa5a", fontSize: 28, fontWeight: 900, marginBottom: 24, textAlign: "center", lineHeight: 1.5 }}>
+            📱 アプリを最新にしました<br/>音声をオンにしてください
+          </div>
+          <button onClick={() => {
+            unlockAudio();
+            setSoundOn(true); setSoundDead(false); setJustReloaded(false);
+            lastSpokeRef.current = Date.now();
+            speak("音声をオンにしました");
+          }} style={{
+            width: "100%", maxWidth: 500, padding: "56px 0",
+            background: "#c9952a", border: "6px solid #ffcc44",
+            borderRadius: 24, color: "#0d0905",
+            fontSize: 36, fontWeight: 900, cursor: "pointer",
+            animation: "big-pulse 1.2s infinite", lineHeight: 1.4
+          }}>
+            🔔<br/>ここをタップ！
+          </button>
+        </div>
+      )}
       {/* 音声が止まったとき全画面強制タップ */}
       {soundOn && soundDead && (
         <div style={{ position: "fixed", inset: 0, background: "#000000ee", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 999, padding: 24 }}>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { useRemoteReload, takeRemoteReloaded } from "./remoteReload";
 
 const supabase = createClient(
   "https://zxdgiszrsmumjjxmvszb.supabase.co",
@@ -158,6 +159,10 @@ export default function App() {
   const countdownRef = useRef(null);
   const [announcement, setAnnouncement] = useState("");
   const announcementExpiresRef = useRef(null);
+
+  // 遠隔更新（印刷アプリのボタン）：注文の入力中は待って、カートが空になったら読み直す
+  useRemoteReload(supabase, () => cart.length === 0 && !showMoveTable && !showCorrectModal, "order");
+  useEffect(() => { takeRemoteReloaded("order"); }, []);
 
   const executeMoveTable = async () => {
     if (!moveFrom || !moveTo) return;
