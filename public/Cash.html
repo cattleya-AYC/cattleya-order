@@ -293,6 +293,14 @@
     <div class="total-amount" id="totalAmount">¥0</div>
   </div>
 
+  <!-- 閉店モード（20:10前でも、締めのお金を封筒に入れたあとなら押す） -->
+  <div id="closeModeArea" style="display:none;margin-bottom:12px">
+    <button id="btnCloseMode" onclick="toggleCloseMode()"
+      style="width:100%;padding:14px;background:transparent;border:2px solid #5a6aca;border-radius:10px;color:#aab4ff;font-size:15px;font-weight:700;cursor:pointer;line-height:1.5">
+      🌙 閉店後のカウント<br/><span style="font-size:12px;font-weight:400">締めのお金を封筒に入れたあとは、ここを押す</span>
+    </button>
+  </div>
+
   <!-- 15時入金ボタン -->
   <div id="bankBtnArea" style="display:none;margin-bottom:12px">
     <div style="font-size:13px;color:#8a7050;margin-bottom:8px">15時分の銀行入金</div>
@@ -433,6 +441,18 @@ function calc() {
 const _nowHour = new Date().getHours();
 window._deposited = _nowHour >= 15;
 window._selectedStaff = null;
+window._closeMode = false;
+
+function toggleCloseMode() {
+  window._closeMode = !window._closeMode;
+  const b = document.getElementById('btnCloseMode');
+  b.style.background = window._closeMode ? '#2a3a7a' : 'transparent';
+  b.style.color = window._closeMode ? '#fff' : '#aab4ff';
+  b.innerHTML = window._closeMode
+    ? '🌙 閉店後のカウント中（釣り銭50,000円で比べる）<br/><span style="font-size:12px;font-weight:400">もう一度押すと元に戻る</span>'
+    : '🌙 閉店後のカウント<br/><span style="font-size:12px;font-weight:400">締めのお金を封筒に入れたあとは、ここを押す</span>';
+  updateShouldCash();
+}
 
 function setDeposit(deposited) {
   window._deposited = deposited;
@@ -456,8 +476,10 @@ function updateShouldCash() {
   const cashAll = data.filter(s => s.pay_method === '現金').reduce((a, s) => a + s.amount, 0);
   const cashEvening = cashAll - cashMorning;
 
-  // 20:10以降は閉店モード：釣り銭¥50,000のみ
-  if (currentHour > 20 || (currentHour === 20 && currentMin >= 10)) {
+  // 20:10以降、または「閉店後のカウント」を押したら閉店モード：釣り銭¥50,000のみ
+  const autoClose = currentHour > 20 || (currentHour === 20 && currentMin >= 10);
+  document.getElementById('closeModeArea').style.display = (currentHour >= 15 && !autoClose) ? '' : 'none';
+  if (autoClose || window._closeMode) {
     window._shouldCash = 50000;
     window._shouldLabel = 'レジあるべき金額（釣り銭のみ・閉店）';
     document.getElementById('row-morning').style.display = 'none';
@@ -465,6 +487,7 @@ function updateShouldCash() {
     document.getElementById('bankBtnArea').style.display = 'none';
 
   } else if (currentHour >= 15) {
+    document.getElementById('bankBtnArea').style.display = '';
     if (window._deposited) {
       // 入金済み：15時以降の現金のみ
       window._shouldCash = cashEvening + 50000;
