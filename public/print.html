@@ -162,6 +162,18 @@
   </div>
   <div id="kitchenMsg" class="result-msg"></div>
 
+  <div class="divider"></div>
+
+  <div class="section-title">📱 アプリを最新にする<br/>（GitHubで直したあと、お店のスマホ・厨房に反映）</div>
+  <button class="btn-announce" style="width:100%;max-width:320px" onclick="sendReload()">📱 注文アプリ・厨房を最新にする</button>
+  <div class="char-count" style="text-align:left;line-height:1.6">
+    ・開いている画面はすぐ読み直します<br/>
+    ・注文の入力中は、終わってから読み直します<br/>
+    ・厨房は調理中の注文がなくなってから読み直します<br/>
+    ・画面が消えているスマホは、次に開いたときに読み直します
+  </div>
+  <div id="reloadMsg" class="result-msg"></div>
+
   <script>
     const { createClient } = supabase;
     const sb = createClient(
@@ -289,6 +301,19 @@
       );
       if (error) showResult(out, "❌ エラーが発生しました", false);
       else showResult(out, "✅ 厨房メッセージを消しました", true, 2000);
+    }
+
+    // ===== 遠隔更新（announcements の id=3 の updated_at を合図に使う） =====
+    async function sendReload() {
+      const out = document.getElementById("reloadMsg");
+      if (!confirm("注文アプリ・厨房を最新にしますか？\n（GitHubで直してから2分ほど待って押してください）")) return;
+      showResult(out, "送信中…", null);
+      const { error } = await sb.from("announcements").upsert(
+        { id: 3, text: "reload", expires_at: null, updated_at: new Date().toISOString() },
+        { onConflict: "id" }
+      );
+      if (error) showResult(out, "❌ エラーが発生しました：" + (error.message || ""), false);
+      else showResult(out, "✅ 送りました。お店のスマホ・厨房が順番に最新になります", true, 6000);
     }
   </script>
 </body>
