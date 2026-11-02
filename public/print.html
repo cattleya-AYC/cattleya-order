@@ -143,8 +143,8 @@
   <div class="divider"></div>
 
   <div class="section-title">📢 お知らせを流す（テーブル画面上部に10分表示）</div>
-  <input id="announceText" class="text-input" type="text" maxlength="20" placeholder="例：15時までに片付けお願いします" />
-  <div id="charCount" class="char-count">0 / 20</div>
+  <input id="announceText" class="text-input" type="text" maxlength="50" placeholder="例：15時までに片付けお願いします" />
+  <div id="charCount" class="char-count">0 / 50</div>
   <div class="btn-row">
     <button class="btn-clear" onclick="clearAnnouncement()">消す</button>
     <button class="btn-announce" onclick="sendAnnouncement()">送信する（10分表示）</button>
@@ -205,7 +205,7 @@
         count.classList.toggle("over", len >= max);
       });
     }
-    bindCounter("announceText", "charCount", 20);
+    bindCounter("announceText", "charCount", 50);
     bindCounter("kitchenText", "kitchenCount", 50);
 
     function showResult(el, text, ok, ms) {
@@ -233,7 +233,7 @@
       } else {
         showResult(out, "✅ お知らせを送りました（10分間表示）", true, 3000);
         input.value = "";
-        document.getElementById("charCount").textContent = "0 / 20";
+        document.getElementById("charCount").textContent = "0 / 50";
         document.getElementById("charCount").classList.remove("over");
       }
     }
