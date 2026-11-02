@@ -460,7 +460,7 @@ export default function App() {
 
       {announcement && (
         <div style={{ marginTop: 16, padding: "10px 0", background: "#1c1208", border: "2px solid #c9952a", borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ display: "inline-block", whiteSpace: "nowrap", color: "#c9952a", fontWeight: 900, fontSize: 16, paddingLeft: "100%", animation: "marquee 12s linear infinite" }}>
+          <div style={{ display: "inline-block", whiteSpace: "nowrap", color: "#c9952a", fontWeight: 900, fontSize: 16, paddingLeft: "100%", animation: "marquee 25s linear infinite" }}>
             📢 {announcement}
           </div>
         </div>
