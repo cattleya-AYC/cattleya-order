@@ -8,11 +8,11 @@ const supabase = createClient(
 
 const TABLES = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"];
 const RETAIL_ITEMS = [
-  { name: "多肉植物（小）", price: 300 },
+  { name: "多肉植物（小）", price: 200 },
   { name: "多肉植物（大）", price: 500 },
-  { name: "カトレア封筒", price: 300 },
-     { name: "新橋封筒", price: 300 },
-  { name: "花束封筒", price: 300 },
+  { name: "カトレア封筒", price: 100 },
+     { name: "新橋封筒", price: 100 },
+  { name: "花束封筒", price: 100 },
 
   { name: "保冷バッグ", price: 100 },
 ];
